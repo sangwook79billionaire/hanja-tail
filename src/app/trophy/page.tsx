@@ -7,7 +7,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export default function TrophyPage() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<{ attendance: number; correctCount: number; totalLearned: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

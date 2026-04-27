@@ -60,7 +60,7 @@ export default function QuizSection({
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="inline-block bg-duo-green text-white px-4 py-1 rounded-full text-sm font-bold mb-4 shadow-sm">
-            '{hanja}' 꼬리잡기 퀴즈
+            &apos;{hanja}&apos; 꼬리잡기 퀴즈
           </div>
           <h2 className="text-2xl font-bold text-duo-eel leading-tight">
             이 한자가 들어가는<br />단어는 무엇일까요?
@@ -72,7 +72,7 @@ export default function QuizSection({
             뜻풀이
           </div>
           <p className="text-xl font-bold text-center text-duo-eel leading-relaxed">
-            "{quiz.description}"
+            &quot;{quiz.description}&quot;
           </p>
         </div>
 

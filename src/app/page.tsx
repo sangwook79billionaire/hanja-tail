@@ -21,9 +21,9 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [analyzedHanja, setAnalyzedHanja] = useState<HanjaData[]>([]);
   const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
-  const [currentQuiz, setCurrentQuiz] = useState<any>(null);
+  const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
   const [showStats, setShowStats] = useState(false);
-  const [recapData, setRecapData] = useState<any>(null);
+  const [recapData, setRecapData] = useState<{ attendance: number; correctCount: number; totalLearned: number } | null>(null);
 
   const openStats = async () => {
     setIsLoading(true);
@@ -33,7 +33,7 @@ export default function HomePage() {
         setRecapData(result.stats);
         setShowStats(true);
       }
-    } catch (err) {
+    } catch {
       alert("기록을 가져오는 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
@@ -50,7 +50,7 @@ export default function HomePage() {
       } else if (result.error) {
         alert(result.error);
       }
-    } catch (err) {
+    } catch {
       alert("퀴즈를 불러오는 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
@@ -71,7 +71,7 @@ export default function HomePage() {
       } else if (result.hanjaList) {
         setAnalyzedHanja(result.hanjaList);
       }
-    } catch (err) {
+    } catch {
       alert("문제를 분석하는 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);

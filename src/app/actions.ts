@@ -50,7 +50,7 @@ export async function analyzeWord(word: string) {
     // AI 환각 방지: DB에 한자가 있는지 확인하고 있다면 DB 데이터를 우선 사용
     const supabase = createClient();
     const validatedHanjaList = await Promise.all(
-      data.hanjaList.map(async (item: any) => {
+      data.hanjaList.map(async (item: { char: string; meaning: string; sound: string; level: string }) => {
         const { data: dbData } = await supabase
           .from("hanja_master")
           .select("meaning, sound, level")
