@@ -3,36 +3,24 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
 export async function analyzeWord(word: string) {
   if (!word) return { error: "단어를 입력해주세요." };
 
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        responseMimeType: "application/json",
-      }
-    });
+    console.log("Using API Key:", process.env.GEMINI_API_KEY?.substring(0, 8) + "...");
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
       You are a helpful assistant for teaching Hanja to children.
       Analyze the following Korean word: "${word}"
       
-      1. Safety Check: If the word is inappropriate, offensive, or slang, set "isSafe" to false.
-      2. Decompose: Decompose the word into its Hanja characters. For each character, provide:
-         - "char": The Hanja character.
-         - "meaning": The meaning in Korean (e.g., "지나칠").
-         - "sound": The sound in Korean (e.g., "과").
-         - "level": The estimated difficulty level (e.g., "8급", "7급", etc.).
-
-      Return the result in JSON format:
+      Return ONLY a JSON object in this format:
       {
         "isSafe": boolean,
-        "reason": string (only if not safe),
+        "reason": "string if unsafe",
         "hanjaList": [
-          { "char": string, "meaning": string, "sound": string, "level": string }
+          { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
         ]
       }
     `;
@@ -40,8 +28,12 @@ export async function analyzeWord(word: string) {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
+    console.log("Gemini Raw Response:", text);
     
-    const data = JSON.parse(text);
+    // Extract JSON from text if not perfect
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("JSON not found in response");
+    const data = JSON.parse(jsonMatch[0]);
 
     if (!data.isSafe) {
       return { error: data.reason || "아이들에게 부적절한 표현이 포함되어 있습니다." };
@@ -80,8 +72,11 @@ export async function analyzeWord(word: string) {
     }
     
     return { hanjaList: validatedHanjaList };
-  } catch (error) {
-    console.error("Gemini Analysis Error:", error);
+  } catch (error: any) {
+    console.error("Gemini Analysis Full Error:", error);
+    if (error.response) {
+      console.error("Error Response Data:", error.response);
+    }
     return { error: "단어 분석 중 오류가 발생했습니다. API 키를 확인해주세요." };
   }
 }
@@ -105,27 +100,28 @@ export async function generateQuiz(hanja: string) {
     }
 
     // 2. Gemini로 생성
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: { responseMimeType: "application/json" }
-    });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
       You are a Hanja quiz generator for kids.
       Create a "Tail Catching" (꼬리잡기) quiz for the Hanja: "${hanja}".
       Find a common Korean word that includes this Hanja.
       
-      Return JSON:
+      Return ONLY a JSON object in this format:
       {
-        "word": string,
-        "hanja_combination": string,
-        "description": string
+        "word": "단어",
+        "hanja_combination": "漢字",
+        "description": "설명"
       }
     `;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const quizData = JSON.parse(response.text());
+    const text = response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("JSON not found in response");
+    const quizData = JSON.parse(jsonMatch[0]);
 
     // 3. DB에 캐싱
     const { data: newQuiz } = await supabase
