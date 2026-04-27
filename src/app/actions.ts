@@ -72,11 +72,8 @@ export async function analyzeWord(word: string) {
     }
     
     return { hanjaList: validatedHanjaList };
-  } catch (error: any) {
-    console.error("Gemini Analysis Full Error:", error);
-    if (error.response) {
-      console.error("Error Response Data:", error.response);
-    }
+  } catch (error) {
+    console.error("Gemini Analysis Error:", error);
     return { error: "단어 분석 중 오류가 발생했습니다. API 키를 확인해주세요." };
   }
 }
