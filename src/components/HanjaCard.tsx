@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import HanziWriter from "hanzi-writer";
-import { Play } from "lucide-react";
+import { Play, Trophy } from "lucide-react";
 
 interface HanjaData {
   char: string;
@@ -12,7 +12,15 @@ interface HanjaData {
   level: string;
 }
 
-export default function HanjaCard({ data, delay = 0 }: { data: HanjaData; delay?: number }) {
+export default function HanjaCard({ 
+  data, 
+  delay = 0,
+  onQuiz
+}: { 
+  data: HanjaData; 
+  delay?: number;
+  onQuiz?: (hanja: string) => void;
+}) {
   const [isFlipped, setIsFlipped] = useState(false);
   const writerRef = useRef<HTMLDivElement>(null);
   const [writerInstance, setWriterInstance] = useState<HanziWriter | null>(null);
@@ -67,12 +75,23 @@ export default function HanjaCard({ data, delay = 0 }: { data: HanjaData; delay?
           style={{ transform: "rotateY(180deg)" }}
         >
           <div ref={writerRef} className="w-[120px] h-[120px] mb-4 touch-none"></div>
-          <button 
-            onClick={playAnimation}
-            className="flex items-center gap-1 bg-duo-macaw text-white px-4 py-2 rounded-xl font-bold text-sm shadow-[0_3px_0_0_#1899d6] hover:translate-y-[1px] hover:shadow-[0_2px_0_0_#1899d6] active:translate-y-[3px] active:shadow-none transition-all"
-          >
-            <Play className="w-4 h-4 fill-current" /> 써보기
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={playAnimation}
+              className="flex items-center gap-1 bg-duo-snow text-duo-eel px-3 py-2 rounded-xl font-bold text-xs border-2 border-duo-swan hover:bg-duo-swan transition-all"
+            >
+              <Play className="w-3 h-3 fill-current" /> 써보기
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuiz?.(data.char);
+              }}
+              className="flex items-center gap-1 bg-duo-bee text-white px-3 py-2 rounded-xl font-bold text-xs shadow-[0_3px_0_0_#e5a500] hover:translate-y-[1px] hover:shadow-[0_2px_0_0_#e5a500] active:translate-y-[3px] active:shadow-none transition-all"
+            >
+              <Trophy className="w-3 h-3" /> 퀴즈 도전!
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

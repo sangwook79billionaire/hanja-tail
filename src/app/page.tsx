@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap } from "./actions";
+import QuizSection from "@/components/QuizSection";
+import StatsView from "@/components/StatsView";
+import { AnimatePresence } from "framer-motion";
 
 interface HanjaData {
   char: string;
@@ -17,6 +20,42 @@ export default function HomePage() {
   const [word, setWord] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [analyzedHanja, setAnalyzedHanja] = useState<HanjaData[]>([]);
+  const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
+  const [currentQuiz, setCurrentQuiz] = useState<any>(null);
+  const [showStats, setShowStats] = useState(false);
+  const [recapData, setRecapData] = useState<any>(null);
+
+  const openStats = async () => {
+    setIsLoading(true);
+    try {
+      const result = await getLearningRecap();
+      if (result.stats) {
+        setRecapData(result.stats);
+        setShowStats(true);
+      }
+    } catch (err) {
+      alert("기록을 가져오는 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startQuiz = async (hanja: string) => {
+    setIsLoading(true);
+    try {
+      const result = await generateQuiz(hanja);
+      if (result.quiz) {
+        setCurrentQuiz(result.quiz);
+        setSelectedHanjaForQuiz(hanja);
+      } else if (result.error) {
+        alert(result.error);
+      }
+    } catch (err) {
+      alert("퀴즈를 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,9 +85,12 @@ export default function HomePage() {
         <h1 className="text-2xl font-extrabold text-duo-green tracking-tight flex items-center gap-2">
           <Sparkles className="w-6 h-6" /> 한자 꼬리
         </h1>
-        <div className="w-10 h-10 bg-duo-swan rounded-full border-2 border-duo-wolf/20 flex items-center justify-center">
-          😎
-        </div>
+        <button 
+          onClick={openStats}
+          className="w-10 h-10 bg-duo-snow rounded-xl border-2 border-duo-swan flex items-center justify-center hover:bg-duo-swan transition-all"
+        >
+          <Trophy className="w-6 h-6 text-duo-bee" />
+        </button>
       </header>
 
       {/* Main Content */}
@@ -97,12 +139,37 @@ export default function HomePage() {
             <h3 className="text-xl font-bold text-duo-eel mb-2 pl-1">이런 한자가 숨어있어!</h3>
             <div className="grid grid-cols-2 gap-4">
               {analyzedHanja.map((hanja, idx) => (
-                <HanjaCard key={idx} data={hanja} delay={idx * 0.1} />
+                <HanjaCard 
+                  key={idx} 
+                  data={hanja} 
+                  delay={idx * 0.1} 
+                  onQuiz={startQuiz}
+                />
               ))}
             </div>
           </div>
         )}
       </main>
+
+      {/* Quiz Overlay */}
+      <AnimatePresence>
+        {selectedHanjaForQuiz && currentQuiz && (
+          <QuizSection
+            hanja={selectedHanjaForQuiz}
+            quiz={currentQuiz}
+            onClose={() => {
+              setSelectedHanjaForQuiz(null);
+              setCurrentQuiz(null);
+            }}
+          />
+        )}
+        {showStats && recapData && (
+          <StatsView
+            stats={recapData}
+            onClose={() => setShowStats(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
