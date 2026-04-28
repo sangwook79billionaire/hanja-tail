@@ -6,14 +6,30 @@ import { createClient } from "@/lib/supabase/server";
 export async function analyzeWord(word: string) {
   if (!word) return { error: "단어를 입력해주세요." };
 
+  const supabase = createClient();
+  const searchWord = word.trim();
+
   try {
-    console.log("Using API Key:", process.env.GEMINI_API_KEY?.substring(0, 8) + "...");
+    // 1. DB 캐시 먼저 확인
+    const { data: cachedData } = await supabase
+      .from("word_analysis_cache")
+      .select("analysis_json")
+      .eq("word", searchWord)
+      .single();
+
+    if (cachedData) {
+      console.log("Using cached analysis for:", searchWord);
+      return cachedData.analysis_json;
+    }
+
+    // 2. 캐시가 없으면 Gemini 호출
+    console.log("No cache found. Calling Gemini for:", searchWord);
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `
       You are a helpful assistant for teaching Hanja to children.
-      Analyze the following Korean word: "${word}"
+      Analyze the following Korean word: "${searchWord}"
       
       1. Typo Correction: If the word seems to be a typo or misspelled version of a common Korean word (e.g., "자덩차" -> "자동차"), please identify the correct intended word.
       2. Loanword Detection: Determine if the word is a loanword (외래어) or pure Korean (순우리말) that has no Hanja origin (e.g., "컴퓨터", "하늘", "피자").
@@ -35,7 +51,6 @@ export async function analyzeWord(word: string) {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    console.log("Gemini Raw Response:", text);
     
     // Extract JSON from text if not perfect
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -87,11 +102,19 @@ export async function analyzeWord(word: string) {
       console.warn("DB validation skipped due to error:", dbError);
     }
     
-    return { 
+    const resultData = { 
       hanjaList: finalHanjaList,
       correctedWord: data.correctedWord || null,
       isLoanword: data.isLoanword || false
     };
+
+    // 4. 결과를 DB에 캐싱 (다음 검색을 위해)
+    await supabase.from("word_analysis_cache").upsert({
+      word: searchWord,
+      analysis_json: resultData
+    });
+    
+    return resultData;
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
     return { error: "단어 분석 중 오류가 발생했습니다. API 키를 확인해주세요." };
