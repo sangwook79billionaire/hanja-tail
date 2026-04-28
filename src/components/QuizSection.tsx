@@ -25,6 +25,21 @@ export default function QuizSection({
   const [answer, setAnswer] = useState("");
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+
+  const getChosung = (word: string) => {
+    const CHO_SUNG = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+    let result = "";
+    for (let i = 0; i < word.length; i++) {
+      const charCode = word.charCodeAt(i) - 0xac00;
+      if (charCode > -1 && charCode < 11172) {
+        result += CHO_SUNG[Math.floor(charCode / 588)];
+      } else {
+        result += word.charAt(i);
+      }
+    }
+    return result;
+  };
 
   const checkAnswer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +120,22 @@ export default function QuizSection({
             )}
           </div>
 
+          <div className="flex justify-end h-8 items-center">
+            {!showHint && !isSubmitted ? (
+              <button
+                type="button"
+                onClick={() => setShowHint(true)}
+                className="text-sm font-bold text-duo-wolf hover:text-duo-eel transition-colors flex items-center gap-1"
+              >
+                💡 초성 힌트 보기
+              </button>
+            ) : showHint && !isSubmitted ? (
+              <div className="text-lg tracking-[0.3em] font-black text-duo-macaw bg-blue-50 px-4 py-1 rounded-xl border-2 border-duo-macaw/20 shadow-sm animate-fade-in-up">
+                {getChosung(quiz.word)}
+              </div>
+            ) : null}
+          </div>
+
           <AnimatePresence mode="wait">
             {!isSubmitted ? (
               <motion.button
@@ -149,6 +180,7 @@ export default function QuizSection({
                         setIsSubmitted(false);
                         setAnswer("");
                         setIsCorrect(null);
+                        setShowHint(false);
                       }}
                       className="w-full h-14 bg-duo-eel text-white rounded-2xl font-black text-lg shadow-[0_4px_0_0_#2b2b2b] active:translate-y-[4px] active:shadow-none transition-all"
                     >
