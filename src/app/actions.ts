@@ -124,18 +124,18 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
     const prompt = `
       You are a Hanja quiz generator for kids.
       Target Hanja: "${hanja}"
-      ${excludedWord ? `CRITICAL: The TARGET ANSWER must NOT be "${excludedWord}". Choose a DIFFERENT word.` : ""}
+      ${excludedWord ? `CRITICAL RULE: The TARGET ANSWER must NOT be the word "${excludedWord}". I repeat, do NOT use "${excludedWord}". Pick a completely different common word.` : ""}
       
       Task:
-      1. Find a very common, easy Korean word (2~3 letters) that includes the Hanja "${hanja}". (e.g., if Hanja is '校', the word could be '학교'). This is the TARGET ANSWER.
-      2. Write a fun, kid-friendly description/hint that explains the meaning of the TARGET ANSWER so the child can guess it.
-      3. CRITICAL: The "description" must ONLY be a hint for the word. Do NOT ask the user to play word chain or find another word. Do NOT include the TARGET ANSWER directly in the description.
+      1. Find a very common, easy Korean word (2~3 letters) that includes the Hanja "${hanja}". 
+      2. Write a fun, kid-friendly description/hint that explains the meaning of the word.
+      3. Do NOT include the TARGET ANSWER directly in the description.
       
       Return ONLY a JSON object in this format:
       {
         "word": "정답 단어",
         "hanja_combination": "한자",
-        "description": "아이들이 정답을 맞힐 수 있도록 도와주는 재미있는 뜻풀이 힌트"
+        "description": "재미있는 힌트"
       }
     `;
 
@@ -144,7 +144,16 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
     const text = response.text();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("JSON not found in response");
-    const quizData = JSON.parse(jsonMatch[0]);
+    let quizData = JSON.parse(jsonMatch[0]);
+
+    // 한 번 더 검증: 만약 AI가 실수로 제외할 단어를 다시 내뱉었다면, 한 번 더 요청하거나 다른 단어로 강제 변경 시도
+    if (excludedWord && quizData.word === excludedWord) {
+      console.log("Gemini ignored exclusion, retrying once...");
+      const retryResult = await model.generateContent(prompt + "\n\nYOU PREVIOUSLY GAVE ME '" + excludedWord + "'. PLEASE PROVIDE A DIFFERENT WORD.");
+      const retryText = (await retryResult.response).text();
+      const retryJsonMatch = retryText.match(/\{[\s\S]*\}/);
+      if (retryJsonMatch) quizData = JSON.parse(retryJsonMatch[0]);
+    }
 
     // 3. DB에 캐싱
     const { data: newQuiz } = await supabase
