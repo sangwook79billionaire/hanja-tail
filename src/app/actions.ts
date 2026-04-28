@@ -111,14 +111,18 @@ export async function generateQuiz(hanja: string) {
 
     const prompt = `
       You are a Hanja quiz generator for kids.
-      Create a "Tail Catching" (꼬리잡기) quiz for the Hanja: "${hanja}".
-      Find a common Korean word that includes this Hanja.
+      Target Hanja: "${hanja}"
+      
+      Task:
+      1. Find a very common, easy Korean word (2~3 letters) that includes the Hanja "${hanja}". (e.g., if Hanja is '校', the word could be '학교'). This is the TARGET ANSWER.
+      2. Write a fun, kid-friendly description/hint that explains the meaning of the TARGET ANSWER so the child can guess it.
+      3. CRITICAL: The "description" must ONLY be a hint for the word. Do NOT ask the user to play word chain or find another word. Do NOT include the TARGET ANSWER directly in the description.
       
       Return ONLY a JSON object in this format:
       {
-        "word": "단어",
-        "hanja_combination": "漢字",
-        "description": "설명"
+        "word": "정답 단어 (예: 학교)",
+        "hanja_combination": "한자 (예: 學校)",
+        "description": "아이들이 정답을 맞힐 수 있도록 도와주는 재미있는 뜻풀이 힌트 (단어 직접 언급 금지)"
       }
     `;
 
