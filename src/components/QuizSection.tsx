@@ -22,7 +22,7 @@ export default function QuizSection({
   hanja: string; 
   quiz: QuizData; 
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (word: string) => void;
 }) {
   const [answer, setAnswer] = useState("");
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -51,7 +51,7 @@ export default function QuizSection({
 
     if (correct) {
       logLearning(quiz.word, true);
-      onSuccess?.();
+      onSuccess?.(quiz.word);
       confetti({
         particleCount: 150,
         spread: 70,

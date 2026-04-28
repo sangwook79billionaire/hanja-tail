@@ -73,27 +73,26 @@ export default function HomePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!word.trim()) return;
+  const handleAnalyze = async (input: string) => {
+    if (!input.trim()) return;
 
     setIsLoading(true);
     setAnalyzedHanja([]);
     setCorrectionMsg(null);
     
     try {
-      const result = await analyzeWord(word);
+      const result = await analyzeWord(input);
       if (result.error) {
         alert(result.error);
       } else if (result.isLoanword) {
-        setCorrectionMsg(`'${word}'은(는) 한자어가 아닌 외래어(또는 순우리말)라고 해! 한자가 들어있는 다른 단어를 찾아볼까?`);
+        setCorrectionMsg(`'${input}'은(는) 한자어가 아닌 외래어(또는 순우리말)라고 해! 한자가 들어있는 다른 단어를 찾아볼까?`);
         setAnalyzedHanja([]);
       } else if (result.hanjaList) {
         setAnalyzedHanja(result.hanjaList);
-        const finalWord = result.correctedWord || word.trim();
+        const finalWord = result.correctedWord || input.trim();
         setCurrentSearchedWord(finalWord);
-        logLearning(finalWord, true); // 검색한 단어도 학습 기록에 포함
-        if (result.correctedWord && result.correctedWord !== word.trim()) {
+        logLearning(finalWord, true);
+        if (result.correctedWord && result.correctedWord !== input.trim()) {
           setCorrectionMsg(`혹시 '${result.correctedWord}'(을)를 입력하려고 하셨나요? '${result.correctedWord}'(으)로 분석해 드릴게요!`);
         }
         fetchDailyHistory();
@@ -103,6 +102,12 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    handleAnalyze(word);
+    setWord("");
   };
 
   return (
@@ -216,7 +221,15 @@ export default function HomePage() {
           <QuizSection
             hanja={selectedHanjaForQuiz}
             quiz={currentQuiz}
-            onSuccess={fetchDailyHistory}
+            onSuccess={(solvedWord) => {
+              fetchDailyHistory();
+              // 1.5초 후 퀴즈창 닫고 새 단어로 분석 시작 (꼬리 물기)
+              setTimeout(() => {
+                handleAnalyze(solvedWord);
+                setSelectedHanjaForQuiz(null);
+                setCurrentQuiz(null);
+              }, 1500);
+            }}
             onClose={() => {
               setSelectedHanjaForQuiz(null);
               setCurrentQuiz(null);
