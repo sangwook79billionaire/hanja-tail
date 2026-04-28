@@ -8,6 +8,9 @@ import { analyzeWord, generateQuiz, getLearningRecap, logLearning } from "./acti
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import { AnimatePresence, motion } from "framer-motion";
+import AuthModal from "@/components/AuthModal";
+import { createClient } from "@/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 interface LearningLog {
   word: string;
@@ -35,8 +38,24 @@ export default function HomePage() {
   const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
   const [hasAwardedTrophy, setHasAwardedTrophy] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  
+  const supabase = createClient();
 
   const trophyGoal = 5;
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const fetchDailyHistory = async () => {
     const result = await getLearningRecap();
@@ -130,16 +149,39 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen relative p-6 w-full">
       {/* Header */}
-      <header className="flex justify-between items-center mb-8 pt-4">
+      <header className="flex justify-between items-center mb-8 pt-4 max-w-4xl mx-auto w-full">
         <h1 className="text-2xl font-extrabold text-duo-green tracking-tight flex items-center gap-2">
           <Sparkles className="w-6 h-6" /> 꼬리에 꼬리를 무는 한자학습
         </h1>
-        <button 
-          onClick={openStats}
-          className="w-10 h-10 bg-duo-snow rounded-xl border-2 border-duo-swan flex items-center justify-center hover:bg-duo-swan transition-all"
-        >
-          <Trophy className="w-6 h-6 text-duo-bee" />
-        </button>
+        <div className="flex items-center gap-4">
+          {user ? (
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-bold text-duo-wolf">반가워요!</p>
+                <p className="text-sm font-black text-duo-eel">{user.email?.split('@')[0]}</p>
+              </div>
+              <button 
+                onClick={() => supabase.auth.signOut()}
+                className="px-4 py-2 bg-duo-snow rounded-xl border-2 border-duo-swan font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all"
+              >
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-6 py-2 bg-duo-green text-white rounded-xl border-b-4 border-green-700 font-black hover:brightness-110 transition-all"
+            >
+              로그인
+            </button>
+          )}
+          <button 
+            onClick={openStats}
+            className="w-10 h-10 bg-duo-snow rounded-xl border-2 border-duo-swan flex items-center justify-center hover:bg-duo-swan transition-all"
+          >
+            <Trophy className="w-6 h-6 text-duo-bee" />
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -318,6 +360,11 @@ export default function HomePage() {
             </motion.div>
           </motion.div>
         )}
+        {/* Auth Modal */}
+        <AuthModal 
+          isOpen={isAuthModalOpen} 
+          onClose={() => setIsAuthModalOpen(false)} 
+        />
       </AnimatePresence>
     </div>
   );
