@@ -97,10 +97,9 @@ export default function HomePage() {
       <main className="flex-1 flex flex-col items-center">
         {/* Intro */}
         <div className="mb-10 text-center animate-fade-in-up">
-          <h2 className="text-3xl font-bold text-duo-eel mb-3 leading-tight">
-            오늘 새로 배운 단어는<br />뭐야?
+          <h2 className="text-2xl font-bold text-duo-eel leading-tight">
+            오늘 배운 단어를 알려주면<br />한자의 비밀을 알려줄게!
           </h2>
-          <p className="text-duo-wolf font-medium">단어를 입력하면 한자의 비밀을 알려줄게!</p>
         </div>
 
         {/* Input Form */}
