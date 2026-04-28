@@ -29,19 +29,20 @@ export async function analyzeWord(word: string) {
 
     const prompt = `
       You are a helpful assistant for teaching Hanja to children.
-      Analyze the following Korean word: "${searchWord}"
+      Analyze the following word (could be in Hangul or Hanja): "${searchWord}"
       
-      1. Typo Correction: If the word seems to be a typo or misspelled version of a common Korean word (e.g., "자덩차" -> "자동차"), please identify the correct intended word.
-      2. Loanword Detection: Determine if the word is a loanword (외래어) or pure Korean (순우리말) that has no Hanja origin (e.g., "컴퓨터", "하늘", "피자").
-      3. Safety Check: If the word is inappropriate, set isSafe to false.
-      4. Hanja Analysis: Decompose the (corrected) word into its Hanja characters IF it has a Hanja origin.
+      1. Input Handling: If the input is in Hanja (e.g., "學校"), identify its Hangul equivalent (e.g., "학교") and set it as "correctedWord".
+      2. Typo Correction: If the input is a misspelled Hangul word, suggest the correct intended word.
+      3. Loanword Detection: Determine if it's a loanword or pure Korean with no Hanja origin.
+      4. Safety Check: Ensure the word is appropriate for kids.
+      5. Hanja Analysis: Decompose the word into its Hanja characters with meaning, sound, and level.
 
       Return ONLY a JSON object in this format:
       {
         "isSafe": boolean,
         "reason": "string if unsafe",
-        "isLoanword": boolean (true if the word has no Hanja origin like loanwords or pure Korean),
-        "correctedWord": "string (the intended correct Korean word if different from input, else null)",
+        "isLoanword": boolean,
+        "correctedWord": "string (Hangul equivalent or corrected version)",
         "hanjaList": [
           { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
         ]
