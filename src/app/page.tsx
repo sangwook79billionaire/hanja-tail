@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Sparkles, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
@@ -25,6 +25,21 @@ export default function HomePage() {
   const [showStats, setShowStats] = useState(false);
   const [recapData, setRecapData] = useState<{ attendance: number; correctCount: number; totalLearned: number } | null>(null);
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
+  const [currentSearchedWord, setCurrentSearchedWord] = useState<string | null>(null);
+  const [dailyHistory, setDailyHistory] = useState<any[]>([]);
+
+  const fetchDailyHistory = async () => {
+    const result = await getLearningRecap();
+    if (result.logs) {
+      const today = new Date().toDateString();
+      const filtered = result.logs.filter((log: any) => new Date(log.learned_at).toDateString() === today);
+      setDailyHistory(filtered);
+    }
+  };
+
+  useEffect(() => {
+    fetchDailyHistory();
+  }, []);
 
   const openStats = async () => {
     setIsLoading(true);
@@ -44,7 +59,7 @@ export default function HomePage() {
   const startQuiz = async (hanja: string) => {
     setIsLoading(true);
     try {
-      const result = await generateQuiz(hanja);
+      const result = await generateQuiz(hanja, currentSearchedWord || undefined);
       if (result.quiz) {
         setCurrentQuiz(result.quiz);
         setSelectedHanjaForQuiz(hanja);
@@ -75,9 +90,13 @@ export default function HomePage() {
         setAnalyzedHanja([]);
       } else if (result.hanjaList) {
         setAnalyzedHanja(result.hanjaList);
+        const finalWord = result.correctedWord || word.trim();
+        setCurrentSearchedWord(finalWord);
+        logLearning(finalWord, true); // 검색한 단어도 학습 기록에 포함
         if (result.correctedWord && result.correctedWord !== word.trim()) {
           setCorrectionMsg(`혹시 '${result.correctedWord}'(을)를 입력하려고 하셨나요? '${result.correctedWord}'(으)로 분석해 드릴게요!`);
         }
+        fetchDailyHistory();
       }
     } catch {
       alert("문제를 분석하는 중 오류가 발생했습니다.");
@@ -166,6 +185,29 @@ export default function HomePage() {
             </div>
           </div>
         )}
+
+        {/* Daily History */}
+        {dailyHistory.length > 0 && (
+          <div className="w-full mt-12 mb-20 animate-fade-in">
+            <div className="flex items-center gap-2 mb-4 px-1">
+              <div className="w-8 h-8 bg-duo-bee rounded-lg flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-duo-eel">오늘 공부한 단어들</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {dailyHistory.map((item, idx) => (
+                <div 
+                  key={idx}
+                  className="bg-white border-2 border-duo-swan px-4 py-2 rounded-xl text-sm font-bold text-duo-eel flex items-center gap-2 shadow-sm"
+                >
+                  {item.word}
+                  {item.is_correct && <span className="text-duo-green">✓</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Quiz Overlay */}
@@ -174,6 +216,7 @@ export default function HomePage() {
           <QuizSection
             hanja={selectedHanjaForQuiz}
             quiz={currentQuiz}
+            onSuccess={fetchDailyHistory}
             onClose={() => {
               setSelectedHanjaForQuiz(null);
               setCurrentQuiz(null);

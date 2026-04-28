@@ -16,11 +16,13 @@ interface QuizData {
 export default function QuizSection({ 
   hanja, 
   quiz, 
-  onClose 
+  onClose,
+  onSuccess
 }: { 
   hanja: string; 
   quiz: QuizData; 
-  onClose: () => void 
+  onClose: () => void;
+  onSuccess?: () => void;
 }) {
   const [answer, setAnswer] = useState("");
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -49,6 +51,7 @@ export default function QuizSection({
 
     if (correct) {
       logLearning(quiz.word, true);
+      onSuccess?.();
       confetti({
         particleCount: 150,
         spread: 70,

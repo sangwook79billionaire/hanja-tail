@@ -98,7 +98,7 @@ export async function analyzeWord(word: string) {
   }
 }
 
-export async function generateQuiz(hanja: string) {
+export async function generateQuiz(hanja: string, excludedWord?: string) {
   if (!hanja) return { error: "한자를 선택해주세요." };
 
   const supabase = createClient();
@@ -109,7 +109,8 @@ export async function generateQuiz(hanja: string) {
       .from("quiz_bank")
       .select("*")
       .like("hanja_combination", `%${hanja}%`)
-      .limit(3);
+      .neq("word", excludedWord || "")
+      .limit(5);
 
     if (existingQuizzes && existingQuizzes.length > 0) {
       const quiz = existingQuizzes[Math.floor(Math.random() * existingQuizzes.length)];
@@ -123,6 +124,7 @@ export async function generateQuiz(hanja: string) {
     const prompt = `
       You are a Hanja quiz generator for kids.
       Target Hanja: "${hanja}"
+      ${excludedWord ? `CRITICAL: The TARGET ANSWER must NOT be "${excludedWord}". Choose a DIFFERENT word.` : ""}
       
       Task:
       1. Find a very common, easy Korean word (2~3 letters) that includes the Hanja "${hanja}". (e.g., if Hanja is '校', the word could be '학교'). This is the TARGET ANSWER.
@@ -131,9 +133,9 @@ export async function generateQuiz(hanja: string) {
       
       Return ONLY a JSON object in this format:
       {
-        "word": "정답 단어 (예: 학교)",
-        "hanja_combination": "한자 (예: 學校)",
-        "description": "아이들이 정답을 맞힐 수 있도록 도와주는 재미있는 뜻풀이 힌트 (단어 직접 언급 금지)"
+        "word": "정답 단어",
+        "hanja_combination": "한자",
+        "description": "아이들이 정답을 맞힐 수 있도록 도와주는 재미있는 뜻풀이 힌트"
       }
     `;
 
