@@ -115,8 +115,11 @@ export async function analyzeWord(word: string) {
     });
     
     return resultData;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
+    if (error?.status === 429 || error?.message?.includes("429")) {
+      return { error: "한자 박사님이 지금 공부 중이에요! 1분만 기다렸다가 다시 물어봐 줄래?" };
+    }
     return { error: "단어 분석 중 오류가 발생했습니다. API 키를 확인해주세요." };
   }
 }
@@ -191,8 +194,11 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
       .single();
 
     return { quiz: newQuiz || quizData };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Quiz Generation Error:", error);
+    if (error?.status === 429 || error?.message?.includes("429")) {
+      return { error: "퀴즈 박사가 지금 바빠요! 잠시 후에 다시 문제를 내달라고 할까요?" };
+    }
     return { error: "퀴즈를 생성하는 중 오류가 발생했습니다." };
   }
 }
