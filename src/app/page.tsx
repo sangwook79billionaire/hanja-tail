@@ -90,11 +90,11 @@ export default function HomePage() {
     }
   };
 
-  const handleAnalyze = async (input: string) => {
+  const handleAnalyze = async (input: string, isManual: boolean = false) => {
     if (!input.trim()) return;
 
     setIsLoading(true);
-    setAnalyzedHanja([]);
+    if (isManual) setAnalyzedHanja([]); // 직접 검색할 때만 화면을 비웁니다.
     setCorrectionMsg(null);
     
     try {
@@ -123,7 +123,7 @@ export default function HomePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    handleAnalyze(word);
+    handleAnalyze(word, true);
     setWord("");
   };
 
@@ -153,7 +153,8 @@ export default function HomePage() {
         {/* Intro */}
         <div className="mb-10 text-center animate-fade-in-up">
           <h2 className="text-2xl font-bold text-duo-eel leading-tight">
-            오늘 배운 단어를 알려주면<br />한자의 비밀을 알려줄게!
+            오늘 새로 배운 단어나 궁금한 단어를 찾아봐<br />
+            한자의 비밀을 같이 풀어보자!
           </h2>
         </div>
 
