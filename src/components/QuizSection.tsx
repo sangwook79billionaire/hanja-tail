@@ -131,6 +131,7 @@ export default function QuizSection({
                       <Trophy className="w-6 h-6" /> 참 잘했어요!
                     </p>
                     <button
+                      type="button"
                       onClick={onClose}
                       className="w-full h-14 bg-duo-macaw text-white rounded-2xl font-black text-lg shadow-duo-macaw active:translate-y-[4px] active:shadow-none transition-all"
                     >
@@ -143,6 +144,7 @@ export default function QuizSection({
                       아쉬워요! 다시 해볼까요?
                     </p>
                     <button
+                      type="button"
                       onClick={() => {
                         setIsSubmitted(false);
                         setAnswer("");
