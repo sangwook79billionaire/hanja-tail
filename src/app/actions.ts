@@ -16,13 +16,15 @@ export async function analyzeWord(word: string) {
       Analyze the following Korean word: "${word}"
       
       1. Typo Correction: If the word seems to be a typo or misspelled version of a common Korean word (e.g., "자덩차" -> "자동차"), please identify the correct intended word.
-      2. Safety Check: If the word is inappropriate, set isSafe to false.
-      3. Hanja Analysis: Decompose the (corrected) word into its Hanja characters.
+      2. Loanword Detection: Determine if the word is a loanword (외래어) or pure Korean (순우리말) that has no Hanja origin (e.g., "컴퓨터", "하늘", "피자").
+      3. Safety Check: If the word is inappropriate, set isSafe to false.
+      4. Hanja Analysis: Decompose the (corrected) word into its Hanja characters IF it has a Hanja origin.
 
       Return ONLY a JSON object in this format:
       {
         "isSafe": boolean,
         "reason": "string if unsafe",
+        "isLoanword": boolean (true if the word has no Hanja origin like loanwords or pure Korean),
         "correctedWord": "string (the intended correct Korean word if different from input, else null)",
         "hanjaList": [
           { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
@@ -87,7 +89,8 @@ export async function analyzeWord(word: string) {
     
     return { 
       hanjaList: finalHanjaList,
-      correctedWord: data.correctedWord || null
+      correctedWord: data.correctedWord || null,
+      isLoanword: data.isLoanword || false
     };
   } catch (error) {
     console.error("Gemini Analysis Error:", error);

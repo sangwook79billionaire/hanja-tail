@@ -70,6 +70,9 @@ export default function HomePage() {
       const result = await analyzeWord(word);
       if (result.error) {
         alert(result.error);
+      } else if (result.isLoanword) {
+        setCorrectionMsg(`'${word}'은(는) 한자어가 아닌 외래어(또는 순우리말)라고 해! 한자가 들어있는 다른 단어를 찾아볼까?`);
+        setAnalyzedHanja([]);
       } else if (result.hanjaList) {
         setAnalyzedHanja(result.hanjaList);
         if (result.correctedWord && result.correctedWord !== word.trim()) {
