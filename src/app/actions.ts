@@ -39,39 +39,48 @@ export async function analyzeWord(word: string) {
       return { error: data.reason || "아이들에게 부적절한 표현이 포함되어 있습니다." };
     }
 
-    // AI 환각 방지: DB에 한자가 있는지 확인하고 있다면 DB 데이터를 우선 사용
-    const supabase = createClient();
-    const validatedHanjaList = await Promise.all(
-      data.hanjaList.map(async (item: { char: string; meaning: string; sound: string; level: string }) => {
-        const { data: dbData } = await supabase
-          .from("hanja_master")
-          .select("meaning, sound, level")
-          .eq("hanja", item.char)
-          .maybeSingle();
-        
-        if (dbData) {
-          return {
-            ...item,
-            meaning: dbData.meaning,
-            sound: dbData.sound,
-            level: dbData.level || item.level
-          };
-        }
-        return item; // DB에 없으면 Gemini의 분석 결과를 그대로 사용
-      })
-    );
-    
-    // DB에 사용자 입력 내역 저장 (데이터 격리 및 관리자 검토용)
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData?.user) {
-      await supabase.from("user_items").insert({
-        user_id: userData.user.id,
-        word: word,
-        hanja_combination: validatedHanjaList.map(h => h.char).join("")
-      });
+    let finalHanjaList = data.hanjaList;
+
+    try {
+      // AI 환각 방지: DB에 한자가 있는지 확인하고 있다면 DB 데이터를 우선 사용
+      const supabase = createClient();
+      const validatedHanjaList = await Promise.all(
+        data.hanjaList.map(async (item: { char: string; meaning: string; sound: string; level: string }) => {
+          const { data: dbData } = await supabase
+            .from("hanja_master")
+            .select("meaning, sound, level")
+            .eq("hanja", item.char)
+            .maybeSingle();
+          
+          if (dbData) {
+            return {
+              ...item,
+              meaning: dbData.meaning,
+              sound: dbData.sound,
+              level: dbData.level || item.level
+            };
+          }
+          return item;
+        })
+      );
+      
+      finalHanjaList = validatedHanjaList;
+
+      // DB에 사용자 입력 내역 저장
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        // Fire and forget to not block the UI
+        supabase.from("user_items").insert({
+          user_id: userData.user.id,
+          word: word,
+          hanja_combination: finalHanjaList.map((h: { char: string; meaning: string; sound: string; level: string }) => h.char).join("")
+        }).then();
+      }
+    } catch (dbError) {
+      console.warn("DB validation skipped due to error:", dbError);
     }
     
-    return { hanjaList: validatedHanjaList };
+    return { hanjaList: finalHanjaList };
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
     return { error: "단어 분석 중 오류가 발생했습니다. API 키를 확인해주세요." };
