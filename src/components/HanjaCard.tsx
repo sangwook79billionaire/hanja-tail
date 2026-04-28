@@ -29,8 +29,8 @@ export default function HanjaCard({
     if (isFlipped && writerRef.current && !writerInstance) {
       // Initialize HanziWriter when flipped for the first time
       const writer = HanziWriter.create(writerRef.current, data.char, {
-        width: 120,
-        height: 120,
+        width: 100,
+        height: 100,
         padding: 5,
         strokeColor: "#4b4b4b",
         radicalColor: "#58cc02",
@@ -61,35 +61,37 @@ export default function HanjaCard({
         style={{ transformStyle: "preserve-3d" }}
       >
         {/* Front */}
-        <div className="absolute w-full h-full backface-hidden bg-white border-2 border-duo-swan rounded-2xl shadow-[0_4px_0_0_#e5e5e5] flex flex-col items-center justify-center p-4">
-          <div className="text-6xl font-black text-duo-eel mb-2 drop-shadow-sm">{data.char}</div>
-          <div className="text-lg font-bold text-duo-wolf">{data.meaning} {data.sound}</div>
-          <div className="absolute top-3 right-3 bg-duo-snow text-duo-wolf text-xs font-bold px-2 py-1 rounded-md">
+        <div className="absolute w-full h-full backface-hidden bg-white border-2 border-duo-swan rounded-2xl shadow-[0_4px_0_0_#e5e5e5] flex flex-col items-center justify-center p-2 text-center">
+          <div className="text-4xl sm:text-5xl font-black text-duo-eel mb-1 drop-shadow-sm">{data.char}</div>
+          <div className="text-[13px] sm:text-base font-bold text-duo-wolf leading-tight">
+            {data.meaning}<br />{data.sound}
+          </div>
+          <div className="absolute top-2 right-2 bg-duo-snow text-duo-wolf text-[9px] font-bold px-1.5 py-0.5 rounded">
             {data.level}
           </div>
         </div>
 
         {/* Back */}
         <div 
-          className="absolute w-full h-full backface-hidden bg-white border-2 border-duo-swan rounded-2xl shadow-[0_4px_0_0_#e5e5e5] flex flex-col items-center justify-center p-4"
+          className="absolute w-full h-full backface-hidden bg-white border-2 border-duo-swan rounded-2xl shadow-[0_4px_0_0_#e5e5e5] flex flex-col items-center justify-center p-2"
           style={{ transform: "rotateY(180deg)" }}
         >
-          <div ref={writerRef} className="w-[120px] h-[120px] mb-4 touch-none"></div>
-          <div className="flex gap-2">
+          <div ref={writerRef} className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] mb-2 touch-none scale-90 sm:scale-100"></div>
+          <div className="flex flex-col sm:flex-row gap-1 w-full px-2">
             <button 
               onClick={playAnimation}
-              className="flex items-center gap-1 bg-duo-snow text-duo-eel px-3 py-2 rounded-xl font-bold text-xs border-2 border-duo-swan hover:bg-duo-swan transition-all"
+              className="flex-1 flex items-center justify-center gap-1 bg-duo-snow text-duo-eel py-1.5 rounded-lg font-bold text-[10px] sm:text-xs border-2 border-duo-swan hover:bg-duo-swan transition-all"
             >
-              <Play className="w-3 h-3 fill-current" /> 써보기
+              <Play className="w-2.5 h-2.5 fill-current" /> 써보기
             </button>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 onQuiz?.(data.char);
               }}
-              className="flex items-center gap-1 bg-duo-bee text-white px-3 py-2 rounded-xl font-bold text-xs shadow-[0_3px_0_0_#e5a500] hover:translate-y-[1px] hover:shadow-[0_2px_0_0_#e5a500] active:translate-y-[3px] active:shadow-none transition-all"
+              className="flex-1 flex items-center justify-center gap-1 bg-duo-bee text-white py-1.5 rounded-lg font-bold text-[10px] sm:text-xs shadow-[0_2px_0_0_#e5a500] hover:translate-y-[1px] hover:shadow-[0_1px_0_0_#e5a500] active:translate-y-[2px] active:shadow-none transition-all"
             >
-              <Trophy className="w-3 h-3" /> 퀴즈 도전!
+              <Trophy className="w-2.5 h-2.5" /> 퀴즈
             </button>
           </div>
         </div>

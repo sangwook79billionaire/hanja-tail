@@ -150,7 +150,11 @@ export default function HomePage() {
         {analyzedHanja.length > 0 && (
           <div className="w-full flex flex-col gap-4 animate-fade-in">
             <h3 className="text-xl font-bold text-duo-eel mb-2 pl-1">이런 한자가 숨어있어!</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className={cn(
+              "grid gap-3 transition-all duration-500",
+              analyzedHanja.length === 3 || analyzedHanja.length >= 5 ? "grid-cols-3 w-full" : 
+              analyzedHanja.length === 2 || analyzedHanja.length === 4 ? "grid-cols-2 w-[68%] mx-auto" : "grid-cols-2 w-full"
+            )}>
               {analyzedHanja.map((hanja, idx) => (
                 <HanjaCard 
                   key={idx} 
