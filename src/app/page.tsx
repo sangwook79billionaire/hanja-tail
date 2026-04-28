@@ -24,6 +24,7 @@ export default function HomePage() {
   const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [recapData, setRecapData] = useState<{ attendance: number; correctCount: number; totalLearned: number } | null>(null);
+  const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
 
   const openStats = async () => {
     setIsLoading(true);
@@ -63,13 +64,17 @@ export default function HomePage() {
 
     setIsLoading(true);
     setAnalyzedHanja([]);
+    setCorrectionMsg(null);
     
     try {
       const result = await analyzeWord(word);
       if (result.error) {
-        alert(result.error); // Simple alert for now, can be improved to a better UI
+        alert(result.error);
       } else if (result.hanjaList) {
         setAnalyzedHanja(result.hanjaList);
+        if (result.correctedWord && result.correctedWord !== word.trim()) {
+          setCorrectionMsg(`혹시 '${result.correctedWord}'(을)를 입력하려고 하셨나요? '${result.correctedWord}'(으)로 분석해 드릴게요!`);
+        }
       }
     } catch {
       alert("문제를 분석하는 중 오류가 발생했습니다.");
@@ -95,6 +100,12 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center">
+        {/* Results */}
+        {correctionMsg && (
+          <div className="w-full max-w-sm mb-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl text-amber-800 font-bold text-center animate-bounce">
+            💡 {correctionMsg}
+          </div>
+        )}
         {/* Intro */}
         <div className="mb-10 text-center animate-fade-in-up">
           <h2 className="text-2xl font-bold text-duo-eel leading-tight">

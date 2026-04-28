@@ -15,10 +15,15 @@ export async function analyzeWord(word: string) {
       You are a helpful assistant for teaching Hanja to children.
       Analyze the following Korean word: "${word}"
       
+      1. Typo Correction: If the word seems to be a typo or misspelled version of a common Korean word (e.g., "자덩차" -> "자동차"), please identify the correct intended word.
+      2. Safety Check: If the word is inappropriate, set isSafe to false.
+      3. Hanja Analysis: Decompose the (corrected) word into its Hanja characters.
+
       Return ONLY a JSON object in this format:
       {
         "isSafe": boolean,
         "reason": "string if unsafe",
+        "correctedWord": "string (the intended correct Korean word if different from input, else null)",
         "hanjaList": [
           { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
         ]
@@ -80,7 +85,10 @@ export async function analyzeWord(word: string) {
       console.warn("DB validation skipped due to error:", dbError);
     }
     
-    return { hanjaList: finalHanjaList };
+    return { 
+      hanjaList: finalHanjaList,
+      correctedWord: data.correctedWord || null
+    };
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
     return { error: "단어 분석 중 오류가 발생했습니다. API 키를 확인해주세요." };
