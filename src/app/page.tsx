@@ -7,7 +7,13 @@ import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+
+interface LearningLog {
+  word: string;
+  is_correct: boolean;
+  learned_at: string;
+}
 
 interface HanjaData {
   char: string;
@@ -26,7 +32,7 @@ export default function HomePage() {
   const [recapData, setRecapData] = useState<{ attendance: number; correctCount: number; totalLearned: number } | null>(null);
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
   const [currentSearchedWord, setCurrentSearchedWord] = useState<string | null>(null);
-  const [dailyHistory, setDailyHistory] = useState<any[]>([]);
+  const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
   const [hasAwardedTrophy, setHasAwardedTrophy] = useState(false);
 
@@ -36,7 +42,7 @@ export default function HomePage() {
     const result = await getLearningRecap();
     if (result.logs) {
       const today = new Date().toDateString();
-      const filtered = result.logs.filter((log: any) => new Date(log.learned_at).toDateString() === today);
+      const filtered = result.logs.filter((log: LearningLog) => new Date(log.learned_at).toDateString() === today);
       setDailyHistory(filtered);
     }
   };
