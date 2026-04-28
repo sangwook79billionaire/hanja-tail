@@ -27,6 +27,10 @@ export default function HomePage() {
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
   const [currentSearchedWord, setCurrentSearchedWord] = useState<string | null>(null);
   const [dailyHistory, setDailyHistory] = useState<any[]>([]);
+  const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
+  const [hasAwardedTrophy, setHasAwardedTrophy] = useState(false);
+
+  const trophyGoal = 5;
 
   const fetchDailyHistory = async () => {
     const result = await getLearningRecap();
@@ -40,6 +44,13 @@ export default function HomePage() {
   useEffect(() => {
     fetchDailyHistory();
   }, []);
+
+  useEffect(() => {
+    if (dailyHistory.length >= trophyGoal && !hasAwardedTrophy) {
+      setShowTrophyCelebration(true);
+      setHasAwardedTrophy(true);
+    }
+  }, [dailyHistory, hasAwardedTrophy]);
 
   const openStats = async () => {
     setIsLoading(true);
@@ -191,14 +202,43 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Daily History */}
+        {/* Daily History & Progress */}
         {dailyHistory.length > 0 && (
           <div className="w-full mt-12 mb-20 animate-fade-in">
-            <div className="flex items-center gap-2 mb-4 px-1">
-              <div className="w-8 h-8 bg-duo-bee rounded-lg flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-white" />
+            <div className="bg-white border-2 border-duo-swan rounded-2xl p-5 shadow-sm mb-6">
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                    dailyHistory.length >= trophyGoal ? "bg-duo-bee" : "bg-duo-swan"
+                  )}>
+                    <Trophy className={cn("w-5 h-5", dailyHistory.length >= trophyGoal ? "text-white" : "text-duo-wolf")} />
+                  </div>
+                  <h3 className="text-lg font-bold text-duo-eel">오늘의 미션</h3>
+                </div>
+                <span className="text-sm font-extrabold text-duo-wolf">
+                  {dailyHistory.length} / {trophyGoal}
+                </span>
               </div>
-              <h3 className="text-xl font-bold text-duo-eel">오늘 공부한 단어들</h3>
+              
+              {/* Progress Bar */}
+              <div className="w-full h-4 bg-duo-snow rounded-full overflow-hidden border-2 border-duo-swan">
+                <motion.div 
+                  className="h-full bg-duo-bee"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(Math.min(dailyHistory.length, trophyGoal) / trophyGoal) * 100}%` }}
+                  transition={{ type: "spring", bounce: 0.4 }}
+                />
+              </div>
+              <p className="text-xs text-duo-wolf mt-2 font-bold text-center">
+                {dailyHistory.length >= trophyGoal 
+                  ? "🎉 오늘의 트로피 획득 성공!" 
+                  : `${trophyGoal - dailyHistory.length}개만 더 채우면 오늘의 트로피를 얻을 수 있어!`}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 mb-4 px-1">
+              <h3 className="text-lg font-bold text-duo-eel">오늘 공부한 단어들</h3>
             </div>
             <div className="flex flex-wrap gap-2">
               {dailyHistory.map((item, idx) => (
@@ -241,6 +281,35 @@ export default function HomePage() {
             stats={recapData}
             onClose={() => setShowStats(false)}
           />
+        )}
+        
+        {/* Trophy Celebration */}
+        {showTrophyCelebration && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+            onClick={() => setShowTrophyCelebration(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.5, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-3xl p-8 flex flex-col items-center text-center shadow-2xl max-w-sm w-full"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-24 h-24 bg-duo-bee rounded-full flex items-center justify-center mb-6 shadow-[0_8px_0_0_#e5a500]">
+                <Trophy className="w-14 h-14 text-white" />
+              </div>
+              <h2 className="text-3xl font-black text-duo-eel mb-2">축하해요!</h2>
+              <p className="text-duo-wolf font-bold mb-8">오늘의 한자 학습 미션을 완료했어요!<br/>반짝이는 트로피를 획득했습니다.</p>
+              <button 
+                onClick={() => setShowTrophyCelebration(false)}
+                className="w-full bg-duo-green text-white py-4 rounded-2xl font-black text-lg shadow-[0_4px_0_0_#46a302] active:translate-y-1 active:shadow-none transition-all"
+              >
+                고마워!
+              </button>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
