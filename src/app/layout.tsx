@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "한자 꼬리 (Hanja Tail)",
-  description: "아이들을 위한 한자 꼬리잡기 퀴즈 앱",
+  title: "꼬리에 꼬리를 무는 한자학습",
+  description: "아이들을 위한 즐거운 한자 꼬리잡기 학습 앱",
   manifest: "/manifest.json",
 };
 

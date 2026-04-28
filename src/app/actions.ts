@@ -9,7 +9,7 @@ export async function analyzeWord(word: string) {
   try {
     console.log("Using API Key:", process.env.GEMINI_API_KEY?.substring(0, 8) + "...");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `
       You are a helpful assistant for teaching Hanja to children.
@@ -107,7 +107,7 @@ export async function generateQuiz(hanja: string) {
 
     // 2. Gemini로 생성
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `
       You are a Hanja quiz generator for kids.

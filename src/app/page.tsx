@@ -83,7 +83,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="flex justify-between items-center mb-8 pt-4">
         <h1 className="text-2xl font-extrabold text-duo-green tracking-tight flex items-center gap-2">
-          <Sparkles className="w-6 h-6" /> 한자 꼬리
+          <Sparkles className="w-6 h-6" /> 꼬리에 꼬리를 무는 한자학습
         </h1>
         <button 
           onClick={openStats}
