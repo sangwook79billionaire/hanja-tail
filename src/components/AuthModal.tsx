@@ -40,8 +40,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         if (error) throw error;
         onClose();
       }
-    } catch (error: any) {
-      alert(error.message || "오류가 발생했습니다.");
+    } catch (error: unknown) {
+      const err = error as Error;
+      alert(err.message || "오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }

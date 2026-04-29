@@ -116,9 +116,10 @@ export async function analyzeWord(word: string) {
     });
     
     return resultData;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini Analysis Error:", error);
-    if (error?.status === 429 || error?.message?.includes("429")) {
+    const err = error as { status?: number; message?: string };
+    if (err?.status === 429 || err?.message?.includes("429")) {
       return { error: "한자 박사님이 지금 공부 중이에요! 1분만 기다렸다가 다시 물어봐 줄래?" };
     }
     return { error: "단어 분석 중 오류가 발생했습니다. API 키를 확인해주세요." };
@@ -195,9 +196,10 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
       .single();
 
     return { quiz: newQuiz || quizData };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Quiz Generation Error:", error);
-    if (error?.status === 429 || error?.message?.includes("429")) {
+    const err = error as { status?: number; message?: string };
+    if (err?.status === 429 || err?.message?.includes("429")) {
       return { error: "퀴즈 박사가 지금 바빠요! 잠시 후에 다시 문제를 내달라고 할까요?" };
     }
     return { error: "퀴즈를 생성하는 중 오류가 발생했습니다." };
@@ -257,4 +259,48 @@ export async function getLearningRecap() {
     console.error("Get Recap Error:", error);
     return { error: "기록을 불러오는 중 오류가 발생했습니다." };
   }
+}
+
+export async function getAdminStats() {
+  const supabase = createClient();
+  
+  // 1. 관리자 권한 확인
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.is_admin) return { error: "관리자 권한이 없습니다." };
+
+  // 2. 전체 통계 가져오기
+  const { count: totalUsers } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+  const { data: rankings } = await supabase
+    .from("profiles")
+    .select("nickname, total_score, current_stage")
+    .order("total_score", { ascending: false })
+    .limit(10);
+
+  const { data: recentLogs } = await supabase
+    .from("learning_logs")
+    .select(`
+      word, 
+      is_correct, 
+      learned_at, 
+      profiles:user_id (nickname)
+    `)
+    .order("learned_at", { ascending: false })
+    .limit(20);
+
+  return {
+    stats: {
+      totalUsers,
+      totalLogs: recentLogs?.length || 0,
+    },
+    rankings,
+    recentLogs
+  };
 }

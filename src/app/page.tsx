@@ -55,7 +55,7 @@ export default function HomePage() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase.auth]);
 
   const fetchDailyHistory = async () => {
     const result = await getLearningRecap();
