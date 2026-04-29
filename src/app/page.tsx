@@ -179,9 +179,9 @@ export default function HomePage() {
             <div className="flex items-center gap-3">
               <div 
                 onClick={handleUpdateNickname}
-                className="text-right hidden sm:block cursor-pointer hover:opacity-70 transition-opacity"
+                className="text-right cursor-pointer hover:opacity-70 transition-opacity px-2 py-1"
               >
-                <p className="text-xs font-bold text-duo-wolf">반가워요!</p>
+                <p className="text-[10px] font-bold text-duo-wolf">반가워요!</p>
                 <p className="text-sm font-black text-duo-eel flex items-center gap-1">
                   {nickname || user.email?.split('@')[0]}
                   <span className="text-[10px] text-duo-wolf bg-duo-snow px-1 rounded">수정</span>
