@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, Sparkles, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateNickname } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, updateNickname } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import { AnimatePresence, motion } from "framer-motion";
@@ -44,14 +44,14 @@ export default function HomePage() {
 
   const supabase = createClient();
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     const { profile } = await getMyProfile();
     if (profile) setNickname(profile.nickname);
-  };
+  }, []);
 
   useEffect(() => {
     if (user) fetchProfile();
-  }, [user]);
+  }, [user, fetchProfile]);
 
   const handleUpdateNickname = async () => {
     const newName = prompt("멋진 탐험가 이름을 정해볼까요?", nickname || "");
@@ -78,18 +78,18 @@ export default function HomePage() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  const fetchDailyHistory = async () => {
+  const fetchDailyHistory = useCallback(async () => {
     const result = await getLearningRecap();
     if (result.logs) {
       const today = new Date().toDateString();
       const filtered = result.logs.filter((log: LearningLog) => new Date(log.learned_at).toDateString() === today);
       setDailyHistory(filtered);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDailyHistory();
-  }, []);
+  }, [fetchDailyHistory]);
 
   useEffect(() => {
     if (dailyHistory.length >= trophyGoal && !hasAwardedTrophy) {
