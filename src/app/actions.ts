@@ -196,9 +196,10 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
           .single();
 
         return { quiz: newQuiz || quizData };
-      } catch (error: any) {
+      } catch (error: unknown) {
         retryCount++;
-        const isRateLimit = error?.status === 429 || error?.message?.includes("429");
+        const err = error as { status?: number; message?: string };
+        const isRateLimit = err?.status === 429 || err?.message?.includes("429");
         
         if (isRateLimit && retryCount < 3) {
           console.log(`Quiz generation rate limit hit, retrying in 1s... (${retryCount}/3)`);
@@ -323,7 +324,7 @@ export async function getAdminStats() {
       word: l.word as string,
       is_correct: l.is_correct as boolean,
       learned_at: l.learned_at as string,
-      profiles: l.profiles ? { nickname: (l.profiles as any).nickname as string | null } : null
+      profiles: l.profiles ? { nickname: (l.profiles as unknown as { nickname: string | null }).nickname } : null
     })),
     error: null
   };

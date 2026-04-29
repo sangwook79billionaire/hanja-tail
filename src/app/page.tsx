@@ -186,6 +186,32 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center">
+        {/* Daily Mission Progress */}
+        <div className="w-full max-w-sm mb-8 animate-fade-in-down">
+          <div className="bg-white/80 backdrop-blur-sm border-2 border-duo-snow rounded-2xl p-4 shadow-sm">
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-sm font-black text-duo-eel flex items-center gap-1">
+                <Trophy className="w-4 h-4 text-amber-500" /> 오늘의 탐험 미션
+              </span>
+              <span className="text-[10px] font-bold text-duo-wolf">
+                {dailyHistory.length} / {trophyGoal} 단어
+              </span>
+            </div>
+            <div className="h-3 w-full bg-duo-snow rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min((dailyHistory.length / trophyGoal) * 100, 100)}%` }}
+                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_8px_rgba(251,191,36,0.3)]"
+              />
+            </div>
+            <p className="text-[10px] font-bold text-duo-wolf mt-2 text-center">
+              {dailyHistory.length >= trophyGoal 
+                ? "🎉 오늘의 탐험 성공! 대단해요!" 
+                : `${trophyGoal - dailyHistory.length}개만 더 찾으면 오늘의 트로피를 얻어요!`}
+            </p>
+          </div>
+        </div>
+
         {/* Results */}
         {correctionMsg && (
           <div className="w-full max-w-sm mb-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl text-amber-800 font-bold text-center animate-bounce">

@@ -49,7 +49,29 @@ const data = [
   { word: "국어", hanja: "國語", meaning: "우리나라의 말과 글이에요.", analysis: [{char:"國",meaning:"나라",sound:"국",level:"8급"},{char:"語",meaning:"말씀",sound:"어",level:"7급"}] },
   { word: "수학", hanja: "數學", meaning: "수와 계산을 배우는 공부예요.", analysis: [{char:"數",meaning:"셈",sound:"수",level:"6급"},{char:"學",meaning:"배울",sound:"학",level:"8급"}] },
   { word: "입학", hanja: "入學", meaning: "학교에 처음 들어가는 것이에요.", analysis: [{char:"入",meaning:"들",sound:"입",level:"8급"},{char:"學",meaning:"배울",sound:"학",level:"8급"}] },
-  { word: "졸업", hanja: "卒業", meaning: "학교의 모든 과정을 마치는 것이에요.", analysis: [{char:"卒",meaning:"마칠",sound:"졸",level:"4급"},{char:"業",meaning:"업",sound:"업",level:"6급"}] }
+  { word: "졸업", hanja: "卒業", meaning: "학교의 모든 과정을 마치는 것이에요.", analysis: [{char:"卒",meaning:"마칠",sound:"졸",level:"4급"},{char:"業",meaning:"업",sound:"업",level:"6급"}] },
+
+  // --- 추가 데이터 (신체) ---
+  {word: "이비인후과", hanja: "耳鼻咽喉科", meaning: "귀, 코, 목이 아플 때 가는 병원이에요.", analysis: [{char:"耳",meaning:"귀",sound:"이",level:"7급"},{char:"鼻",meaning:"코",sound:"비",level:"4급"}]},
+  {word: "수족", hanja: "手足", meaning: "손과 발을 아울러 이르는 말이에요.", analysis: [{char:"手",meaning:"손",sound:"수",level:"7급"},{char:"足",meaning:"발",sound:"족",level:"7급"}]},
+  {word: "안과", hanja: "眼科", meaning: "눈이 아플 때 진찰을 받는 곳이에요.", analysis: [{char:"眼",meaning:"눈",sound:"안",level:"6급"},{char:"科",meaning:"과목",sound:"과",level:"6급"}]},
+  
+  // --- 추가 데이터 (자연/날씨) ---
+  {word: "풍랑", hanja: "風浪", meaning: "바람이 불어 일어나는 큰 물결이에요.", analysis: [{char:"風",meaning:"바람",sound:"풍",level:"7급"},{char:"浪",meaning:"물결",sound:"랑",level:"4급"}]},
+  {word: "화산", hanja: "火山", meaning: "불을 뿜어내는 산이에요.", analysis: [{char:"火",meaning:"불",sound:"화",level:"8급"},{char:"山",meaning:"메",sound:"산",level:"7급"}]},
+  {word: "백설", hanja: "白雪", meaning: "하얗게 내린 깨끗한 눈이에요.", analysis: [{char:"白",meaning:"흰",sound:"백",level:"8급"},{char:"雪",meaning:"눈",sound:"설",level:"6급"}]},
+
+  // --- 추가 데이터 (감정/마음) ---
+  {word: "안심", hanja: "安心", meaning: "마음을 편안하게 놓는 것이에요.", analysis: [{char:"安",meaning:"편안",sound:"안",level:"7급"},{char:"心",meaning:"마음",sound:"심",level:"7급"}]},
+  {word: "조심", hanja: "操心", meaning: "나쁜 일이 생기지 않게 마음을 쓰는 것이에요.", analysis: [{char:"操",meaning:"잡을",sound:"조",level:"3급"},{char:"心",meaning:"마음",sound:"심",level:"7급"}]},
+  {word: "동심", hanja: "童心", meaning: "어린아이의 순수한 마음이에요.", analysis: [{char:"童",meaning:"아이",sound:"동",level:"6급"},{char:"心",meaning:"마음",sound:"심",level:"7급"}]},
+
+  // --- 추가 데이터 (행동/생활) ---
+  {word: "식사", hanja: "食事", meaning: "음식을 먹는 일이에요.", analysis: [{char:"食",meaning:"먹을",sound:"식",level:"7급"},{char:"事",meaning:"일",sound:"사",level:"7급"}]},
+  {word: "과식", hanja: "過食", meaning: "음식을 너무 많이 먹는 것이에요.", analysis: [{char:"過",meaning:"지날",sound:"과",level:"6급"},{char:"食",meaning:"먹을",sound:"식",level:"7급"}]},
+  {word: "휴식", hanja: "休息", meaning: "하던 일을 멈추고 쉬는 것이에요.", analysis: [{char:"休",meaning:"쉴",sound:"휴",level:"7급"},{char:"息",meaning:"숨쉴",sound:"식",level:"5급"}]},
+  {word: "보행", hanja: "步行", meaning: "길을 걸어가는 것이에요.", analysis: [{char:"步",meaning:"걸음",sound:"보",level:"5급"},{char:"行",meaning:"다닐",sound:"행",level:"7급"}]},
+  {word: "수영", hanja: "水泳", meaning: "물속에서 헤엄을 치는 것이에요.", analysis: [{char:"水",meaning:"물",sound:"수",level:"8급"},{char:"泳",meaning:"헤엄칠",sound:"영",level:"4급"}]}
 ];
 
 async function seed() {
