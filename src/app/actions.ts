@@ -331,3 +331,33 @@ export async function getAdminStats() {
     error: null
   };
 }
+
+export async function updateNickname(newNickname: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ nickname: newNickname })
+    .eq("id", user.id);
+
+  if (error) return { error: "닉네임 수정 중 오류가 발생했습니다." };
+  return { success: true };
+}
+
+export async function getMyProfile() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { profile: null };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  return { profile };
+}

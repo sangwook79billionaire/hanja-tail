@@ -38,10 +38,27 @@ export default function HomePage() {
   const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
   const [hasAwardedTrophy, setHasAwardedTrophy] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  
-  const supabase = createClient();
+  const [nickname, setNickname] = useState<string | null>(null);
+
+  const fetchProfile = async () => {
+    const { profile } = await getMyProfile();
+    if (profile) setNickname(profile.nickname);
+  };
+
+  useEffect(() => {
+    if (user) fetchProfile();
+  }, [user]);
+
+  const handleUpdateNickname = async () => {
+    const newName = prompt("멋진 탐험가 이름을 정해볼까요?", nickname || "");
+    if (newName && newName.trim()) {
+      const result = await updateNickname(newName.trim());
+      if (result.success) {
+        setNickname(newName.trim());
+        alert("와우! 이제부터 " + newName + " 탐험가님이라고 부를게요!");
+      }
+    }
+  };
 
   const trophyGoal = 5;
 
@@ -156,9 +173,15 @@ export default function HomePage() {
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
+              <div 
+                onClick={handleUpdateNickname}
+                className="text-right hidden sm:block cursor-pointer hover:opacity-70 transition-opacity"
+              >
                 <p className="text-xs font-bold text-duo-wolf">반가워요!</p>
-                <p className="text-sm font-black text-duo-eel">{user.email?.split('@')[0]}</p>
+                <p className="text-sm font-black text-duo-eel flex items-center gap-1">
+                  {nickname || user.email?.split('@')[0]}
+                  <span className="text-[10px] text-duo-wolf bg-duo-snow px-1 rounded">수정</span>
+                </p>
               </div>
               <button 
                 onClick={() => supabase.auth.signOut()}
