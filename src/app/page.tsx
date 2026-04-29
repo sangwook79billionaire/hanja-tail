@@ -192,13 +192,15 @@ export default function HomePage() {
             💡 {correctionMsg}
           </div>
         )}
-        {/* Intro */}
-        <div className="mb-10 text-center animate-fade-in-up">
-          <h2 className="text-2xl font-bold text-duo-eel leading-tight">
-            오늘 새로 배운 단어나 궁금한 단어를 찾아봐<br />
-            한자의 비밀을 같이 풀어보자!
-          </h2>
-        </div>
+        {/* Intro: 오직 데이터가 없고 로딩 중도 아닐 때만 보여줍니다. */}
+        {analyzedHanja.length === 0 && !isLoading && (
+          <div className="mb-10 text-center animate-fade-in-up">
+            <h2 className="text-2xl font-bold text-duo-eel leading-tight">
+              오늘 새로 배운 단어나 궁금한 단어를 찾아봐<br />
+              한자의 비밀을 같이 풀어보자!
+            </h2>
+          </div>
+        )}
 
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="w-full max-w-sm mb-12 relative group">
@@ -230,18 +232,23 @@ export default function HomePage() {
           </button>
         </form>
 
-        {/* Results Area */}
+        {/* Results Area: 데이터가 있거나 로딩 중일 때도 영역을 유지합니다. */}
         {analyzedHanja.length > 0 && (
-          <div className="w-full flex flex-col gap-4 animate-fade-in">
-            <h3 className="text-xl font-bold text-duo-eel mb-2 pl-1">이런 한자가 숨어있어!</h3>
+          <div className={cn(
+            "w-full flex flex-col gap-4 animate-fade-in transition-opacity duration-500",
+            isLoading ? "opacity-40 pointer-events-none" : "opacity-100"
+          )}>
+            <h3 className="text-xl font-bold text-duo-eel mb-2 pl-1">
+              {isLoading ? "🔍 다음 한자를 찾는 중..." : "이런 한자가 숨어있어!"}
+            </h3>
             <div className={cn(
-              "grid gap-3 transition-all duration-500",
+              "grid gap-3",
               analyzedHanja.length === 3 || analyzedHanja.length >= 5 ? "grid-cols-3 w-full" : 
               analyzedHanja.length === 2 || analyzedHanja.length === 4 ? "grid-cols-2 w-[68%] mx-auto" : "grid-cols-2 w-full"
             )}>
               {analyzedHanja.map((hanja, idx) => (
                 <HanjaCard 
-                  key={idx} 
+                  key={`${currentSearchedWord}-${idx}`} 
                   data={hanja} 
                   delay={idx * 0.1} 
                   onQuiz={startQuiz}

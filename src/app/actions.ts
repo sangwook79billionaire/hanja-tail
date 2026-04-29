@@ -145,7 +145,7 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
       return { quiz };
     }
 
-    // 2. Gemini로 생성
+    // 2. Gemini로 생성 (최대 3번 자동 재시도)
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
@@ -167,42 +167,56 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("JSON not found in response");
-    let quizData = JSON.parse(jsonMatch[0]);
+    let retryCount = 0;
+    while (retryCount < 3) {
+      try {
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("JSON not found in response");
+        let quizData = JSON.parse(jsonMatch[0]);
 
-    // 한 번 더 검증: 만약 AI가 실수로 제외할 단어를 다시 내뱉었다면, 한 번 더 요청하거나 다른 단어로 강제 변경 시도
-    if (excludedWord && quizData.word === excludedWord) {
-      console.log("Gemini ignored exclusion, retrying once...");
-      const retryResult = await model.generateContent(prompt + "\n\nYOU PREVIOUSLY GAVE ME '" + excludedWord + "'. PLEASE PROVIDE A DIFFERENT WORD.");
-      const retryText = (await retryResult.response).text();
-      const retryJsonMatch = retryText.match(/\{[\s\S]*\}/);
-      if (retryJsonMatch) quizData = JSON.parse(retryJsonMatch[0]);
+        // 검증: 제외할 단어와 겹치면 한 번 더 요청
+        if (excludedWord && quizData.word === excludedWord) {
+          const retryResult = await model.generateContent(prompt + "\n\nPLEASE PROVIDE A DIFFERENT WORD.");
+          const retryJsonMatch = (await retryResult.response).text().match(/\{[\s\S]*\}/);
+          if (retryJsonMatch) quizData = JSON.parse(retryJsonMatch[0]);
+        }
+
+        // DB에 캐싱
+        const { data: newQuiz } = await supabase
+          .from("quiz_bank")
+          .insert({
+            word: quizData.word,
+            hanja_combination: quizData.hanja_combination,
+            description: quizData.description,
+            is_verified: false
+          })
+          .select()
+          .single();
+
+        return { quiz: newQuiz || quizData };
+      } catch (error: any) {
+        retryCount++;
+        const isRateLimit = error?.status === 429 || error?.message?.includes("429");
+        
+        if (isRateLimit && retryCount < 3) {
+          console.log(`Quiz generation rate limit hit, retrying in 1s... (${retryCount}/3)`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+
+        if (retryCount >= 3) {
+          console.error("Quiz Generation Final Error:", error);
+          if (isRateLimit) return { error: "퀴즈 박사가 지금 너무 바빠요! 1분만 쉬었다가 다시 물어봐 줄래?" };
+          return { error: "퀴즈를 생성하는 중 오류가 발생했습니다." };
+        }
+      }
     }
-
-    // 3. DB에 캐싱
-    const { data: newQuiz } = await supabase
-      .from("quiz_bank")
-      .insert({
-        word: quizData.word,
-        hanja_combination: quizData.hanja_combination,
-        description: quizData.description,
-        is_verified: false
-      })
-      .select()
-      .single();
-
-    return { quiz: newQuiz || quizData };
+    return { error: "퀴즈를 생성할 수 없습니다." };
   } catch (error: unknown) {
-    console.error("Quiz Generation Error:", error);
-    const err = error as { status?: number; message?: string };
-    if (err?.status === 429 || err?.message?.includes("429")) {
-      return { error: "퀴즈 박사가 지금 바빠요! 잠시 후에 다시 문제를 내달라고 할까요?" };
-    }
-    return { error: "퀴즈를 생성하는 중 오류가 발생했습니다." };
+    console.error("Outer Quiz Error:", error);
+    return { error: "시스템 오류가 발생했습니다." };
   }
 }
 
@@ -300,8 +314,17 @@ export async function getAdminStats() {
       totalUsers: totalUsers || 0,
       totalLogs: recentLogs?.length || 0,
     },
-    rankings: (rankings || []) as any[],
-    recentLogs: (recentLogs || []) as any[],
+    rankings: (rankings || []).map(r => ({
+      nickname: r.nickname as string | null,
+      total_score: r.total_score as number,
+      current_stage: r.current_stage as number
+    })),
+    recentLogs: (recentLogs || []).map(l => ({
+      word: l.word as string,
+      is_correct: l.is_correct as boolean,
+      learned_at: l.learned_at as string,
+      profiles: l.profiles ? { nickname: (l.profiles as any).nickname as string | null } : null
+    })),
     error: null
   };
 }
