@@ -344,13 +344,16 @@ export default function HomePage() {
             hanja={selectedHanjaForQuiz}
             quiz={currentQuiz}
             onSuccess={(solvedWord) => {
+              // 1. 즉시 입력창과 백그라운드 분석 시작 (모달 뒤에서 미리 준비)
+              setWord(solvedWord);
               fetchDailyHistory();
-              // 1.5초 후 퀴즈창 닫고 새 단어로 분석 시작 (꼬리 물기)
+              handleAnalyze(solvedWord); 
+
+              // 2. 1.2초 후 자연스럽게 모달 닫기 (이미 분석이 진행 중이거나 완료된 상태)
               setTimeout(() => {
-                handleAnalyze(solvedWord);
                 setSelectedHanjaForQuiz(null);
                 setCurrentQuiz(null);
-              }, 1500);
+              }, 1200);
             }}
             onClose={() => {
               setSelectedHanjaForQuiz(null);
