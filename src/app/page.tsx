@@ -134,7 +134,7 @@ export default function HomePage() {
     if (!input.trim()) return;
 
     setIsLoading(true);
-    if (isManual) setAnalyzedHanja([]); // 직접 검색할 때만 화면을 비웁니다.
+    setAnalyzedHanja([]); // 모든 분석 시작 시 이전 결과물은 즉시 지웁니다.
     setCorrectionMsg(null);
     
     try {
