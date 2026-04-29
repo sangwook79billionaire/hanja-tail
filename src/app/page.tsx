@@ -130,7 +130,7 @@ export default function HomePage() {
     }
   };
 
-  const handleAnalyze = async (input: string, isManual: boolean = false) => {
+  const handleAnalyze = async (input: string) => {
     if (!input.trim()) return;
 
     setIsLoading(true);
@@ -163,7 +163,7 @@ export default function HomePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    handleAnalyze(word, true);
+    handleAnalyze(word);
     setWord("");
   };
 
