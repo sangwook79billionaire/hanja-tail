@@ -42,8 +42,12 @@ export default function AdminPage() {
       const result = await getAdminStats();
       if (result.error) {
         setError(result.error);
-      } else {
-        setData(result);
+      } else if (result.stats) {
+        setData({
+          stats: result.stats,
+          rankings: result.rankings as RankingItem[],
+          recentLogs: result.recentLogs as ActivityLog[]
+        });
       }
       setIsLoading(false);
     }

@@ -266,7 +266,7 @@ export async function getAdminStats() {
   
   // 1. 관리자 권한 확인
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그인이 필요합니다.", stats: null, rankings: [], recentLogs: [] };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -274,7 +274,7 @@ export async function getAdminStats() {
     .eq("id", user.id)
     .single();
 
-  if (!profile?.is_admin) return { error: "관리자 권한이 없습니다." };
+  if (!profile?.is_admin) return { error: "관리자 권한이 없습니다.", stats: null, rankings: [], recentLogs: [] };
 
   // 2. 전체 통계 가져오기
   const { count: totalUsers } = await supabase.from("profiles").select("*", { count: "exact", head: true });
@@ -297,10 +297,11 @@ export async function getAdminStats() {
 
   return {
     stats: {
-      totalUsers,
+      totalUsers: totalUsers || 0,
       totalLogs: recentLogs?.length || 0,
     },
-    rankings,
-    recentLogs
+    rankings: (rankings || []) as any[],
+    recentLogs: (recentLogs || []) as any[],
+    error: null
   };
 }
