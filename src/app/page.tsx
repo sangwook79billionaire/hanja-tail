@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Sparkles, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, updateNickname } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateNickname } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import { AnimatePresence, motion } from "framer-motion";
