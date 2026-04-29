@@ -22,7 +22,18 @@ export async function analyzeWord(word: string) {
       return cachedData.analysis_json;
     }
 
-    // 2. 캐시가 없으면 Gemini 호출
+    // 2. 퀴즈 뱅크 확인 (퀴즈 데이터가 있다면 분석 정보로 활용 가능성 확인)
+    const { data: quizData } = await supabase
+      .from("quiz_bank")
+      .select("word, hanja_combination")
+      .eq("word", searchWord)
+      .maybeSingle();
+
+    if (quizData) {
+      console.log(`퀴즈 뱅크에서 '${searchWord}' 발견. 상세 분석을 위해 Gemini 호출을 진행합니다.`);
+    }
+
+    // 3. 캐시가 없으면 Gemini 호출
     console.log("No cache found. Calling Gemini for:", searchWord);
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
@@ -338,12 +349,19 @@ export async function updateNickname(newNickname: string) {
 
   if (!user) return { error: "로그인이 필요합니다." };
 
+  // update 대신 upsert를 사용하여 프로필이 없으면 생성하고, 있으면 수정합니다.
   const { error } = await supabase
     .from("profiles")
-    .update({ nickname: newNickname })
-    .eq("id", user.id);
+    .upsert({ 
+      id: user.id, 
+      nickname: newNickname,
+      updated_at: new Date().toISOString()
+    });
 
-  if (error) return { error: "닉네임 수정 중 오류가 발생했습니다." };
+  if (error) {
+    console.error("Nickname update error:", error);
+    return { error: "닉네임 수정 중 오류가 발생했습니다." };
+  }
   return { success: true };
 }
 
@@ -353,11 +371,16 @@ export async function getMyProfile() {
 
   if (!user) return { profile: null };
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
+
+  if (error) {
+    console.error("Profile fetch error:", error);
+    return { profile: null };
+  }
 
   return { profile };
 }
