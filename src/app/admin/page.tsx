@@ -62,12 +62,12 @@ export default function AdminPage() {
     );
   }
 
-  if (error) {
+  if (error || !data) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-duo-snow text-center">
         <XCircle className="w-16 h-16 text-red-500 mb-4" />
         <h1 className="text-2xl font-black text-duo-eel mb-2">접근 제한</h1>
-        <p className="text-duo-wolf mb-6">{error}</p>
+        <p className="text-duo-wolf mb-6">{error || "데이터를 불러올 수 없습니다."}</p>
         <Link href="/" className="px-6 py-3 bg-duo-green text-white rounded-2xl font-black">
           메인으로 돌아가기
         </Link>
