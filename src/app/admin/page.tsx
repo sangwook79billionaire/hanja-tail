@@ -6,8 +6,34 @@ import { Users, BookOpen, Trophy, ArrowLeft, Clock, CheckCircle, XCircle } from 
 import Link from "next/link";
 import { motion } from "framer-motion";
 
+interface AdminStats {
+  totalUsers: number;
+  totalLogs: number;
+}
+
+interface RankingItem {
+  nickname: string | null;
+  total_score: number;
+  current_stage: number;
+}
+
+interface ActivityLog {
+  word: string;
+  is_correct: boolean;
+  learned_at: string;
+  profiles: {
+    nickname: string | null;
+  } | null;
+}
+
+interface AdminData {
+  stats: AdminStats;
+  rankings: RankingItem[];
+  recentLogs: ActivityLog[];
+}
+
 export default function AdminPage() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AdminData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,7 +116,7 @@ export default function AdminPage() {
             </h2>
           </div>
           <div className="divide-y-2 divide-duo-snow">
-            {data.rankings.map((user: any, index: number) => (
+            {data.rankings.map((user: RankingItem, index: number) => (
               <div key={index} className="p-4 flex items-center justify-between hover:bg-duo-snow transition-colors">
                 <div className="flex items-center gap-4">
                   <span className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-white ${
@@ -119,7 +145,7 @@ export default function AdminPage() {
             </h2>
           </div>
           <div className="divide-y-2 divide-duo-snow">
-            {data.recentLogs.map((log: any, index: number) => (
+            {data.recentLogs.map((log: ActivityLog, index: number) => (
               <div key={index} className="p-4 flex items-center gap-4 hover:bg-duo-snow transition-colors">
                 <div className={`p-2 rounded-xl ${log.is_correct ? 'bg-green-100' : 'bg-red-100'}`}>
                   {log.is_correct ? (
@@ -130,9 +156,9 @@ export default function AdminPage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-duo-eel text-sm">
-                    <span className="text-blue-600">@{log.profiles?.nickname || '탐험가'}</span>님이 
-                    <span className="font-black px-1">'{log.word}'</span>를 
-                    {log.is_correct ? '맞혔어요!' : '찾아봤어요.'}
+                    <span className="text-blue-600">@{log.profiles?.nickname || "탐험가"}</span>님이&nbsp;
+                    <span className="font-black px-1">&quot;{log.word}&quot;</span>를&nbsp;
+                    {log.is_correct ? "맞혔어요!" : "찾아봤어요."}
                   </p>
                   <p className="text-[10px] font-bold text-duo-wolf mt-1">
                     {new Date(log.learned_at).toLocaleTimeString()}
