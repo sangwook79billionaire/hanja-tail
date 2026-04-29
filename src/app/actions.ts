@@ -132,16 +132,18 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
   const supabase = createClient();
 
   try {
-    // 1. DB 캐시 확인
-    const { data: existingQuizzes } = await supabase
+    // 1. DB에서 먼저 확인: 해당 한자가 포함된 기존 단어가 있는지 찾습니다.
+    const { data: quiz } = await supabase
       .from("quiz_bank")
       .select("*")
-      .like("hanja_combination", `%${hanja}%`)
-      .neq("word", excludedWord || "")
-      .limit(5);
+      .ilike("hanja_combination", `%${hanja}%`)
+      .not("word", "eq", excludedWord || "") // 제외할 단어는 피함
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (existingQuizzes && existingQuizzes.length > 0) {
-      const quiz = existingQuizzes[Math.floor(Math.random() * existingQuizzes.length)];
+    if (quiz) {
+      console.log(`DB에서 퀴즈 재사용: ${quiz.word}`);
       return { quiz };
     }
 
