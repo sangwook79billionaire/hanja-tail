@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Sparkles, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, logLearning } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateNickname } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import { AnimatePresence, motion } from "framer-motion";
@@ -39,6 +39,10 @@ export default function HomePage() {
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
   const [hasAwardedTrophy, setHasAwardedTrophy] = useState(false);
   const [nickname, setNickname] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const supabase = createClient();
 
   const fetchProfile = async () => {
     const { profile } = await getMyProfile();
@@ -72,7 +76,7 @@ export default function HomePage() {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  }, [supabase]);
 
   const fetchDailyHistory = async () => {
     const result = await getLearningRecap();
