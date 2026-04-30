@@ -131,7 +131,7 @@ export async function analyzeWord(word: string) {
     console.error("Gemini Analysis Error:", error);
     const err = error as { status?: number; message?: string };
     if (err?.status === 429 || err?.message?.includes("429")) {
-      return { error: "한자 박사님이 지금 공부 중이에요! 1분만 기다렸다가 다시 물어봐 줄래?" };
+      return { error: "한자 박사님이 지금 골똘히 생각 중이에요! 잠시만(30초~1분) 기다렸다가 다시 물어봐 줄래? 그동안 다른 단어를 먼저 찾아봐도 좋아!" };
     }
     return { error: "단어 분석 중 오류가 발생했습니다. API 키를 확인해주세요." };
   }
@@ -227,7 +227,7 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
 
         if (retryCount >= 3) {
           console.error("Quiz Generation Final Error:", error);
-          if (isRateLimit) return { error: "퀴즈 박사가 지금 너무 바빠요! 1분만 쉬었다가 다시 물어봐 줄래?" };
+          if (isRateLimit) return { error: "퀴즈 박사가 지금 잠시 쉬고 있어요! 조금 이따가 다시 도전해 볼까? 다른 한자를 먼저 공부하고 오면 더 잘할 수 있을 거야!" };
           return { error: "퀴즈를 생성하는 중 오류가 발생했습니다." };
         }
       }
