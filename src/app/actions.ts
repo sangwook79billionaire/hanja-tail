@@ -306,6 +306,16 @@ export async function updateLearningProgress(word: string, type: 'stroke' | 'wri
   }
 }
 
+interface LearningLog {
+  id: string;
+  user_id: string;
+  word: string;
+  is_correct: boolean;
+  learned_at: string;
+  viewed_stroke: boolean;
+  practiced_writing: boolean;
+}
+
 export async function getLearningRecap() {
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -329,7 +339,7 @@ export async function getLearningRecap() {
     });
     const todayKstStr = kstFormatter.format(new Date());
 
-    const processLogs = (logs: any[], startDate?: Date, onlyFullPractice = false) => {
+    const processLogs = (logs: LearningLog[], startDate?: Date, onlyFullPractice = false) => {
       const filtered = logs.filter(log => {
         const logDate = new Date(log.learned_at);
         const dateMatch = startDate ? logDate >= startDate : kstFormatter.format(logDate) === todayKstStr;

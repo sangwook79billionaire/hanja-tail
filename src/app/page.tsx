@@ -152,7 +152,8 @@ export default function HomePage() {
     }
   };
 
-  const startQuiz = async (hanja: string) => {
+
+  const handleRequestQuiz = async (hanja: string) => {
     setIsLoading(true);
     try {
       const result = await generateQuiz(hanja, currentSearchedWord || undefined);
