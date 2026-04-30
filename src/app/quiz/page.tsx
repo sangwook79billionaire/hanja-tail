@@ -51,8 +51,8 @@ export default function QuizPage() {
       setScore(prev => prev + 10);
     }
 
-    // 결과 기록 (Fire and forget)
-    logLearning(currentQuiz.word, correct);
+    // 결과 기록
+    await logLearning(currentQuiz.word, correct);
 
     // 다음 문제로 넘어가기 전 딜레이
     setTimeout(() => {
