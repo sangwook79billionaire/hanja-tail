@@ -27,6 +27,19 @@ interface HanjaData {
   level: string;
 }
 
+interface PeriodStats {
+  count: number;
+  correct: number;
+  days: number;
+}
+
+interface StatsData {
+  today: PeriodStats;
+  weekly: PeriodStats;
+  monthly: PeriodStats;
+  total: PeriodStats;
+}
+
 export default function HomePage() {
   const [word, setWord] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +47,7 @@ export default function HomePage() {
   const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
   const [showStats, setShowStats] = useState(false);
-  const [recapData, setRecapData] = useState<any>(null);
+  const [recapData, setRecapData] = useState<StatsData | null>(null);
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
   const [currentSearchedWord, setCurrentSearchedWord] = useState<string | null>(null);
   const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);

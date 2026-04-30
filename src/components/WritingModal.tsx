@@ -59,11 +59,12 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
         }
       }, 300); // 모달 애니메이션 시간을 고려한 지연
 
+      const currentTarget = targetRef.current;
       return () => {
         active = false;
         clearTimeout(timer);
-        if (targetRef.current) {
-          targetRef.current.innerHTML = "";
+        if (currentTarget) {
+          currentTarget.innerHTML = "";
         }
         setWriter(null);
       };
@@ -183,6 +184,6 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
 
 // Utility to handle class merging without external lib dependency in this component if needed,
 // but since we have cn in lib/utils, let's keep using it.
-function cn(...classes: any[]) {
+function cn(...classes: (string | boolean | undefined | null)[]) {
   return classes.filter(Boolean).join(" ");
 }

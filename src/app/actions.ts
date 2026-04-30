@@ -189,7 +189,7 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
         const text = result.response.text();
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("JSON not found in response");
-        let quizData = JSON.parse(jsonMatch[0]);
+        const quizData = JSON.parse(jsonMatch[0]);
 
         // 검증: 정답 단어의 한자 표기에 우리가 찾는 한자가 실제로 포함되어 있는지 확인
         if (!quizData.hanja_combination.includes(hanja)) {
@@ -289,7 +289,7 @@ export async function getLearningRecap() {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const processLogs = (logs: any[], start: Date) => {
+    const processLogs = (logs: { learned_at: string; is_correct: boolean }[], start: Date) => {
       const filtered = logs.filter(log => {
         const logKst = new Date(new Date(log.learned_at).getTime() + kstOffset);
         return logKst >= start;
