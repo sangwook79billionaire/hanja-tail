@@ -109,7 +109,7 @@ export default function HomePage() {
         day: '2-digit'
       }).format(new Date());
 
-      // 오늘치 기록만 필터링하여 리스트에 표시
+      // 1. 오늘치 기록만 필터링
       const filtered = result.logs.filter((log: LearningLog) => {
         const logKst = new Intl.DateTimeFormat('en-CA', {
           timeZone: 'Asia/Seoul',
@@ -120,7 +120,31 @@ export default function HomePage() {
         return logKst === todayKst;
       });
 
-      setDailyHistory(filtered);
+      // 2. 단어별로 중복 제거 및 상태 병합
+      const wordMap = new Map<string, LearningLog>();
+      
+      filtered.forEach((log: LearningLog) => {
+        const existing = wordMap.get(log.word);
+        if (!existing) {
+          wordMap.set(log.word, { ...log });
+        } else {
+          // 상태 병합: 하나라도 true면 true로 유지
+          existing.is_correct = existing.is_correct || log.is_correct;
+          existing.viewed_stroke = existing.viewed_stroke || log.viewed_stroke;
+          existing.practiced_writing = existing.practiced_writing || log.practiced_writing;
+          // 더 최신 시간으로 업데이트
+          if (new Date(log.learned_at) > new Date(existing.learned_at)) {
+            existing.learned_at = log.learned_at;
+          }
+        }
+      });
+
+      // 3. 최신순으로 다시 정렬하여 상태에 저장
+      const uniqueLogs = Array.from(wordMap.values()).sort((a, b) => 
+        new Date(b.learned_at).getTime() - new Date(a.learned_at).getTime()
+      );
+
+      setDailyHistory(uniqueLogs);
     }
     if (result.stats) {
       setRecapData(result.stats);
