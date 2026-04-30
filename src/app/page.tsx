@@ -169,7 +169,7 @@ export default function HomePage() {
     }
   };
 
-  const handleAnalyze = async (input: string) => {
+  const handleAnalyze = async (input: string, skipLogging = false) => {
     if (!input.trim()) return;
 
     setIsLoading(true);
@@ -187,7 +187,12 @@ export default function HomePage() {
         setAnalyzedHanja(result.hanjaList);
         const finalWord = result.correctedWord || input.trim();
         setCurrentSearchedWord(finalWord);
-        await logLearning(finalWord, true);
+        
+        // 퀴즈 성공 후 바로 분석하는 경우 등 중복 기록 방지
+        if (!skipLogging) {
+          await logLearning(finalWord, true);
+        }
+        
         if (result.correctedWord && result.correctedWord !== input.trim()) {
           setCorrectionMsg(`혹시 '${result.correctedWord}'(을)를 입력하려고 하셨나요? '${result.correctedWord}'(으)로 분석해 드릴게요!`);
         }
@@ -421,7 +426,7 @@ export default function HomePage() {
             onSuccess={(solvedWord) => {
               // 1. 즉시 입력창과 백그라운드 분석 시작 (모달 뒤에서 미리 준비)
               setWord(solvedWord);
-              handleAnalyze(solvedWord); 
+              handleAnalyze(solvedWord, true); 
 
               // 2. 1.2초 후 자연스럽게 모달 닫기 (이미 분석이 진행 중이거나 완료된 상태)
               setTimeout(() => {
