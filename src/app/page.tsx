@@ -437,10 +437,15 @@ export default function HomePage() {
               {dailyHistory.map((item, idx) => (
                 <div 
                   key={idx}
-                  className="bg-white border-2 border-duo-snow px-4 py-3 rounded-xl text-sm font-bold text-duo-eel flex items-center justify-between shadow-sm hover:border-duo-swan transition-colors"
+                  onClick={() => {
+                    setWord(item.word);
+                    handleAnalyze(item.word);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="bg-white border-2 border-duo-snow px-4 py-3 rounded-xl text-sm font-bold text-duo-eel flex items-center justify-between shadow-sm hover:border-duo-swan hover:bg-duo-snow transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-lg">{item.word}</span>
+                    <span className="text-lg group-hover:text-duo-macaw transition-colors">{item.word}</span>
                     {item.is_correct && <span className="bg-green-100 text-duo-green px-2 py-0.5 rounded-full text-[10px]">퀴즈통과</span>}
                   </div>
                   
