@@ -241,28 +241,32 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen relative p-6 w-full">
       {/* Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 pt-4 max-w-4xl mx-auto w-full px-2">
-        <h1 className="text-xl sm:text-2xl font-black text-duo-green tracking-tight flex items-center gap-2">
-          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" /> 
-          <span className="truncate">꼬리 물기 한자</span>
-        </h1>
+      <header className="w-full flex items-center justify-between py-4 px-2 mb-8 bg-white/50 backdrop-blur-md sticky top-0 z-50 max-w-4xl mx-auto">
+        <div className="flex items-center gap-1.5">
+          <div className="w-8 h-8 bg-duo-green rounded-lg flex items-center justify-center shadow-[0_2px_0_0_#46a302]">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="text-xl font-black tracking-tight text-duo-green">꼬리 물기 한자</h1>
+        </div>
         
-        <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
+        <div className="flex items-center gap-3">
           {user ? (
-            <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm p-1 pr-2 rounded-2xl border border-duo-swan/50">
-              <div 
-                onClick={handleUpdateNickname}
-                className="text-left sm:text-right cursor-pointer hover:opacity-70 transition-opacity px-2 py-1"
-              >
-                <p className="text-[9px] font-bold text-duo-wolf leading-none">탐험가</p>
-                <p className="text-xs sm:text-sm font-black text-duo-eel flex items-center gap-1">
-                  {nickname || user.email?.split('@')[0]}
-                  <span className="text-[8px] text-duo-wolf bg-duo-snow px-1 rounded border border-duo-swan/30">수정</span>
-                </p>
+            <div className="flex items-center gap-2 bg-white border-2 border-duo-snow pl-3 pr-1 py-1 rounded-2xl shadow-sm">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-bold text-duo-wolf leading-none">탐험가</span>
+                <span className="text-sm font-black text-duo-eel whitespace-nowrap">{nickname || user.email?.split('@')[0]}</span>
               </div>
               <button 
+                onClick={handleUpdateNickname}
+                className="p-1.5 hover:bg-duo-snow rounded-lg text-duo-wolf transition-colors"
+                title="이름 바꾸기"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+              <div className="w-[1px] h-4 bg-duo-snow mx-1" />
+              <button 
                 onClick={() => supabase.auth.signOut()}
-                className="px-3 py-1.5 bg-duo-snow rounded-xl border-2 border-duo-swan font-bold text-xs hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all whitespace-nowrap"
+                className="px-3 py-1.5 text-xs font-extrabold text-duo-wolf hover:text-duo-eel transition-colors"
               >
                 로그아웃
               </button>
@@ -270,23 +274,25 @@ export default function HomePage() {
           ) : (
             <button 
               onClick={() => setIsAuthModalOpen(true)}
-              className="w-full sm:w-auto px-6 py-2 bg-duo-green text-white rounded-xl border-b-4 border-green-700 font-black hover:brightness-110 active:border-b-0 active:translate-y-1 transition-all text-sm"
+              className="px-4 py-2 bg-duo-green text-white rounded-xl border-b-4 border-green-700 font-black hover:brightness-110 active:border-b-0 active:translate-y-1 transition-all text-sm"
             >
-              로그인해서 기록 남기기
+              로그인
             </button>
           )}
-          <Link 
-            href="/quiz"
-            className="w-10 h-10 bg-duo-green rounded-xl border-2 border-green-600 flex items-center justify-center hover:bg-green-500 transition-all shadow-[0_2px_0_0_#46a302] hover:translate-y-[1px] active:translate-y-[2px] active:shadow-none"
-          >
-            <Gamepad2 className="w-6 h-6 text-white" />
-          </Link>
-          <button 
-            onClick={openStats}
-            className="w-10 h-10 bg-duo-snow rounded-xl border-2 border-duo-swan flex items-center justify-center hover:bg-duo-swan transition-all"
-          >
-            <Trophy className="w-6 h-6 text-duo-bee" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/quiz"
+              className="w-10 h-10 bg-duo-green rounded-xl border-2 border-green-600 flex items-center justify-center hover:bg-green-500 transition-all shadow-[0_2px_0_0_#46a302] hover:translate-y-[1px] active:translate-y-[2px] active:shadow-none"
+            >
+              <Gamepad2 className="w-6 h-6 text-white" />
+            </Link>
+            <button 
+              onClick={openStats}
+              className="w-10 h-10 bg-duo-snow rounded-xl border-2 border-duo-swan flex items-center justify-center hover:bg-duo-swan transition-all"
+            >
+              <Trophy className="w-6 h-6 text-duo-bee" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -327,10 +333,12 @@ export default function HomePage() {
         {/* Intro: 오직 데이터가 없고 로딩 중도 아닐 때만 보여줍니다. */}
         {analyzedHanja.length === 0 && !isLoading && (
           <div className="mb-10 text-center animate-fade-in-up">
-            <h2 className="text-2xl font-bold text-duo-eel leading-tight">
-              오늘 새로 배운 단어나 궁금한 단어를 찾아봐<br />
-              한자의 비밀을 같이 풀어보자!
+            <h2 className="text-2xl sm:text-3xl font-black text-duo-eel tracking-tight whitespace-nowrap px-4">
+              오늘 배운 단어나 궁금한 단어를 찾아봐!
             </h2>
+            <p className="text-lg sm:text-xl font-bold text-duo-wolf mt-2">
+              한자의 비밀을 같이 풀어보자!
+            </p>
           </div>
         )}
 
