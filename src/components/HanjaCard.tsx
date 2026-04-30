@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import HanziWriter from "hanzi-writer";
-import { Play, Trophy, Edit3 } from "lucide-react";
+import { Trophy, Edit3 } from "lucide-react";
 import WritingModal from "./WritingModal";
 
 interface HanjaData {

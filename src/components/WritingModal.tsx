@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import HanziWriter from "hanzi-writer";
 import { X, RotateCcw, Play, CheckCircle2, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface WritingModalProps {
   char: string;
@@ -18,7 +17,6 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
   const targetRef = useRef<HTMLDivElement>(null);
   const [writer, setWriter] = useState<HanziWriter | null>(null);
   const [isComplete, setIsComplete] = useState(false);
-  const [mode, setMode] = useState<"quiz" | "animate">("quiz");
 
   useEffect(() => {
     if (isOpen && targetRef.current && !writer) {
@@ -29,7 +27,7 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
         showOutline: true,
         strokeColor: "#4b4b4b",
         outlineColor: "#eeeeee",
-        drawingColor: "#58cc02", // 듀오링고 초록색
+        drawingColor: "#58cc02",
         drawingWidth: 15,
         showHintAfterMisses: 1,
         delayBetweenStrokes: 100,
@@ -43,18 +41,18 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
       });
     }
 
+    const currentTarget = targetRef.current;
     return () => {
-      if (targetRef.current) {
-        targetRef.current.innerHTML = "";
+      if (currentTarget) {
+        currentTarget.innerHTML = "";
         setWriter(null);
       }
     };
-  }, [isOpen, char]);
+  }, [isOpen, char, writer]);
 
   const handleReset = () => {
     if (writer) {
       setIsComplete(false);
-      setMode("quiz");
       writer.cancelQuiz();
       writer.quiz();
     }
@@ -62,13 +60,11 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
 
   const handleAnimate = () => {
     if (writer) {
-      setMode("animate");
       writer.cancelQuiz();
       writer.animateCharacter({
         onComplete: () => {
           setTimeout(() => {
-            setMode("quiz");
-            writer.quiz();
+            if (writer) writer.quiz();
           }, 1000);
         }
       });
@@ -93,7 +89,6 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
             exit={{ scale: 0.9, y: 20, opacity: 0 }}
             className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col items-center p-6"
           >
-            {/* Header */}
             <div className="w-full flex justify-between items-center mb-4">
               <div className="text-left">
                 <h2 className="text-3xl font-black text-duo-eel">{char}</h2>
@@ -107,7 +102,6 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
               </button>
             </div>
 
-            {/* Canvas Area */}
             <div className="relative bg-duo-snow rounded-2xl p-4 mb-6 border-2 border-duo-swan group">
               <div ref={targetRef} className="touch-none cursor-crosshair" />
               <AnimatePresence>
@@ -129,7 +123,6 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
               </div>
             </div>
 
-            {/* Controls */}
             <div className="grid grid-cols-2 gap-3 w-full">
               <button
                 onClick={handleAnimate}
@@ -145,7 +138,6 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
               </button>
             </div>
 
-            {/* Footer Message */}
             <p className="mt-6 text-xs font-bold text-duo-wolf text-center leading-relaxed">
               한자를 손으로 직접 써보면<br />
               머릿속에 훨씬 더 오래 기억된답니다! ✨
