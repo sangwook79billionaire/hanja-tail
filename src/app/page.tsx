@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, Sparkles, Trophy, Gamepad2 } from "lucide-react";
+import { Search, Sparkles, Trophy, Gamepad2, Edit3, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateNickname } from "./actions";
@@ -18,6 +18,8 @@ interface LearningLog {
   word: string;
   is_correct: boolean;
   learned_at: string;
+  viewed_stroke?: boolean;
+  practiced_writing?: boolean;
 }
 
 interface HanjaData {
