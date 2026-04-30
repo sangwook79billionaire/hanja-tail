@@ -6,14 +6,29 @@ import { Trophy, ChevronLeft, Calendar, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+interface PeriodStats {
+  count: number;
+  correct: number;
+  days: number;
+}
+
+interface StatsData {
+  today: PeriodStats;
+  weekly: PeriodStats;
+  monthly: PeriodStats;
+  total: PeriodStats;
+}
+
 export default function TrophyPage() {
-  const [stats, setStats] = useState<{ attendance: number; correctCount: number; totalLearned: number } | null>(null);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
       const result = await getLearningRecap();
-      if (result.stats) setStats(result.stats);
+      if (result.stats) {
+        setStats(result.stats as StatsData);
+      }
       setIsLoading(false);
     }
     fetchStats();
@@ -32,12 +47,14 @@ export default function TrophyPage() {
     </div>
   );
 
-  const trophy = getTrophyInfo(stats?.attendance || 0);
+  const attendance = stats?.weekly?.days || 0;
+  const correctCount = stats?.weekly?.correct || 0;
+  const trophy = getTrophyInfo(attendance);
 
   return (
     <div className="flex flex-col min-h-screen bg-duo-snow">
       <header className="bg-white border-b-2 border-duo-swan p-6 flex items-center gap-4">
-        <Link href="/" className="p-2 hover:bg-duo-snow rounded-full transition-colors">
+        <Link href="/" className="p-2 hover:bg-duo-snow rounded-xl transition-colors">
           <ChevronLeft className="w-8 h-8 text-duo-wolf" />
         </Link>
         <h1 className="text-2xl font-black text-duo-eel">마이 트로피</h1>
@@ -53,13 +70,13 @@ export default function TrophyPage() {
             {trophy.label}
           </h2>
           <p className="text-duo-wolf font-bold mb-6">
-            이번 주 {stats?.attendance}일 동안 열심히 공부했어요!
+            이번 주 {attendance}일 동안 열심히 공부했어요!
           </p>
           
           <div className="w-full h-4 bg-duo-swan rounded-full overflow-hidden">
             <div 
               className="h-full bg-duo-bee transition-all duration-1000"
-              style={{ width: `${Math.min(((stats?.attendance || 0) / 6) * 100, 100)}%` }}
+              style={{ width: `${Math.min((attendance / 6) * 100, 100)}%` }}
             />
           </div>
           <div className="w-full flex justify-between mt-2 text-xs font-black text-duo-wolf uppercase">
@@ -72,12 +89,12 @@ export default function TrophyPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white border-2 border-duo-swan rounded-2xl p-6">
             <Calendar className="w-6 h-6 text-duo-macaw mb-2" />
-            <div className="text-2xl font-black text-duo-eel">{stats?.attendance}일</div>
+            <div className="text-2xl font-black text-duo-eel">{attendance}일</div>
             <p className="text-xs font-bold text-duo-wolf uppercase">이번 주 출석</p>
           </div>
           <div className="bg-white border-2 border-duo-swan rounded-2xl p-6">
             <CheckCircle className="w-6 h-6 text-duo-green mb-2" />
-            <div className="text-2xl font-black text-duo-eel">{stats?.correctCount}개</div>
+            <div className="text-2xl font-black text-duo-eel">{correctCount}개</div>
             <p className="text-xs font-bold text-duo-wolf uppercase">맞힌 퀴즈</p>
           </div>
         </div>
