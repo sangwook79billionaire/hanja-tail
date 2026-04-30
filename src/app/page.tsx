@@ -271,7 +271,7 @@ export default function HomePage() {
           <div className="bg-white/80 backdrop-blur-sm border-2 border-duo-snow rounded-2xl p-4 shadow-sm">
             <div className="flex justify-between items-end mb-2">
               <span className="text-sm font-black text-duo-eel flex items-center gap-1">
-                <Trophy className="w-4 h-4 text-amber-500" /> 오늘의 탐험 미션
+                <Edit3 className="w-4 h-4 text-amber-500" /> 오늘의 한자 쓰기 미션
               </span>
               <span className="text-[10px] font-bold text-duo-wolf">
                 {recapData?.today?.count || 0} / {trophyGoal} 단어
@@ -286,8 +286,8 @@ export default function HomePage() {
             </div>
             <p className="text-[10px] font-bold text-duo-wolf mt-2 text-center">
               { (recapData?.today?.count || 0) >= trophyGoal 
-                ? "🎉 오늘의 탐험 성공! 대단해요!" 
-                : `${trophyGoal - (recapData?.today?.count || 0)}개만 더 찾으면 오늘의 트로피를 얻어요!`}
+                ? "🎉 오늘의 미션 성공! 트로피 획득!" 
+                : `한자를 직접 써봐야 숫자가 올라가요! (${trophyGoal - (recapData?.today?.count || 0)}개 남음)`}
             </p>
           </div>
         </div>
@@ -377,14 +377,14 @@ export default function HomePage() {
                 <div className="flex items-center gap-2">
                   <div className={cn(
                     "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-                    dailyHistory.length >= trophyGoal ? "bg-duo-bee" : "bg-duo-swan"
+                    (recapData?.today?.count || 0) >= trophyGoal ? "bg-duo-bee" : "bg-duo-snow"
                   )}>
-                    <Trophy className={cn("w-5 h-5", dailyHistory.length >= trophyGoal ? "text-white" : "text-duo-wolf")} />
+                    <Trophy className={cn("w-5 h-5", (recapData?.today?.count || 0) >= trophyGoal ? "text-white" : "text-duo-wolf")} />
                   </div>
-                  <h3 className="text-lg font-bold text-duo-eel">오늘의 미션</h3>
+                  <h3 className="text-lg font-bold text-duo-eel">오늘의 미션 완료 현황</h3>
                 </div>
                 <span className="text-sm font-extrabold text-duo-wolf">
-                  {dailyHistory.length} / {trophyGoal}
+                  {recapData?.today?.count || 0} / {trophyGoal}
                 </span>
               </div>
               
@@ -393,28 +393,47 @@ export default function HomePage() {
                 <motion.div 
                   className="h-full bg-duo-bee"
                   initial={{ width: 0 }}
-                  animate={{ width: `${(Math.min(dailyHistory.length, trophyGoal) / trophyGoal) * 100}%` }}
+                  animate={{ width: `${(Math.min(recapData?.today?.count || 0, trophyGoal) / trophyGoal) * 100}%` }}
                   transition={{ type: "spring", bounce: 0.4 }}
                 />
               </div>
               <p className="text-xs text-duo-wolf mt-2 font-bold text-center">
-                {dailyHistory.length >= trophyGoal 
-                  ? "🎉 오늘의 트로피 획득 성공!" 
-                  : `${trophyGoal - dailyHistory.length}개만 더 채우면 오늘의 트로피를 얻을 수 있어!`}
+                {(recapData?.today?.count || 0) >= trophyGoal 
+                  ? "🎉 오늘의 한자왕 트로피 획득!" 
+                  : `직접 쓴 한자만 카운트돼요! (${trophyGoal - (recapData?.today?.count || 0)}개 더 쓰기)`}
               </p>
             </div>
 
             <div className="flex items-center gap-2 mb-4 px-1">
               <h3 className="text-lg font-bold text-duo-eel">오늘 공부한 단어들</h3>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {dailyHistory.map((item, idx) => (
                 <div 
                   key={idx}
-                  className="bg-white border-2 border-duo-swan px-4 py-2 rounded-xl text-sm font-bold text-duo-eel flex items-center gap-2 shadow-sm"
+                  className="bg-white border-2 border-duo-snow px-4 py-3 rounded-xl text-sm font-bold text-duo-eel flex items-center justify-between shadow-sm hover:border-duo-swan transition-colors"
                 >
-                  {item.word}
-                  {item.is_correct && <span className="text-duo-green">✓</span>}
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">{item.word}</span>
+                    {item.is_correct && <span className="bg-green-100 text-duo-green px-2 py-0.5 rounded-full text-[10px]">퀴즈통과</span>}
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <Search className={cn("w-4 h-4", "text-duo-macaw")} />
+                      <span className="text-[8px] text-duo-wolf">검색</span>
+                    </div>
+                    <div className="w-4 h-[2px] bg-duo-snow"></div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <Eye className={cn("w-4 h-4", item.viewed_stroke ? "text-duo-macaw" : "text-duo-snow")} />
+                      <span className="text-[8px] text-duo-wolf">획순</span>
+                    </div>
+                    <div className="w-4 h-[2px] bg-duo-snow"></div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <Edit3 className={cn("w-4 h-4", item.practiced_writing ? "text-duo-bee" : "text-duo-snow")} />
+                      <span className="text-[8px] text-duo-wolf">쓰기</span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
