@@ -61,6 +61,8 @@ export default function HomePage() {
       if (result.success) {
         setNickname(newName.trim());
         alert("와우! 이제부터 " + newName + " 탐험가님이라고 부를게요!");
+      } else if (result.error) {
+        alert("앗! 닉네임을 바꾸지 못했어요: " + result.error);
       }
     }
   };

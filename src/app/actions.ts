@@ -360,8 +360,8 @@ export async function updateNickname(newNickname: string) {
     });
 
   if (error) {
-    console.error("Nickname update error:", error);
-    return { error: "닉네임 수정 중 오류가 발생했습니다." };
+    console.error("Nickname update error details:", error);
+    return { error: `DB 저장 실패: ${error.message}` };
   }
   return { success: true };
 }
