@@ -356,7 +356,7 @@ export default function HomePage() {
                 <HanjaCard 
                   key={`${currentSearchedWord}-${idx}`} 
                   data={hanja} 
-                  word={currentSearchedWord}
+                  word={currentSearchedWord || undefined}
                   delay={idx * 0.1}
                   onQuiz={(h) => handleRequestQuiz(h)}
                   onWrite={(char, meaning, sound) => {
