@@ -165,18 +165,19 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
 
     const prompt = `
       You are a Hanja quiz generator for kids.
-      Target Hanja: "${hanja}"
-      ${excludedWord ? `CRITICAL RULE: The TARGET ANSWER must NOT be the word "${excludedWord}". I repeat, do NOT use "${excludedWord}". Pick a completely different common word.` : ""}
+      Target Hanja (Unicode character): "${hanja}"
       
       Task:
-      1. Find a very common, easy Korean word (2~3 letters) that includes the Hanja "${hanja}". 
-      2. Write a fun, kid-friendly description/hint that explains the meaning of the word.
-      3. Do NOT include the TARGET ANSWER directly in the description.
+      1. Find a very common Korean word (2~3 letters) that MUST contain the SPECIFIC Hanja character "${hanja}" in its Hanja representation.
+      2. For example, if Target Hanja is "學", you can pick "學校" or "學生". Do NOT pick words that just sound like "학" but use a different Hanja (like "鶴").
+      3. Write a fun, kid-friendly description/hint that explains the meaning of the word.
+      4. Do NOT include the TARGET ANSWER directly in the description.
+      ${excludedWord ? `5. CRITICAL: The word MUST NOT be "${excludedWord}".` : ""}
       
       Return ONLY a JSON object in this format:
       {
-        "word": "정답 단어",
-        "hanja_combination": "한자",
+        "word": "정답 단어 (한글)",
+        "hanja_combination": "정답 단어 (한자 - 반드시 '${hanja}' 포함)",
         "description": "재미있는 힌트"
       }
     `;
@@ -190,11 +191,14 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
         if (!jsonMatch) throw new Error("JSON not found in response");
         let quizData = JSON.parse(jsonMatch[0]);
 
+        // 검증: 정답 단어의 한자 표기에 우리가 찾는 한자가 실제로 포함되어 있는지 확인
+        if (!quizData.hanja_combination.includes(hanja)) {
+          throw new Error("Generated word does not contain the target Hanja character.");
+        }
+
         // 검증: 제외할 단어와 겹치면 한 번 더 요청
         if (excludedWord && quizData.word === excludedWord) {
-          const retryResult = await model.generateContent(prompt + "\n\nPLEASE PROVIDE A DIFFERENT WORD.");
-          const retryJsonMatch = (await retryResult.response).text().match(/\{[\s\S]*\}/);
-          if (retryJsonMatch) quizData = JSON.parse(retryJsonMatch[0]);
+          throw new Error("Generated word is the excluded word.");
         }
 
         // DB에 캐싱
