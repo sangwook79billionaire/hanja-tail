@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, Sparkles, Trophy, Gamepad2, Edit3, Eye } from "lucide-react";
+import { Search, Sparkles, Trophy, Gamepad2, Edit3, Eye, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateNickname } from "./actions";
