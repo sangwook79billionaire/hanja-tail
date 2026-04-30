@@ -170,26 +170,28 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen relative p-6 w-full">
       {/* Header */}
-      <header className="flex justify-between items-center mb-8 pt-4 max-w-4xl mx-auto w-full">
-        <h1 className="text-2xl font-extrabold text-duo-green tracking-tight flex items-center gap-2">
-          <Sparkles className="w-6 h-6" /> 꼬리에 꼬리를 무는 한자학습
+      <header className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 pt-4 max-w-4xl mx-auto w-full px-2">
+        <h1 className="text-xl sm:text-2xl font-black text-duo-green tracking-tight flex items-center gap-2">
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" /> 
+          <span className="truncate">꼬리 물기 한자</span>
         </h1>
-        <div className="flex items-center gap-4">
+        
+        <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
           {user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm p-1 pr-2 rounded-2xl border border-duo-swan/50">
               <div 
                 onClick={handleUpdateNickname}
-                className="text-right cursor-pointer hover:opacity-70 transition-opacity px-2 py-1"
+                className="text-left sm:text-right cursor-pointer hover:opacity-70 transition-opacity px-2 py-1"
               >
-                <p className="text-[10px] font-bold text-duo-wolf">반가워요!</p>
-                <p className="text-sm font-black text-duo-eel flex items-center gap-1">
+                <p className="text-[9px] font-bold text-duo-wolf leading-none">탐험가</p>
+                <p className="text-xs sm:text-sm font-black text-duo-eel flex items-center gap-1">
                   {nickname || user.email?.split('@')[0]}
-                  <span className="text-[10px] text-duo-wolf bg-duo-snow px-1 rounded">수정</span>
+                  <span className="text-[8px] text-duo-wolf bg-duo-snow px-1 rounded border border-duo-swan/30">수정</span>
                 </p>
               </div>
               <button 
                 onClick={() => supabase.auth.signOut()}
-                className="px-4 py-2 bg-duo-snow rounded-xl border-2 border-duo-swan font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all"
+                className="px-3 py-1.5 bg-duo-snow rounded-xl border-2 border-duo-swan font-bold text-xs hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all whitespace-nowrap"
               >
                 로그아웃
               </button>
@@ -197,9 +199,9 @@ export default function HomePage() {
           ) : (
             <button 
               onClick={() => setIsAuthModalOpen(true)}
-              className="px-6 py-2 bg-duo-green text-white rounded-xl border-b-4 border-green-700 font-black hover:brightness-110 transition-all"
+              className="w-full sm:w-auto px-6 py-2 bg-duo-green text-white rounded-xl border-b-4 border-green-700 font-black hover:brightness-110 active:border-b-0 active:translate-y-1 transition-all text-sm"
             >
-              로그인
+              로그인해서 기록 남기기
             </button>
           )}
           <button 
