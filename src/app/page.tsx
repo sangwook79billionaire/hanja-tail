@@ -241,61 +241,61 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen relative p-6 w-full">
       {/* Header */}
-      {/* Header */}
-      <header className="w-full bg-white border-b-2 border-duo-snow sticky top-0 z-50 px-4 sm:px-6 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-duo-green rounded-xl flex items-center justify-center shadow-[0_2px_0_0_#46a302]">
+      <header className="w-full bg-white border-b-2 border-duo-snow sticky top-0 z-50 px-3 sm:px-6 py-2 sm:py-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
+          {/* Logo Section */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-duo-green rounded-xl flex items-center justify-center shadow-[0_2px_0_0_#46a302] flex-shrink-0">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-xl font-black tracking-tight text-duo-green hidden sm:block">꼬리 물기 한자</h1>
+            <h1 className="text-lg sm:text-xl font-black tracking-tight text-duo-green whitespace-nowrap hidden xs:block">
+              꼬리 물기 한자
+            </h1>
           </div>
           
-          <div className="flex items-center gap-4">
+          {/* Profile & Controls Section */}
+          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
             {user ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-3 bg-duo-snow/50 px-4 py-2 rounded-2xl border-2 border-duo-snow">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-duo-wolf leading-none uppercase tracking-wider">Explorer</span>
-                    <span className="text-sm font-black text-duo-eel">{nickname || user.email?.split('@')[0]}</span>
-                  </div>
-                  <button 
-                    onClick={handleUpdateNickname}
-                    className="p-1.5 hover:bg-white rounded-lg text-duo-wolf transition-all hover:text-duo-eel"
-                    title="설정"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </button>
-                  <div className="w-[2px] h-4 bg-duo-snow mx-1" />
-                  <button 
-                    onClick={() => supabase.auth.signOut()}
-                    className="text-xs font-extrabold text-duo-wolf hover:text-red-500 transition-colors whitespace-nowrap"
-                  >
-                    로그아웃
-                  </button>
+              <div className="flex items-center gap-1.5 sm:gap-3 bg-duo-snow/50 pl-2 sm:pl-4 pr-1 sm:pr-2 py-1 sm:py-2 rounded-2xl border-2 border-duo-snow overflow-hidden flex-shrink">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[8px] sm:text-[10px] font-bold text-duo-wolf leading-none uppercase tracking-wider truncate">Explorer</span>
+                  <span className="text-xs sm:text-sm font-black text-duo-eel truncate">{nickname || "익명"}</span>
                 </div>
+                <button 
+                  onClick={handleUpdateNickname}
+                  className="p-1 sm:p-1.5 hover:bg-white rounded-lg text-duo-wolf transition-all hover:text-duo-eel flex-shrink-0"
+                >
+                  <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+                <div className="w-[1px] sm:w-[2px] h-3 sm:h-4 bg-duo-snow mx-0.5 sm:mx-1 flex-shrink-0" />
+                <button 
+                  onClick={() => supabase.auth.signOut()}
+                  className="text-[10px] sm:text-xs font-black text-duo-wolf hover:text-red-500 transition-colors whitespace-nowrap px-1 sm:px-2"
+                >
+                  로그아웃
+                </button>
               </div>
             ) : (
               <button 
                 onClick={() => setIsAuthModalOpen(true)}
-                className="px-5 py-2 bg-duo-green text-white rounded-xl border-b-4 border-green-700 font-black hover:brightness-110 active:border-b-0 active:translate-y-1 transition-all text-sm"
+                className="px-3 sm:px-5 py-1.5 sm:py-2 bg-duo-green text-white rounded-xl border-b-4 border-green-700 font-black hover:brightness-110 active:border-b-0 active:translate-y-1 transition-all text-xs sm:text-sm whitespace-nowrap"
               >
                 로그인
               </button>
             )}
             
-            <div className="flex items-center gap-2 border-l-2 border-duo-snow pl-4">
+            <div className="flex items-center gap-1 sm:gap-2 border-l-2 border-duo-snow pl-2 sm:pl-4 flex-shrink-0">
               <Link 
                 href="/quiz"
-                className="w-10 h-10 bg-duo-green rounded-xl border-2 border-green-600 flex items-center justify-center hover:bg-green-500 transition-all shadow-[0_2px_0_0_#46a302] hover:translate-y-[1px] active:translate-y-[2px] active:shadow-none"
+                className="w-8 h-8 sm:w-10 sm:h-10 bg-duo-green rounded-xl border-2 border-green-600 flex items-center justify-center hover:bg-green-500 transition-all shadow-[0_2px_0_0_#46a302] hover:translate-y-[1px] active:translate-y-[2px] active:shadow-none flex-shrink-0"
               >
-                <Gamepad2 className="w-6 h-6 text-white" />
+                <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </Link>
               <button 
                 onClick={openStats}
-                className="w-10 h-10 bg-duo-snow rounded-xl border-2 border-duo-swan flex items-center justify-center hover:bg-duo-swan transition-all"
+                className="w-8 h-8 sm:w-10 sm:h-10 bg-duo-snow rounded-xl border-2 border-duo-swan flex items-center justify-center hover:bg-duo-swan transition-all flex-shrink-0"
               >
-                <Trophy className="w-6 h-6 text-duo-bee" />
+                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-duo-bee" />
               </button>
             </div>
           </div>
