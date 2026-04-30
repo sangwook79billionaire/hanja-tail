@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import HanziWriter from "hanzi-writer";
 import { Trophy, Edit3 } from "lucide-react";
-import WritingModal from "./WritingModal";
 
 interface HanjaData {
   char: string;
@@ -16,16 +15,17 @@ interface HanjaData {
 export default function HanjaCard({ 
   data, 
   delay = 0,
-  onQuiz
+  onQuiz,
+  onWrite
 }: { 
   data: HanjaData; 
   delay?: number;
   onQuiz?: (hanja: string) => void;
+  onWrite?: (char: string, meaning: string, sound: string) => void;
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const writerRef = useRef<HTMLDivElement>(null);
   const [writerInstance, setWriterInstance] = useState<HanziWriter | null>(null);
-  const [isWritingModalOpen, setIsWritingModalOpen] = useState(false);
 
   useEffect(() => {
     if (isFlipped && writerRef.current && !writerInstance) {
@@ -46,9 +46,9 @@ export default function HanjaCard({
     setIsFlipped(!isFlipped);
   };
 
-  const openWritingModal = (e: React.MouseEvent) => {
+  const handleWriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsWritingModalOpen(true);
+    onWrite?.(data.char, data.meaning, data.sound);
   };
 
   return (
@@ -79,7 +79,7 @@ export default function HanjaCard({
           <div ref={writerRef} className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] mb-2 touch-none scale-90 sm:scale-100"></div>
           <div className="flex flex-col sm:flex-row gap-1 w-full px-2">
             <button 
-              onClick={openWritingModal}
+              onClick={handleWriteClick}
               className="flex-1 flex items-center justify-center gap-1 bg-duo-snow text-duo-eel py-1.5 rounded-lg font-bold text-[10px] sm:text-xs border-2 border-duo-swan hover:bg-duo-swan transition-all"
             >
               <Edit3 className="w-2.5 h-2.5" /> 써보기
@@ -96,14 +96,6 @@ export default function HanjaCard({
           </div>
         </div>
       </motion.div>
-
-      <WritingModal 
-        char={data.char}
-        meaning={data.meaning}
-        sound={data.sound}
-        isOpen={isWritingModalOpen}
-        onClose={() => setIsWritingModalOpen(false)}
-      />
     </div>
   );
 }

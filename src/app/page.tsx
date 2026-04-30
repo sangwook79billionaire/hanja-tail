@@ -8,6 +8,7 @@ import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateNickname } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
+import WritingModal from "@/components/WritingModal";
 import { AnimatePresence, motion } from "framer-motion";
 import AuthModal from "@/components/AuthModal";
 import { createClient } from "@/lib/supabase/client";
@@ -42,6 +43,7 @@ export default function HomePage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string} | null>(null);
 
   const supabase = createClient();
 
@@ -316,6 +318,7 @@ export default function HomePage() {
                   data={hanja} 
                   delay={idx * 0.1} 
                   onQuiz={startQuiz}
+                  onWrite={(char, meaning, sound) => setSelectedHanjaForWriting({ char, meaning, sound })}
                 />
               ))}
             </div>
@@ -437,6 +440,15 @@ export default function HomePage() {
         <AuthModal 
           isOpen={isAuthModalOpen} 
           onClose={() => setIsAuthModalOpen(false)} 
+        />
+
+        {/* Writing Practice Modal */}
+        <WritingModal
+          char={selectedHanjaForWriting?.char || ""}
+          meaning={selectedHanjaForWriting?.meaning || ""}
+          sound={selectedHanjaForWriting?.sound || ""}
+          isOpen={!!selectedHanjaForWriting}
+          onClose={() => setSelectedHanjaForWriting(null)}
         />
       </AnimatePresence>
     </div>
