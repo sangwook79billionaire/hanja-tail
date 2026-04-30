@@ -169,16 +169,17 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
       
       Task:
       1. Find a very common Korean word (2~3 letters) that MUST contain the SPECIFIC Hanja character "${hanja}" in its Hanja representation.
-      2. For example, if Target Hanja is "學", you can pick "學校" or "學生". Do NOT pick words that just sound like "학" but use a different Hanja (like "鶴").
-      3. Write a fun, kid-friendly description/hint that explains the meaning of the word.
-      4. Do NOT include the TARGET ANSWER directly in the description.
-      ${excludedWord ? `5. CRITICAL: The word MUST NOT be "${excludedWord}".` : ""}
+      2. Write a fun, kid-friendly description/hint that explains the meaning of the word.
+      3. Provide full Hanja analysis for the chosen word.
       
       Return ONLY a JSON object in this format:
       {
         "word": "정답 단어 (한글)",
         "hanja_combination": "정답 단어 (한자 - 반드시 '${hanja}' 포함)",
-        "description": "재미있는 힌트"
+        "description": "재미있는 힌트",
+        "hanja_list": [
+          { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
+        ]
       }
     `;
 
@@ -201,7 +202,17 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
           throw new Error("Generated word is the excluded word.");
         }
 
-        // DB에 캐싱
+        // 선제적 캐싱: 정답을 맞혔을 때 바로 보여주기 위해 word_analysis_cache에 미리 저장
+        await supabase.from("word_analysis_cache").upsert({
+          word: quizData.word,
+          analysis_json: {
+            hanjaList: quizData.hanja_list,
+            correctedWord: null,
+            isLoanword: false
+          }
+        });
+
+        // quiz_bank에도 저장
         const { data: newQuiz } = await supabase
           .from("quiz_bank")
           .insert({
