@@ -360,8 +360,7 @@ export default function HomePage() {
                   delay={idx * 0.1}
                   onQuiz={(h) => handleRequestQuiz(h)}
                   onWrite={(char, meaning, sound) => {
-                    setSelectedWritingHanja({ char, meaning, sound });
-                    setShowWritingCanvas(true);
+                    setSelectedHanjaForWriting({ char, meaning, sound });
                   }}
                   onProgressUpdate={() => fetchDailyHistory()}
                 />
