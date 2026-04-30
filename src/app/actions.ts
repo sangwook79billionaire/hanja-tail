@@ -385,3 +385,43 @@ export async function getMyProfile() {
 
   return { profile };
 }
+
+export async function getRandomQuizzes(limit: number = 10) {
+  const supabase = createClient();
+  
+  try {
+    // 1. 퀴즈 뱅크에서 넉넉하게 50개를 가져와서 섞습니다.
+    const { data: allQuizzes, error: quizError } = await supabase
+      .from("quiz_bank")
+      .select("*")
+      .limit(100);
+
+    if (quizError || !allQuizzes) throw quizError;
+
+    // 2. 섞기 (Shuffle)
+    const shuffled = [...allQuizzes].sort(() => Math.random() - 0.5);
+    const selectedQuizzes = shuffled.slice(0, limit);
+
+    // 3. 각 퀴즈마다 오답 보기(Distractors) 3개씩 추가
+    const quizzesWithOptions = selectedQuizzes.map((quiz) => {
+      // 본인 제외하고 랜덤하게 3개 뽑기
+      const distractors = allQuizzes
+        .filter(q => q.word !== quiz.word)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3)
+        .map(q => q.word);
+
+      const options = [quiz.word, ...distractors].sort(() => Math.random() - 0.5);
+
+      return {
+        ...quiz,
+        options
+      };
+    });
+
+    return { quizzes: quizzesWithOptions };
+  } catch (error) {
+    console.error("Get Random Quizzes Error:", error);
+    return { error: "퀴즈를 불러오는 중 오류가 발생했습니다." };
+  }
+}

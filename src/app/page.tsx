@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Sparkles, Trophy } from "lucide-react";
+import Link from "next/link";
+import { Search, Sparkles, Trophy, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateNickname } from "./actions";
@@ -204,6 +205,12 @@ export default function HomePage() {
               로그인해서 기록 남기기
             </button>
           )}
+          <Link 
+            href="/quiz"
+            className="w-10 h-10 bg-duo-green rounded-xl border-2 border-green-600 flex items-center justify-center hover:bg-green-500 transition-all shadow-[0_2px_0_0_#46a302] hover:translate-y-[1px] active:translate-y-[2px] active:shadow-none"
+          >
+            <Gamepad2 className="w-6 h-6 text-white" />
+          </Link>
           <button 
             onClick={openStats}
             className="w-10 h-10 bg-duo-snow rounded-xl border-2 border-duo-swan flex items-center justify-center hover:bg-duo-swan transition-all"

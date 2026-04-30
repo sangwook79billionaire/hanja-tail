@@ -1,0 +1,322 @@
+[
+  {
+    "word": "학교",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "學", "meaning": "배울", "sound": "학", "level": "8급" },
+        { "char": "校", "meaning": "학교", "sound": "교", "level": "8급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "學校",
+      "description": "선생님과 친구들이 있고, 즐겁게 공부를 하는 곳이에요."
+    }
+  },
+  {
+    "word": "학생",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "學", "meaning": "배울", "sound": "학", "level": "8급" },
+        { "char": "生", "meaning": "날", "sound": "생", "level": "8급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "學生",
+      "description": "학교에 다니며 열심히 새로운 것을 배우는 어린이를 말해요."
+    }
+  },
+  {
+    "word": "부모",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "父", "meaning": "아버지", "sound": "부", "level": "8급" },
+        { "char": "母", "meaning": "어머니", "sound": "모", "level": "8급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "父母",
+      "description": "나를 세상에 태어나게 해주시고 가장 사랑해주시는 아빠와 엄마예요."
+    }
+  },
+  {
+    "word": "태양",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "太", "meaning": "클", "sound": "태", "level": "7급" },
+        { "char": "陽", "meaning": "볕", "sound": "양", "level": "7급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "太陽",
+      "description": "하늘 높이 떠서 우리 지구를 따뜻하게 비춰주는 커다란 불덩어리 별이에요."
+    }
+  },
+  {
+    "word": "지구",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "地", "meaning": "땅", "sound": "지", "level": "8급" },
+        { "char": "球", "meaning": "공", "sound": "구", "level": "6급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "地球",
+      "description": "우리가 살고 있는 동그란 공 모양의 아름다운 행성이에요."
+    }
+  },
+  {
+    "word": "국가",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "國", "meaning": "나라", "sound": "국", "level": "8급" },
+        { "char": "家", "meaning": "집", "sound": "가", "level": "8급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "國家",
+      "description": "우리 모두가 함께 어울려 살고 있는 큰 테두리, 즉 나라를 뜻해요."
+    }
+  },
+  {
+    "word": "형제",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "兄", "meaning": "형", "sound": "형", "level": "7급" },
+        { "char": "弟", "meaning": "아우", "sound": "제", "level": "7급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "兄弟",
+      "description": "한 부모님 아래에서 태어난 형과 남동생 사이를 말해요."
+    }
+  },
+  {
+    "word": "자매",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "姉", "meaning": "누이", "sound": "자", "level": "5급" },
+        { "char": "妹", "meaning": "누이", "sound": "매", "level": "5급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "姉妹",
+      "description": "한 부모님 아래에서 태어난 언니와 여동생 사이를 말해요."
+    }
+  },
+  {
+    "word": "인사",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "人", "meaning": "사람", "sound": "인", "level": "8급" },
+        { "char": "事", "meaning": "일", "sound": "사", "level": "7급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "人事",
+      "description": "사람을 만났을 때 반갑게 고개를 숙이거나 말을 건네는 예의 바른 행동이에요."
+    }
+  },
+  {
+    "word": "청소",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "淸", "meaning": "맑을", "sound": "청", "level": "6급" },
+        { "char": "掃", "meaning": "쓸", "sound": "소", "level": "4급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "淸掃",
+      "description": "방안의 먼지를 쓸고 닦아서 깨끗하게 만드는 일이에요."
+    }
+  },
+  {
+    "word": "공부",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "工", "meaning": "장인", "sound": "공", "level": "8급" },
+        { "char": "夫", "meaning": "사내", "sound": "부", "level": "7급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "工夫",
+      "description": "새로운 지식을 배우고 익히기 위해 노력하는 모든 활동을 말해요."
+    }
+  },
+  {
+    "word": "친구",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "親", "meaning": "친할", "sound": "친", "level": "6급" },
+        { "char": "舊", "meaning": "옛", "sound": "구", "level": "5급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "親舊",
+      "description": "오랫동안 가깝게 지내며 서로 아끼고 좋아하는 소중한 사람이에요."
+    }
+  },
+  {
+    "word": "선생",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "先", "meaning": "먼저", "sound": "선", "level": "7급" },
+        { "char": "生", "meaning": "날", "sound": "생", "level": "8급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "先生",
+      "description": "학생들에게 지식과 올바른 길을 가르쳐주시는 고마운 분이에요."
+    }
+  },
+  {
+    "word": "시각",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "時", "meaning": "때", "sound": "시", "level": "8급" },
+        { "char": "刻", "meaning": "새길", "sound": "각", "level": "6급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "時刻",
+      "description": "지금이 몇 시 몇 분인지 가리키는 시간의 어느 한 점을 말해요."
+    }
+  },
+  {
+    "word": "오전",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "午", "meaning": "낮", "sound": "오", "level": "7급" },
+        { "char": "前", "meaning": "앞", "sound": "전", "level": "7급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "午前",
+      "description": "밤 12시부터 낮 12시까지, 하루의 앞부분 시간을 말해요."
+    }
+  },
+  {
+    "word": "오후",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "午", "meaning": "낮", "sound": "오", "level": "7급" },
+        { "char": "後", "meaning": "뒤", "sound": "후", "level": "7급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "午後",
+      "description": "낮 12시부터 밤 12시까지, 하루의 뒷부분 시간을 말해요."
+    }
+  },
+  {
+    "word": "동물",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "動", "meaning": "움직일", "sound": "동", "level": "7급" },
+        { "char": "物", "meaning": "만물", "sound": "물", "level": "7급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "動物",
+      "description": "강아지나 고양이처럼 스스로 움직이고 숨을 쉬는 생명체들을 말해요."
+    }
+  },
+  {
+    "word": "식물",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "植", "meaning": "심을", "sound": "식", "level": "6급" },
+        { "char": "物", "meaning": "만물", "sound": "물", "level": "7급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "植物",
+      "description": "꽃이나 나무처럼 땅에 뿌리를 내리고 자라는 생명체들을 말해요."
+    }
+  },
+  {
+    "word": "대소",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "大", "meaning": "클", "sound": "대", "level": "8급" },
+        { "char": "小", "meaning": "작을", "sound": "소", "level": "8급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "大小",
+      "description": "큰 것과 작은 것, 즉 물건의 크기를 아울러 이르는 말이에요."
+    }
+  },
+  {
+    "word": "상하",
+    "difficulty": 1,
+    "analysis": {
+      "hanjaList": [
+        { "char": "上", "meaning": "윗", "sound": "상", "level": "8급" },
+        { "char": "下", "meaning": "아래", "sound": "하", "level": "8급" }
+      ],
+      "correctedWord": null,
+      "isLoanword": false
+    },
+    "quiz": {
+      "hanja_combination": "上下",
+      "description": "위쪽과 아래쪽을 함께 이르는 말이에요."
+    }
+  }
+]
