@@ -355,8 +355,7 @@ export async function updateNickname(newNickname: string) {
     .from("profiles")
     .upsert({ 
       id: user.id, 
-      nickname: newNickname,
-      updated_at: new Date().toISOString()
+      nickname: newNickname
     });
 
   if (error) {
