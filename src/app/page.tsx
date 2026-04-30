@@ -99,7 +99,26 @@ export default function HomePage() {
   const fetchDailyHistory = useCallback(async () => {
     const result = await getLearningRecap();
     if (result.logs) {
-      setDailyHistory(result.logs);
+      // 오늘 날짜(KST) 문자열 생성
+      const todayKst = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
+
+      // 오늘치 기록만 필터링하여 리스트에 표시
+      const filtered = result.logs.filter((log: LearningLog) => {
+        const logKst = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Seoul',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(new Date(log.learned_at));
+        return logKst === todayKst;
+      });
+
+      setDailyHistory(filtered);
     }
     if (result.stats) {
       setRecapData(result.stats);

@@ -284,14 +284,41 @@ export async function getLearningRecap() {
 
     if (error) throw error;
 
-    // KST (GMT+9) 기준 시간 계산
-    const kstOffset = 9 * 60 * 60 * 1000;
+    // KST (GMT+9) 기준 오늘 날짜 문자열 추출 (YYYY-MM-DD)
+    const kstFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const todayKstStr = kstFormatter.format(new Date());
+
+    const processLogs = (logs: { learned_at: string; is_correct: boolean }[], startDate?: Date) => {
+      const filtered = logs.filter(log => {
+        const logDate = new Date(log.learned_at);
+        if (startDate) {
+          return logDate >= startDate;
+        }
+        // 오늘 날짜 비교 (KST)
+        return kstFormatter.format(logDate) === todayKstStr;
+      });
+
+      const uniqueDays = new Set(filtered.map(log => {
+        return kstFormatter.format(new Date(log.learned_at));
+      })).size;
+
+      return {
+        count: filtered.length,
+        correct: filtered.filter(l => l.is_correct).length,
+        days: uniqueDays
+      };
+    };
+
+    // 주간/월간 시작일 계산 (KST 기준)
     const now = new Date();
-    const kstNow = new Date(now.getTime() + kstOffset);
-    
-    const startOfToday = new Date(kstNow);
-    startOfToday.setHours(0, 0, 0, 0);
-    
+    const kstNowStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
+    const kstNow = new Date(kstNowStr);
+
     const startOfWeek = new Date(kstNow);
     startOfWeek.setDate(kstNow.getDate() - kstNow.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
@@ -300,35 +327,16 @@ export async function getLearningRecap() {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const processLogs = (logs: { learned_at: string; is_correct: boolean }[], start: Date) => {
-      const filtered = logs.filter(log => {
-        const logKst = new Date(new Date(log.learned_at).getTime() + kstOffset);
-        return logKst >= start;
-      });
-      const uniqueDays = new Set(filtered.map(log => {
-        const d = new Date(new Date(log.learned_at).getTime() + kstOffset);
-        return d.toISOString().split('T')[0];
-      })).size;
-      return {
-        count: filtered.length,
-        correct: filtered.filter(l => l.is_correct).length,
-        days: uniqueDays
-      };
-    };
-
     return {
       logs: allLogs,
       stats: {
-        today: processLogs(allLogs, startOfToday),
+        today: processLogs(allLogs), // startDate 없으면 오늘 날짜 문자열 비교
         weekly: processLogs(allLogs, startOfWeek),
         monthly: processLogs(allLogs, startOfMonth),
         total: {
           count: allLogs.length,
           correct: allLogs.filter(l => l.is_correct).length,
-          days: new Set(allLogs.map(log => {
-            const d = new Date(new Date(log.learned_at).getTime() + kstOffset);
-            return d.toISOString().split('T')[0];
-          })).size
+          days: new Set(allLogs.map(log => kstFormatter.format(new Date(log.learned_at)))).size
         }
       }
     };
