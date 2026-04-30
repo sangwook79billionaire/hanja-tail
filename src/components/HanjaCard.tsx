@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import HanziWriter from "hanzi-writer";
 import { Trophy, Edit3 } from "lucide-react";
 
+import { updateLearningProgress } from "../app/actions";
+
 interface HanjaData {
   char: string;
   meaning: string;
@@ -14,14 +16,18 @@ interface HanjaData {
 
 export default function HanjaCard({ 
   data, 
+  word,
   delay = 0,
   onQuiz,
-  onWrite
+  onWrite,
+  onProgressUpdate
 }: { 
   data: HanjaData; 
+  word?: string;
   delay?: number;
   onQuiz?: (hanja: string) => void;
   onWrite?: (char: string, meaning: string, sound: string) => void;
+  onProgressUpdate?: () => void;
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const writerRef = useRef<HTMLDivElement>(null);
@@ -39,8 +45,15 @@ export default function HanjaCard({
         delayBetweenStrokes: 10,
       });
       setWriterInstance(writer);
+      
+      // 획순 보기 기록
+      if (word) {
+        updateLearningProgress(word, 'stroke').then(() => {
+          onProgressUpdate?.();
+        });
+      }
     }
-  }, [isFlipped, data.char, writerInstance]);
+  }, [isFlipped, data.char, writerInstance, word, onProgressUpdate]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -48,6 +61,11 @@ export default function HanjaCard({
 
   const handleWriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (word) {
+      updateLearningProgress(word, 'writing').then(() => {
+        onProgressUpdate?.();
+      });
+    }
     onWrite?.(data.char, data.meaning, data.sound);
   };
 

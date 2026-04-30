@@ -355,9 +355,14 @@ export default function HomePage() {
                 <HanjaCard 
                   key={`${currentSearchedWord}-${idx}`} 
                   data={hanja} 
-                  delay={idx * 0.1} 
-                  onQuiz={startQuiz}
-                  onWrite={(char, meaning, sound) => setSelectedHanjaForWriting({ char, meaning, sound })}
+                  word={currentSearchedWord}
+                  delay={idx * 0.1}
+                  onQuiz={(h) => handleRequestQuiz(h)}
+                  onWrite={(char, meaning, sound) => {
+                    setSelectedWritingHanja({ char, meaning, sound });
+                    setShowWritingCanvas(true);
+                  }}
+                  onProgressUpdate={() => fetchDailyHistory()}
                 />
               ))}
             </div>

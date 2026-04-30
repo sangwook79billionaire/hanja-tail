@@ -270,6 +270,42 @@ export async function logLearning(word: string, isCorrect: boolean) {
   }
 }
 
+export async function updateLearningProgress(word: string, type: 'stroke' | 'writing') {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id || "00000000-0000-0000-0000-000000000000";
+
+  try {
+    // 가장 최근의 해당 단어 학습 로그를 찾아서 업데이트
+    const { data: recentLog } = await supabase
+      .from("learning_logs")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("word", word)
+      .order("learned_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (recentLog) {
+      const updateData = type === 'stroke' 
+        ? { viewed_stroke: true } 
+        : { practiced_writing: true };
+
+      const { error } = await supabase
+        .from("learning_logs")
+        .update(updateData)
+        .eq("id", recentLog.id);
+
+      if (error) throw error;
+      return { success: true };
+    }
+    return { error: "로그를 찾을 수 없습니다." };
+  } catch (error) {
+    console.error("Update Progress Error:", error);
+    return { error: "진척도 업데이트 중 오류가 발생했습니다." };
+  }
+}
+
 export async function getLearningRecap() {
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -293,14 +329,18 @@ export async function getLearningRecap() {
     });
     const todayKstStr = kstFormatter.format(new Date());
 
-    const processLogs = (logs: { learned_at: string; is_correct: boolean }[], startDate?: Date) => {
+    const processLogs = (logs: any[], startDate?: Date, onlyFullPractice = false) => {
       const filtered = logs.filter(log => {
         const logDate = new Date(log.learned_at);
-        if (startDate) {
-          return logDate >= startDate;
+        const dateMatch = startDate ? logDate >= startDate : kstFormatter.format(logDate) === todayKstStr;
+        
+        if (!dateMatch) return false;
+        
+        // 트로피용(오늘 미션)일 경우 따라쓰기까지 완료된 것만 카운트
+        if (onlyFullPractice) {
+          return log.practiced_writing === true;
         }
-        // 오늘 날짜 비교 (KST)
-        return kstFormatter.format(logDate) === todayKstStr;
+        return true;
       });
 
       const uniqueDays = new Set(filtered.map(log => {
@@ -330,7 +370,7 @@ export async function getLearningRecap() {
     return {
       logs: allLogs,
       stats: {
-        today: processLogs(allLogs), // startDate 없으면 오늘 날짜 문자열 비교
+        today: processLogs(allLogs, undefined, true), // 오늘 미션은 풀 연습(쓰기 완료)만 카운트!
         weekly: processLogs(allLogs, startOfWeek),
         monthly: processLogs(allLogs, startOfMonth),
         total: {
