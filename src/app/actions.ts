@@ -264,28 +264,61 @@ export async function getLearningRecap() {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id || "00000000-0000-0000-0000-000000000000";
 
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
   try {
-    const { data, error } = await supabase
+    const { data: allLogs, error } = await supabase
       .from("learning_logs")
       .select("*")
       .eq("user_id", userId)
-      .gte("learned_at", sevenDaysAgo.toISOString())
       .order("learned_at", { ascending: false });
 
     if (error) throw error;
 
-    const uniqueDays = new Set(data.map(log => new Date(log.learned_at).toDateString())).size;
-    const correctCount = data.filter(log => log.is_correct).length;
+    // KST (GMT+9) 기준 시간 계산
+    const kstOffset = 9 * 60 * 60 * 1000;
+    const now = new Date();
+    const kstNow = new Date(now.getTime() + kstOffset);
+    
+    const startOfToday = new Date(kstNow);
+    startOfToday.setHours(0, 0, 0, 0);
+    
+    const startOfWeek = new Date(kstNow);
+    startOfWeek.setDate(kstNow.getDate() - kstNow.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
 
-    return { 
-      logs: data,
+    const startOfMonth = new Date(kstNow);
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const processLogs = (logs: any[], start: Date) => {
+      const filtered = logs.filter(log => {
+        const logKst = new Date(new Date(log.learned_at).getTime() + kstOffset);
+        return logKst >= start;
+      });
+      const uniqueDays = new Set(filtered.map(log => {
+        const d = new Date(new Date(log.learned_at).getTime() + kstOffset);
+        return d.toISOString().split('T')[0];
+      })).size;
+      return {
+        count: filtered.length,
+        correct: filtered.filter(l => l.is_correct).length,
+        days: uniqueDays
+      };
+    };
+
+    return {
+      logs: allLogs,
       stats: {
-        attendance: uniqueDays,
-        correctCount: correctCount,
-        totalLearned: data.length
+        today: processLogs(allLogs, startOfToday),
+        weekly: processLogs(allLogs, startOfWeek),
+        monthly: processLogs(allLogs, startOfMonth),
+        total: {
+          count: allLogs.length,
+          correct: allLogs.filter(l => l.is_correct).length,
+          days: new Set(allLogs.map(log => {
+            const d = new Date(new Date(log.learned_at).getTime() + kstOffset);
+            return d.toISOString().split('T')[0];
+          })).size
+        }
       }
     };
   } catch (error) {

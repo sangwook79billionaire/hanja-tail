@@ -34,7 +34,7 @@ export default function HomePage() {
   const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
   const [showStats, setShowStats] = useState(false);
-  const [recapData, setRecapData] = useState<{ attendance: number; correctCount: number; totalLearned: number } | null>(null);
+  const [recapData, setRecapData] = useState<any>(null);
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
   const [currentSearchedWord, setCurrentSearchedWord] = useState<string | null>(null);
   const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);
@@ -86,9 +86,10 @@ export default function HomePage() {
   const fetchDailyHistory = useCallback(async () => {
     const result = await getLearningRecap();
     if (result.logs) {
-      const today = new Date().toDateString();
-      const filtered = result.logs.filter((log: LearningLog) => new Date(log.learned_at).toDateString() === today);
-      setDailyHistory(filtered);
+      setDailyHistory(result.logs);
+    }
+    if (result.stats) {
+      setRecapData(result.stats);
     }
   }, []);
 
@@ -97,11 +98,12 @@ export default function HomePage() {
   }, [fetchDailyHistory]);
 
   useEffect(() => {
-    if (dailyHistory.length >= trophyGoal && !hasAwardedTrophy) {
+    const todayCount = recapData?.today?.count || 0;
+    if (todayCount >= trophyGoal && !hasAwardedTrophy) {
       setShowTrophyCelebration(true);
       setHasAwardedTrophy(true);
     }
-  }, [dailyHistory, hasAwardedTrophy]);
+  }, [recapData, hasAwardedTrophy]);
 
   const openStats = async () => {
     setIsLoading(true);
@@ -234,20 +236,20 @@ export default function HomePage() {
                 <Trophy className="w-4 h-4 text-amber-500" /> 오늘의 탐험 미션
               </span>
               <span className="text-[10px] font-bold text-duo-wolf">
-                {dailyHistory.length} / {trophyGoal} 단어
+                {recapData?.today?.count || 0} / {trophyGoal} 단어
               </span>
             </div>
             <div className="h-3 w-full bg-duo-snow rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.min((dailyHistory.length / trophyGoal) * 100, 100)}%` }}
+                animate={{ width: `${Math.min(((recapData?.today?.count || 0) / trophyGoal) * 100, 100)}%` }}
                 className="h-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_8px_rgba(251,191,36,0.3)]"
               />
             </div>
             <p className="text-[10px] font-bold text-duo-wolf mt-2 text-center">
-              {dailyHistory.length >= trophyGoal 
+              { (recapData?.today?.count || 0) >= trophyGoal 
                 ? "🎉 오늘의 탐험 성공! 대단해요!" 
-                : `${trophyGoal - dailyHistory.length}개만 더 찾으면 오늘의 트로피를 얻어요!`}
+                : `${trophyGoal - (recapData?.today?.count || 0)}개만 더 찾으면 오늘의 트로피를 얻어요!`}
             </p>
           </div>
         </div>
@@ -428,10 +430,19 @@ export default function HomePage() {
               <h2 className="text-3xl font-black text-duo-eel mb-2">축하해요!</h2>
               <p className="text-duo-wolf font-bold mb-8">오늘의 한자 학습 미션을 완료했어요!<br/>반짝이는 트로피를 획득했습니다.</p>
               <button 
+                onClick={() => {
+                  setShowTrophyCelebration(false);
+                  openStats();
+                }}
+                className="w-full py-4 bg-duo-snow text-duo-eel rounded-2xl font-black text-lg hover:bg-duo-swan transition-all mb-2"
+              >
+                상세 기록 보기 📊
+              </button>
+              <button 
                 onClick={() => setShowTrophyCelebration(false)}
                 className="w-full bg-duo-green text-white py-4 rounded-2xl font-black text-lg shadow-[0_4px_0_0_#46a302] active:translate-y-1 active:shadow-none transition-all"
               >
-                고마워!
+                계속 공부하기 🚀
               </button>
             </motion.div>
           </motion.div>
