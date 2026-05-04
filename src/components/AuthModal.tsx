@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Lock, UserPlus, LogIn, Sparkles, School, GraduationCap, MapPin, User, CheckCircle2 } from "lucide-react";
+import { X, Mail, Lock, UserPlus, LogIn, Sparkles, School, GraduationCap, MapPin, User } from "lucide-react";
 import { updateProfile } from "@/app/actions";
 
 interface AuthModalProps {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, UserPlus, Share2, Copy, CheckCircle2, MessageSquare } from "lucide-react";
+import { X, Send, UserPlus, Copy, CheckCircle2, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface InviteModalProps {
