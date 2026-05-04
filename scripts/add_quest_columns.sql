@@ -1,0 +1,8 @@
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS current_stage INTEGER DEFAULT 8,
+ADD COLUMN IF NOT EXISTS current_node INTEGER DEFAULT 1,
+ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0;
+
+-- 2. hanja_master 테이블에 지도 순서 추가
+ALTER TABLE public.hanja_master
+ADD COLUMN IF NOT EXISTS quest_index SERIAL;
