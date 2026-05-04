@@ -40,12 +40,13 @@ CREATE TABLE IF NOT EXISTS public.word_analysis_cache (
 -- 4. quiz_bank: 퀴즈 뱅크
 CREATE TABLE IF NOT EXISTS public.quiz_bank (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    word VARCHAR(100) UNIQUE NOT NULL,
-    hanja_combination VARCHAR(100),
+    word VARCHAR(100) NOT NULL,
+    hanja_combination VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
     is_verified BOOLEAN DEFAULT FALSE,
     creator_id UUID REFERENCES public.profiles(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(word, hanja_combination)
 );
 
 -- 5. learning_logs: 학습 기록

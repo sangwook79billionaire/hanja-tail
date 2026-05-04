@@ -22,15 +22,51 @@ export async function analyzeWord(word: string) {
       return cachedData.analysis_json;
     }
 
-    // 2. 퀴즈 뱅크 확인 (퀴즈 데이터가 있다면 분석 정보로 활용 가능성 확인)
-    const { data: quizData } = await supabase
-      .from("quiz_bank")
-      .select("word, hanja_combination")
-      .eq("word", searchWord)
-      .maybeSingle();
+    // 2. 동음이의어 DB 체크 (Gemini 호출 전 비용 절감)
+    // 한자 조합이 명시되지 않은 경우만 체크 (예: "지도" -> 체크 / "지도(地圖)" -> 바로 진행)
+    const hasHanjaBracket = searchWord.includes("(") && searchWord.includes(")");
+    
+    if (!hasHanjaBracket) {
+      // (1) 퀴즈 뱅크에서 후보 찾기
+      const { data: quizCandidates } = await supabase
+        .from("quiz_bank")
+        .select("word, hanja_combination, description")
+        .eq("word", searchWord);
 
-    if (quizData) {
-      console.log(`퀴즈 뱅크에서 '${searchWord}' 발견. 상세 분석을 위해 Gemini 호출을 진행합니다.`);
+      // (2) 한자 마스터의 예시 단어들에서 후보 찾기
+      const { data: masterHanjas } = await supabase
+        .from("hanja_master")
+        .select("example_words")
+        .filter("example_words", "cs", `[{"word": "${searchWord}"}]`);
+
+      const dbCandidates: { word: string; hanja: string; description: string }[] = [];
+      const seenHanja = new Set();
+
+      quizCandidates?.forEach(c => {
+        if (!seenHanja.has(c.hanja_combination)) {
+          dbCandidates.push({ word: c.word, hanja: c.hanja_combination, description: c.description });
+          seenHanja.add(c.hanja_combination);
+        }
+      });
+
+      masterHanjas?.forEach(h => {
+        const examples = h.example_words || [];
+        examples.forEach((ex: { word: string; hanja: string }) => {
+          if (ex.word === searchWord && !seenHanja.has(ex.hanja)) {
+            dbCandidates.push({ word: ex.word, hanja: ex.hanja, description: `${ex.hanja}를 사용하는 단어` });
+            seenHanja.add(ex.hanja);
+          }
+        });
+      });
+
+      // 후보가 2개 이상이면 사용자에게 선택 요청
+      if (dbCandidates.length > 1) {
+        console.log(`DB에서 '${searchWord}'에 대한 동음이의어 ${dbCandidates.length}개 발견.`);
+        return {
+          isAmbiguous: true,
+          candidates: dbCandidates
+        };
+      }
     }
 
     // 3. 캐시가 없으면 Gemini 호출
