@@ -121,6 +121,32 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <><LogIn className="w-6 h-6" /> 로그인</>
                 )}
               </button>
+
+              <div className="relative py-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t-2 border-duo-snow"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-duo-wolf font-bold">또는</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsLoading(true);
+                  await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                      redirectTo: `${location.origin}/auth/callback`,
+                    },
+                  });
+                }}
+                className="w-full py-4 bg-white border-2 border-duo-swan text-duo-eel font-black text-lg rounded-2xl flex items-center justify-center gap-3 hover:bg-duo-snow transition-all"
+              >
+                <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+                구글로 계속하기
+              </button>
             </form>
 
             <div className="mt-8 pt-6 border-t-2 border-duo-snow text-center">
