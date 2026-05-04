@@ -46,13 +46,18 @@ export async function analyzeWord(word: string) {
       You are a helpful assistant for teaching Hanja to children.
       Analyze the following word (Hangul or Hanja): "${searchWord}"
       
-      1. Hanja Analysis: Decompose it into characters (mean/sound/level).
-      2. Expansion (Crucial): Provide 2 synonyms, 2 antonyms, and 2 related 3-character words using these Hanja.
-      3. For each expanded word, provide a simple quiz description.
+      1. Check if this Hangul word has multiple common Hanja meanings (homonyms).
+         Example: "지도" can be "地圖" (map) or "指導" (guidance).
+      2. If there are multiple distinct Hanja combinations for this Hangul word, set "isAmbiguous" to true and list them in "candidates".
+      3. If the user provided a specific Hanja (e.g., "지도(地圖)") or there's only one common meaning, "isAmbiguous" should be false.
 
       Return ONLY a JSON object in this format:
       {
         "isSafe": boolean,
+        "isAmbiguous": boolean,
+        "candidates": [
+          { "word": "한글단어", "hanja": "한자조합", "description": "아이들이 이해하기 쉬운 짧은 뜻풀이" }
+        ],
         "correctedWord": "string",
         "hanjaList": [{ "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }],
         "expansions": [
@@ -112,7 +117,9 @@ export async function analyzeWord(word: string) {
       hanjaList: finalHanjaList,
       correctedWord: data.correctedWord || null,
       isLoanword: data.isLoanword || false,
-      expansions: data.expansions || []
+      expansions: data.expansions || [],
+      isAmbiguous: data.isAmbiguous || false,
+      candidates: data.candidates || []
     };
 
     await supabase.from("word_analysis_cache").upsert({

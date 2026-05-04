@@ -30,6 +30,12 @@ interface WordExpansion {
   type: 'synonym' | 'antonym' | 'expansion';
 }
 
+interface AmbiguousCandidate {
+  word: string;
+  hanja: string;
+  description: string;
+}
+
 interface HanjaData {
   char: string;
   meaning: string;
@@ -70,6 +76,7 @@ export default function HomePage() {
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string} | null>(null);
   const [analysisExpansions, setAnalysisExpansions] = useState<WordExpansion[]>([]);
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
+  const [ambiguousCandidates, setAmbiguousCandidates] = useState<AmbiguousCandidate[]>([]);
 
   const supabase = createClient();
 
@@ -168,7 +175,11 @@ export default function HomePage() {
       const result = await analyzeWord(searchWord.trim());
       if (result.error) {
         alert(result.error);
+      } else if (result.isAmbiguous) {
+        setAmbiguousCandidates(result.candidates);
+        setAnalyzedHanja([]);
       } else {
+        setAmbiguousCandidates([]);
         setAnalyzedHanja(result.hanjaList);
         setCurrentSearchedWord(result.correctedWord || searchWord.trim());
         setAnalysisExpansions(result.expansions || []);
@@ -315,6 +326,34 @@ export default function HomePage() {
                 <div className="w-full max-w-2xl mx-auto mb-6 px-6 py-4 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 font-bold animate-fade-in">
                   <Sparkles className="w-5 h-5 text-amber-500" />
                   {correctionMsg}
+                </div>
+              )}
+
+              {/* Ambiguous Candidates */}
+              {ambiguousCandidates.length > 0 && (
+                <div className="w-full max-w-2xl mx-auto mb-12 animate-fade-in">
+                  <h3 className="text-xl font-black text-duo-eel mb-4 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-duo-macaw" /> 어떤 단어를 찾으시나요?
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {ambiguousCandidates.map((can, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          const searchStr = `${can.word}(${can.hanja})`;
+                          setWord(searchStr);
+                          handleAnalyze(searchStr);
+                        }}
+                        className="w-full p-6 bg-white border-3 border-duo-snow rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-duo-macaw hover:bg-duo-macaw/5 transition-all group text-left"
+                      >
+                        <div>
+                          <span className="text-xl font-black text-duo-eel group-hover:text-duo-macaw">{can.word}</span>
+                          <span className="ml-2 text-lg font-bold text-duo-wolf">{can.hanja}</span>
+                        </div>
+                        <p className="text-sm font-bold text-duo-swan group-hover:text-duo-wolf">{can.description}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
