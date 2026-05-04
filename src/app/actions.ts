@@ -8,30 +8,10 @@ export async function analyzeWord(word: string) {
 
   const supabase = createClient();
   const searchWord = word.trim();
-  const hasHanjaBracket = searchWord.includes("(") && searchWord.includes(")");
-  
   try {
-    // 1. DB 캐시 먼저 확인
-    const { data: cachedData } = await supabase
-      .from("word_analysis_cache")
-      .select("analysis_json")
-      .eq("word", searchWord)
-      .maybeSingle();
-
-    if (cachedData) {
-      const analysis = cachedData.analysis_json;
-      // 동음이의어 기능 추가 전의 옛날 캐시이거나, 
-      // 한글로만 검색했는데 동음이의어 여부(isAmbiguous)가 확인되지 않은 경우 재검토 진행
-      if (!hasHanjaBracket && analysis.isAmbiguous === undefined) {
-        console.log("Legacy cache found for plain word. Proceeding to homonym check:", searchWord);
-      } else {
-        console.log("Using cached analysis for:", searchWord);
-        return analysis;
-      }
-    }
-
-    // 2. 동음이의어 DB 체크 (Gemini 호출 전 비용 절감)
-    // 한자 조합이 명시되지 않은 경우만 체크 (예: "지도" -> 체크 / "지도(地圖)" -> 바로 진행)
+    const hasHanjaBracket = searchWord.includes("(") && searchWord.includes(")");
+    
+    // 1. 동음이의어 DB 체크 (최우선: 한자 조합이 명시되지 않은 경우만)
     if (!hasHanjaBracket) {
       // (1) 퀴즈 뱅크에서 후보 찾기
       const { data: quizCandidates } = await supabase
@@ -65,15 +45,23 @@ export async function analyzeWord(word: string) {
         });
       });
 
-      // 후보가 2개 이상이면 사용자에게 선택 요청
       if (dbCandidates.length > 1) {
-        console.log(`DB에서 '${searchWord}'에 대한 동음이의어 ${dbCandidates.length}개 발견.`);
-        return {
-          isAmbiguous: true,
-          candidates: dbCandidates
-        };
+        return { isAmbiguous: true, candidates: dbCandidates };
       }
     }
+
+    // 2. DB 캐시 확인
+    const { data: cachedData } = await supabase
+      .from("word_analysis_cache")
+      .select("analysis_json")
+      .eq("word", searchWord)
+      .maybeSingle();
+
+    if (cachedData) {
+      console.log("Using cached analysis for:", searchWord);
+      return cachedData.analysis_json;
+    }
+
 
     // 3. 캐시가 없으면 Gemini 호출
     console.log("No cache found. Calling Gemini for:", searchWord);
@@ -89,9 +77,9 @@ export async function analyzeWord(word: string) {
       Analyze the following word (Hangul or Hanja): "${searchWord}"
       
       1. Check if this Hangul word has multiple common Hanja meanings (homonyms).
-         Example: "지도" can be "地圖" (map) or "指導" (guidance).
-      2. If there are multiple distinct Hanja combinations for this Hangul word, set "isAmbiguous" to true and list them in "candidates".
-      3. If the user provided a specific Hanja (e.g., "지도(地圖)") or there's only one common meaning, "isAmbiguous" should be false.
+         This is VERY IMPORTANT. If the word has different Hanja meanings (e.g., "과실" -> "果實" or "過失"), ALWAYS set "isAmbiguous" to true.
+      2. If "isAmbiguous" is true, list ALL common Hanja combinations in "candidates".
+      3. If the user provided a specific Hanja (e.g., "지도(地圖)") or there is only one clear meaning, "isAmbiguous" should be false.
 
       Return ONLY a JSON object in this format:
       {
