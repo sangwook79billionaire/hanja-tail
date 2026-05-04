@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, UserPlus, Copy, CheckCircle2, MessageSquare } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { X, Send, UserPlus, Copy, CheckCircle2 } from "lucide-react";
 
 interface InviteModalProps {
   isOpen: boolean;
@@ -11,25 +10,26 @@ interface InviteModalProps {
 }
 
 export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
-  const [target, setTarget] = useState("");
-  const [isSent, setIsSent] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
   const inviteLink = `${typeof window !== 'undefined' ? window.location.origin : ''}?ref=explorer`;
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!target.trim()) return;
+  const handleShare = async () => {
+    const shareData = {
+      title: '꼬리에 꼬리를 무는 한자 탐험',
+      text: '안녕! 나랑 같이 한자 탐험하지 않을래? 용치와 함께 한자 마스터가 되어보자! 🐉✨',
+      url: inviteLink,
+    };
 
-    // TODO: 실제 SMS/이메일 발송 API 연동 (Twilio, Aligo 등)
-    console.log(`Inviting ${target}...`);
-    
-    setIsSent(true);
-    setTimeout(() => {
-      setIsSent(false);
-      setTarget("");
-      onClose();
-    }, 2000);
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        copyToClipboard();
+      }
+    } catch (err) {
+      console.log('Share failed:', err);
+    }
   };
 
   const copyToClipboard = () => {
@@ -55,71 +55,38 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
               <X className="w-6 h-6 text-duo-wolf" />
             </button>
 
-            <div className="text-center mb-8">
-              <div className="inline-flex p-4 bg-amber-100 rounded-3xl mb-4">
-                <UserPlus className="w-8 h-8 text-amber-600" />
+            <div className="text-center mb-10">
+              <div className="inline-flex p-5 bg-amber-100 rounded-[32px] mb-6 shadow-[0_6px_0_0_#ffeb3b44]">
+                <UserPlus className="w-10 h-10 text-amber-600" />
               </div>
-              <h2 className="text-2xl font-black text-duo-eel tracking-tight">친구 초대하기</h2>
-              <p className="text-duo-wolf font-bold mt-2 leading-relaxed">
-                친구와 함께 공부하면<br/>탐험이 더 즐거워져요! 🦉
+              <h2 className="text-3xl font-black text-duo-eel tracking-tight">친구 초대하기</h2>
+              <p className="text-duo-wolf font-bold mt-3 leading-relaxed text-lg">
+                친구와 함께 공부하면<br/>용치의 여의주가 더 빛나요! 🐉✨
               </p>
             </div>
 
-            <form onSubmit={handleInvite} className="space-y-4">
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex gap-2">
-                  <MessageSquare className="w-5 h-5 text-duo-wolf" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="이메일 또는 전화번호 (010-0000-0000)"
-                  className="w-full pl-12 pr-4 py-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-bold focus:border-duo-macaw outline-none transition-colors"
-                  value={target}
-                  onChange={(e) => setTarget(e.target.value)}
-                  disabled={isSent}
-                  required
-                />
-              </div>
+            <div className="space-y-4">
+              <button
+                onClick={handleShare}
+                className="w-full py-6 bg-duo-macaw text-white rounded-3xl font-black text-xl border-b-6 border-sky-600 shadow-lg hover:brightness-110 active:border-b-0 active:translate-y-1.5 transition-all flex items-center justify-center gap-3 group"
+              >
+                <Send className="w-7 h-7 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                카톡·문자로 공유하기
+              </button>
 
               <button
-                type="submit"
-                disabled={isSent || !target.trim()}
-                className={cn(
-                  "w-full py-4 rounded-2xl font-black text-xl border-b-4 transition-all flex items-center justify-center gap-2",
-                  isSent 
-                    ? "bg-duo-green text-white border-green-700" 
-                    : "bg-duo-macaw text-white border-duo-macaw shadow-[0_4px_0_0_#1899d6] active:border-b-0 active:translate-y-1"
-                )}
+                onClick={copyToClipboard}
+                className="w-full py-4 bg-white border-3 border-duo-snow text-duo-eel font-black text-lg rounded-2xl flex items-center justify-center gap-3 hover:bg-duo-snow transition-all shadow-sm"
               >
-                {isSent ? (
-                  <><CheckCircle2 className="w-6 h-6" /> 초대장 발송 완료!</>
+                {isCopied ? (
+                  <><CheckCircle2 className="w-5 h-5 text-duo-green" /> 초대 링크 복사 완료!</>
                 ) : (
-                  <><Send className="w-6 h-6" /> 초대장 보내기</>
+                  <><Copy className="w-5 h-5 text-duo-wolf" /> 링크만 복사할게요</>
                 )}
               </button>
-            </form>
-
-            <div className="relative py-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t-2 border-duo-snow"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-duo-wolf font-bold uppercase tracking-widest">직접 링크 공유</span>
-              </div>
             </div>
 
-            <button
-              onClick={copyToClipboard}
-              className="w-full py-4 bg-white border-2 border-duo-swan text-duo-eel font-black text-lg rounded-2xl flex items-center justify-center gap-3 hover:bg-duo-snow transition-all shadow-sm"
-            >
-              {isCopied ? (
-                <><CheckCircle2 className="w-5 h-5 text-duo-green" /> 복사 완료!</>
-              ) : (
-                <><Copy className="w-5 h-5 text-duo-wolf" /> 초대 링크 복사하기</>
-              )}
-            </button>
-
-            <p className="mt-6 text-[11px] font-bold text-duo-swan text-center leading-relaxed">
+            <p className="mt-8 text-[11px] font-bold text-duo-swan text-center leading-relaxed">
               친구가 이 링크로 가입하면<br/>두 사람 모두에게 특별한 배지를 드려요! 🎖️
             </p>
           </motion.div>
