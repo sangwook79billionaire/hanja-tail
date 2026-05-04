@@ -11,9 +11,10 @@ interface WritingModalProps {
   sound: string;
   isOpen: boolean;
   onClose: () => void;
+  onComplete?: () => void;
 }
 
-export default function WritingModal({ char, meaning, sound, isOpen, onClose }: WritingModalProps) {
+export default function WritingModal({ char, meaning, sound, isOpen, onClose, onComplete }: WritingModalProps) {
   const targetRef = useRef<HTMLDivElement>(null);
   const [writer, setWriter] = useState<HanziWriter | null>(null);
   const [isComplete, setIsComplete] = useState(false);
@@ -60,7 +61,10 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
                     setIsComplete(false); // 애니메이션을 보기 위해 오버레이 잠시 제거
                     writerInstance.animateCharacter({
                       onComplete: () => {
-                        if (active) setIsComplete(true); // 데모 종료 후 다시 성공 표시
+                        if (active) {
+                          setIsComplete(true); // 데모 종료 후 다시 성공 표시
+                          onComplete?.(); // 학습 완료 콜백 호출
+                        }
                       }
                     });
                   }

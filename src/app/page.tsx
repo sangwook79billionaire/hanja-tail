@@ -75,7 +75,7 @@ export default function HomePage() {
   const [currentStage, setCurrentStage] = useState<number>(8);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string} | null>(null);
+  const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, isReview?: boolean} | null>(null);
   const [analysisExpansions, setAnalysisExpansions] = useState<WordExpansion[]>([]);
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
   const [ambiguousCandidates, setAmbiguousCandidates] = useState<AmbiguousCandidate[]>([]);
@@ -210,27 +210,33 @@ export default function HomePage() {
   };
 
   const handleReview = async (reviewWord: string) => {
-    // 복습 모드: 해당 단어로 바로 검색을 수행하되, 로그를 복습으로 기록
-    setWord(reviewWord);
-    setActiveTab('search');
+    // 복습 모드: 해당 단어로 바로 검색을 수행하되, 포인트는 쓰기 완료 후에 지급
     setIsLoading(true);
-    
     try {
       const result = await analyzeWord(reviewWord);
-      if (!result.error && !result.isAmbiguous) {
+      if (!result.error && !result.isAmbiguous && result.hanjaList.length > 0) {
+        setWord(reviewWord);
         setAnalyzedHanja(result.hanjaList);
         setAnalysisExpansions(result.expansions || []);
         setCurrentSearchedWord(reviewWord);
+        setActiveTab('search');
         
-        // 복습 로그 기록 (+0.5점)
-        const logRes = await logLearning(reviewWord, true, undefined, true);
-        if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
-          alert(`✨ 복습 성공! 보너스 점수 ${logRes.pointsAwarded}점을 받았어요!`);
-        }
-        fetchDailyHistory();
+        // "다시 한 번 써보자!" 안내 후 쓰기 모달 오픈
+        alert("다시 한 번 써보자! ✍️\n쓰기를 완료하면 보너스 점수를 받을 수 있어요.");
+        
+        const firstHanja = result.hanjaList[0];
+        setSelectedHanjaForWriting({
+          char: firstHanja.char,
+          meaning: firstHanja.meaning,
+          sound: firstHanja.sound,
+          isReview: true // 복습 여부 플래그
+        });
       }
     } catch (err) {
       console.error(err);
+      setWord("");
+      setActiveTab("search");
+      alert("잠시만 기다려 주세요. 메인 화면으로 이동합니다.");
     } finally {
       setIsLoading(false);
     }
@@ -550,6 +556,15 @@ export default function HomePage() {
           sound={selectedHanjaForWriting?.sound || ""}
           isOpen={!!selectedHanjaForWriting}
           onClose={() => setSelectedHanjaForWriting(null)}
+          onComplete={async () => {
+            if (selectedHanjaForWriting?.isReview && currentSearchedWord) {
+              const logRes = await logLearning(currentSearchedWord, true, undefined, true);
+              if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
+                alert(`✨ 복습 성공! 보너스 점수 ${logRes.pointsAwarded}점을 받았어요!`);
+              }
+              fetchDailyHistory();
+            }
+          }}
         />
       </AnimatePresence>
     </div>

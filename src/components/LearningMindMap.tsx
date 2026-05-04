@@ -74,41 +74,42 @@ export default function LearningMindMap({
     <div className="flex flex-col gap-12 py-6 overflow-x-auto pb-12">
       {tree.map((seed, idx) => (
         <div key={idx} className="flex flex-col items-center min-w-max px-8">
-          {/* Seed Node */}
-          <div className="relative mb-12">
+          {/* Seed Node (Bubble) */}
+          <div className="relative mb-16">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => onReview(seed.word)}
-              className="px-8 py-4 bg-duo-macaw text-white rounded-3xl font-black text-xl shadow-[0_6px_0_0_#1899d6] z-10 relative"
+              className="w-24 h-24 sm:w-32 sm:h-32 bg-duo-macaw text-white rounded-full font-black text-xl sm:text-2xl shadow-[0_8px_0_0_#1899d6] z-10 relative flex items-center justify-center border-4 border-white"
             >
               {seed.word}
               {seed.practiced && (
-                <div className="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-md">
+                <div className="absolute -top-1 -right-1 bg-white rounded-full p-1 shadow-md border-2 border-duo-green">
                   <CheckCircle2 className="w-6 h-6 text-duo-green fill-white" />
                 </div>
               )}
             </motion.button>
             
             {/* Review Badge */}
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-duo-snow px-2 py-1 rounded-full border border-duo-swan whitespace-nowrap">
-              <RotateCcw className="w-3 h-3 text-duo-wolf" />
-              <span className="text-[10px] font-black text-duo-wolf uppercase">복습 +0.5점</span>
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white px-3 py-1 rounded-full border-2 border-duo-snow shadow-sm whitespace-nowrap z-20">
+              <RotateCcw className="w-3 h-3 text-duo-macaw" />
+              <span className="text-[10px] font-black text-duo-eel uppercase">복습 +0.5</span>
             </div>
 
             {/* Connecting Lines */}
             {seed.children.length > 0 && (
-              <svg className="absolute top-full left-1/2 -translate-x-1/2 w-full h-12 overflow-visible z-0 pointer-events-none">
+              <svg className="absolute top-full left-1/2 -translate-x-1/2 w-full h-16 overflow-visible z-0 pointer-events-none">
                 {seed.children.map((_, cIdx) => {
                   const total = seed.children.length;
                   const xEnd = (cIdx - (total - 1) / 2) * 160;
                   return (
                     <path
                       key={cIdx}
-                      d={`M 0 0 C 0 20, ${xEnd} 20, ${xEnd} 48`}
-                      stroke="#e5e5e5"
-                      strokeWidth="3"
+                      d={`M 0 0 C 0 30, ${xEnd} 30, ${xEnd} 64`}
+                      stroke="#dce6ff"
+                      strokeWidth="4"
                       fill="none"
+                      strokeLinecap="round"
                     />
                   );
                 })}
@@ -116,19 +117,19 @@ export default function LearningMindMap({
             )}
           </div>
 
-          {/* Tail Nodes */}
+          {/* Tail Nodes (Bubbles) */}
           <div className="flex gap-12 justify-center">
             {seed.children.map((child, cIdx) => (
               <motion.div
                 key={cIdx}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: cIdx * 0.1 }}
                 className="relative"
               >
                 <button
                   onClick={() => onReview(child.word)}
-                  className="px-6 py-3 bg-white border-3 border-duo-snow rounded-2xl font-black text-duo-eel hover:border-duo-macaw hover:text-duo-macaw transition-all shadow-sm flex flex-col items-center gap-1 min-w-[120px]"
+                  className="w-20 h-20 sm:w-24 sm:h-24 bg-white border-4 border-duo-snow rounded-full font-black text-lg text-duo-eel hover:border-duo-macaw hover:text-duo-macaw transition-all shadow-md flex flex-col items-center justify-center gap-1"
                 >
                   <span>{child.word}</span>
                   {child.practiced && (

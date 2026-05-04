@@ -80,8 +80,8 @@ export default function HanjaCard({
         onClick={() => setIsExpanded(true)}
         className="relative bg-white border-2 border-duo-snow rounded-2xl p-4 shadow-[0_4px_0_0_#e5e5e5] hover:translate-y-[-2px] hover:shadow-[0_6px_0_0_#e5e5e5] transition-all cursor-pointer group flex flex-col items-center justify-center aspect-[4/5] w-full"
       >
-        <div className="text-5xl font-black text-duo-eel mb-2 group-hover:scale-110 transition-transform">{data.char}</div>
-        <div className="text-sm font-black text-duo-wolf text-center leading-tight">
+        <div className="text-7xl font-black text-duo-eel mb-2 group-hover:scale-110 transition-transform">{data.char}</div>
+        <div className="text-lg font-black text-duo-wolf text-center leading-tight">
           {data.meaning}<br/>{data.sound}
         </div>
       </motion.div>
