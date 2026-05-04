@@ -8,24 +8,30 @@ export async function analyzeWord(word: string) {
 
   const supabase = createClient();
   const searchWord = word.trim();
-
+  const hasHanjaBracket = searchWord.includes("(") && searchWord.includes(")");
+  
   try {
     // 1. DB 캐시 먼저 확인
     const { data: cachedData } = await supabase
       .from("word_analysis_cache")
       .select("analysis_json")
       .eq("word", searchWord)
-      .single();
+      .maybeSingle();
 
     if (cachedData) {
-      console.log("Using cached analysis for:", searchWord);
-      return cachedData.analysis_json;
+      const analysis = cachedData.analysis_json;
+      // 동음이의어 기능 추가 전의 옛날 캐시이거나, 
+      // 한글로만 검색했는데 동음이의어 여부(isAmbiguous)가 확인되지 않은 경우 재검토 진행
+      if (!hasHanjaBracket && analysis.isAmbiguous === undefined) {
+        console.log("Legacy cache found for plain word. Proceeding to homonym check:", searchWord);
+      } else {
+        console.log("Using cached analysis for:", searchWord);
+        return analysis;
+      }
     }
 
     // 2. 동음이의어 DB 체크 (Gemini 호출 전 비용 절감)
     // 한자 조합이 명시되지 않은 경우만 체크 (예: "지도" -> 체크 / "지도(地圖)" -> 바로 진행)
-    const hasHanjaBracket = searchWord.includes("(") && searchWord.includes(")");
-    
     if (!hasHanjaBracket) {
       // (1) 퀴즈 뱅크에서 후보 찾기
       const { data: quizCandidates } = await supabase
