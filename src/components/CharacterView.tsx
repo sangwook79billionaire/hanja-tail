@@ -11,7 +11,8 @@ interface CharacterViewProps {
 
 export default function CharacterView({ score, level }: CharacterViewProps) {
   // 한자 학습량에 따라 여의주 개수 결정 (예: 5점마다 1개씩, 최대 6개)
-  const beadCount = Math.min(Math.floor(score / 5) + 1, 6);
+  const currentScore = typeof score === 'number' ? score : 0;
+  const beadCount = Math.min(Math.floor(currentScore / 5) + 1, 6);
 
   // 꼬리 위치에 맞춰서 여의주 좌표 설정 (이미지 비율에 따라 조정 필요)
   const beadPositions = [

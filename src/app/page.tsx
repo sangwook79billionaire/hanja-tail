@@ -177,12 +177,11 @@ export default function HomePage() {
 
 
   const handleAnalyze = async (searchWord: string, isFromExpansion = false) => {
-    if (recapData && (recapData.today.count >= 5) && !isFromExpansion) {
+    if ((recapData?.today?.count || 0) >= 5 && !isFromExpansion) {
       alert("오늘의 신규 한자 학습량(5개)을 모두 채웠어요! 여의주를 더 모으려면 복습을 해보세요. ✨");
       setIsLoading(false);
       return;
     }
-    
     // 이전에 검색한 단어를 부모 단어로 설정 (꼬리 물기 추적용)
     const parent = isFromExpansion ? currentSearchedWord : null;
 
@@ -395,11 +394,11 @@ export default function HomePage() {
               </div>
 
               {/* 5. Search Results / Cards */}
-              {analyzedHanja.length > 0 && (
+              {(analyzedHanja?.length || 0) > 0 && (
                 <div className="w-full flex flex-col gap-8 animate-fade-in mb-16">
                   <h3 className="text-xl font-black text-duo-eel px-4">찾아낸 한자 카드</h3>
                   <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                    {analyzedHanja.map((hanja, idx) => (
+                    {analyzedHanja?.map((hanja, idx) => (
                       <HanjaCard 
                         key={`${currentSearchedWord}-${idx}`} 
                         data={hanja} 
@@ -408,7 +407,7 @@ export default function HomePage() {
                         onQuiz={(h) => handleRequestQuiz(h)}
                         onWrite={(char, meaning, sound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, isReview })}
                         onProgressUpdate={() => fetchDailyHistory()}
-                        isReviewed={dailyHistory.some(log => log.word === currentSearchedWord && log.practiced_writing)}
+                        isReviewed={(dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}
                       />
                     ))}
                   </div>
@@ -416,7 +415,7 @@ export default function HomePage() {
               )}
 
               {/* Mind Map / History */}
-              {dailyHistory.length > 0 && analyzedHanja.length === 0 && (
+              {(dailyHistory?.length || 0) > 0 && (analyzedHanja?.length || 0) === 0 && (
                 <div className="mt-12 w-full">
                   <h3 className="text-2xl font-black text-duo-eel mb-6 px-4">오늘의 한자 꼬리</h3>
                   <div className="bg-white border-3 border-duo-snow rounded-[40px] p-8 shadow-sm overflow-hidden">
