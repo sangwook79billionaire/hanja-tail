@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import HanziWriter from "hanzi-writer";
-import { Trophy, Edit3 } from "lucide-react";
-
+import { Trophy, Edit3, Sparkles } from "lucide-react";
 import { updateLearningProgress } from "../app/actions";
 
 interface HanjaData {
@@ -12,6 +11,7 @@ interface HanjaData {
   meaning: string;
   sound: string;
   level: string;
+  examples?: { word: string; hanja: string }[];
 }
 
 export default function HanjaCard({ 
@@ -35,10 +35,9 @@ export default function HanjaCard({
 
   useEffect(() => {
     if (isFlipped && writerRef.current && !writerInstance) {
-      // Initialize HanziWriter when flipped for the first time
       const writer = HanziWriter.create(writerRef.current, data.char, {
-        width: 100,
-        height: 100,
+        width: 120, // 크기 확대
+        height: 120,
         padding: 5,
         strokeColor: "#4b4b4b",
         radicalColor: "#58cc02",
@@ -46,7 +45,6 @@ export default function HanjaCard({
       });
       setWriterInstance(writer);
       
-      // 획순 보기 기록
       if (word) {
         updateLearningProgress(word, 'stroke').then(() => {
           onProgressUpdate?.();
@@ -55,9 +53,7 @@ export default function HanjaCard({
     }
   }, [isFlipped, data.char, writerInstance, word, onProgressUpdate]);
 
-  const handleFlip = () => {
-    setIsFlipped(!isFlipped);
-  };
+  const handleFlip = () => setIsFlipped(!isFlipped);
 
   const handleWriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,7 +66,7 @@ export default function HanjaCard({
   };
 
   return (
-    <div className="relative w-full aspect-[4/5] perspective-1000 cursor-pointer touch-none" onClick={handleFlip}>
+    <div className="relative w-full aspect-[4/5] min-h-[280px] perspective-1000 cursor-pointer touch-none" onClick={handleFlip}>
       <motion.div
         className="w-full h-full relative preserve-3d"
         initial={{ y: 20, opacity: 0 }}
@@ -79,37 +75,58 @@ export default function HanjaCard({
         style={{ transformStyle: "preserve-3d" }}
       >
         {/* Front */}
-        <div className="absolute w-full h-full backface-hidden bg-white border-2 border-duo-swan rounded-2xl shadow-[0_4px_0_0_#e5e5e5] flex flex-col items-center justify-center p-2 text-center">
-          <div className="text-4xl sm:text-5xl font-black text-duo-eel mb-1 drop-shadow-sm">{data.char}</div>
-          <div className="text-[13px] sm:text-base font-bold text-duo-wolf leading-tight">
+        <div className="absolute w-full h-full backface-hidden bg-white border-[3px] border-duo-snow rounded-3xl shadow-[0_6px_0_0_#e5e5e5] flex flex-col items-center justify-center p-4 text-center">
+          <div className="text-6xl sm:text-7xl font-black text-duo-eel mb-2 drop-shadow-sm">{data.char}</div>
+          <div className="text-lg sm:text-xl font-black text-duo-wolf leading-tight">
             {data.meaning}<br />{data.sound}
           </div>
-          <div className="absolute top-2 right-2 bg-duo-snow text-duo-wolf text-[9px] font-bold px-1.5 py-0.5 rounded">
+          <div className="absolute top-4 right-4 bg-duo-snow text-duo-wolf text-xs font-black px-3 py-1.5 rounded-xl border border-duo-swan/30">
             {data.level}
           </div>
         </div>
 
         {/* Back */}
         <div 
-          className="absolute w-full h-full backface-hidden bg-white border-2 border-duo-swan rounded-2xl shadow-[0_4px_0_0_#e5e5e5] flex flex-col items-center justify-center p-2"
+          className="absolute w-full h-full backface-hidden bg-white border-[3px] border-duo-snow rounded-3xl shadow-[0_6px_0_0_#e5e5e5] flex flex-col items-center justify-between p-6"
           style={{ transform: "rotateY(180deg)" }}
         >
-          <div ref={writerRef} className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] mb-2 touch-none scale-90 sm:scale-100"></div>
-          <div className="flex flex-col sm:flex-row gap-1 w-full px-2">
+          <div className="flex flex-col items-center w-full">
+            <div ref={writerRef} className="w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] mb-3 touch-none"></div>
+            
+            {/* Example Words List */}
+            {data.examples && data.examples.length > 0 && (
+              <div className="w-full mt-1 border-t-2 border-duo-snow pt-3">
+                <div className="flex items-center justify-center gap-1.5 mb-2">
+                  <Sparkles className="w-3 h-3 text-duo-bee" />
+                  <p className="text-xs font-black text-duo-wolf uppercase tracking-tighter">활용 단어</p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {data.examples.slice(0, 3).map((ex, i) => (
+                    <div key={i} className="flex justify-between items-center bg-duo-snow/40 px-3 py-1.5 rounded-xl text-xs font-bold border border-duo-snow">
+                      <span className="text-duo-eel">{ex.word}</span>
+                      <span className="text-duo-swan text-[11px] font-black">{ex.hanja}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 w-full mt-4">
             <button 
               onClick={handleWriteClick}
-              className="flex-1 flex items-center justify-center gap-1 bg-duo-snow text-duo-eel py-1.5 rounded-lg font-bold text-[10px] sm:text-xs border-2 border-duo-swan hover:bg-duo-swan transition-all"
+              className="flex-1 flex items-center justify-center gap-2 bg-duo-snow text-duo-eel h-12 rounded-2xl font-black text-sm border-2 border-duo-swan hover:bg-duo-swan transition-all"
             >
-              <Edit3 className="w-2.5 h-2.5" /> 써보기
+              <Edit3 className="w-4 h-4" /> 써보기
             </button>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 onQuiz?.(data.char);
               }}
-              className="flex-1 flex items-center justify-center gap-1 bg-duo-bee text-white py-1.5 rounded-lg font-bold text-[10px] sm:text-xs shadow-[0_2px_0_0_#e5a500] hover:translate-y-[1px] hover:shadow-[0_1px_0_0_#e5a500] active:translate-y-[2px] active:shadow-none transition-all"
+              className="flex-1 flex items-center justify-center gap-2 bg-duo-bee text-white h-12 rounded-2xl font-black text-sm shadow-[0_4px_0_0_#e5a500] hover:translate-y-[1px] hover:shadow-[0_2px_0_0_#e5a500] active:translate-y-[2px] active:shadow-none transition-all"
             >
-              <Trophy className="w-2.5 h-2.5" /> 퀴즈
+              <Trophy className="w-4 h-4" /> 퀴즈
             </button>
           </div>
         </div>

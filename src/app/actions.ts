@@ -40,22 +40,19 @@ export async function analyzeWord(word: string) {
 
     const prompt = `
       You are a helpful assistant for teaching Hanja to children.
-      Analyze the following word (could be in Hangul or Hanja): "${searchWord}"
+      Analyze the following word (Hangul or Hanja): "${searchWord}"
       
-      1. Input Handling: If the input is in Hanja (e.g., "學校"), identify its Hangul equivalent (e.g., "학교") and set it as "correctedWord".
-      2. Typo Correction: If the input is a misspelled Hangul word, suggest the correct intended word.
-      3. Loanword Detection: Determine if it's a loanword or pure Korean with no Hanja origin.
-      4. Safety Check: Ensure the word is appropriate for kids.
-      5. Hanja Analysis: Decompose the word into its Hanja characters with meaning, sound, and level.
+      1. Hanja Analysis: Decompose it into characters (mean/sound/level).
+      2. Expansion (Crucial): Provide 2 synonyms, 2 antonyms, and 2 related 3-character words using these Hanja.
+      3. For each expanded word, provide a simple quiz description.
 
       Return ONLY a JSON object in this format:
       {
         "isSafe": boolean,
-        "reason": "string if unsafe",
-        "isLoanword": boolean,
-        "correctedWord": "string (Hangul equivalent or corrected version)",
-        "hanjaList": [
-          { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
+        "correctedWord": "string",
+        "hanjaList": [{ "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }],
+        "expansions": [
+          { "word": "유의어/반의어", "hanja": "한자조합", "type": "synonym|antonym|related3", "description": "아이들용 설명" }
         ]
       }
     `;
@@ -63,64 +60,50 @@ export async function analyzeWord(word: string) {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    
-    // Extract JSON from text if not perfect
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("JSON not found in response");
+    if (!jsonMatch) throw new Error("JSON not found");
     const data = JSON.parse(jsonMatch[0]);
 
-    if (!data.isSafe) {
-      return { error: data.reason || "아이들에게 부적절한 표현이 포함되어 있습니다." };
-    }
+    if (!data.isSafe) return { error: "부적절한 표현이 포함되어 있습니다." };
 
-    let finalHanjaList = data.hanjaList;
+    // 한자 마스터에서 3개 예시 단어 및 상세 정보 보강
+    const finalHanjaList = await Promise.all(
+      data.hanjaList.map(async (item: any) => {
+        const { data: dbHanja } = await supabase
+          .from("hanja_master")
+          .select("meaning, sound, level, example_words")
+          .eq("hanja", item.char)
+          .maybeSingle();
+        
+        return {
+          ...item,
+          meaning: dbHanja?.meaning || item.meaning,
+          sound: dbHanja?.sound || item.sound,
+          level: dbHanja?.level || item.level,
+          examples: dbHanja?.example_words || [] // 1,800자 시딩에서 넣은 예시 단어 3개
+        };
+      })
+    );
 
-    try {
-      // AI 환각 방지: DB에 한자가 있는지 확인하고 있다면 DB 데이터를 우선 사용
-      const supabase = createClient();
-      const validatedHanjaList = await Promise.all(
-        data.hanjaList.map(async (item: { char: string; meaning: string; sound: string; level: string }) => {
-          const { data: dbData } = await supabase
-            .from("hanja_master")
-            .select("meaning, sound, level")
-            .eq("hanja", item.char)
-            .maybeSingle();
-          
-          if (dbData) {
-            return {
-              ...item,
-              meaning: dbData.meaning,
-              sound: dbData.sound,
-              level: dbData.level || item.level
-            };
-          }
-          return item;
-        })
-      );
-      
-      finalHanjaList = validatedHanjaList;
-
-      // DB에 사용자 입력 내역 저장
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData?.user) {
-        // Fire and forget to not block the UI
-        supabase.from("user_items").insert({
-          user_id: userData.user.id,
-          word: word,
-          hanja_combination: finalHanjaList.map((h: { char: string; meaning: string; sound: string; level: string }) => h.char).join("")
-        }).then();
+    // [중요] 연관 단어들을 DB(quiz_bank)에 선제적으로 저장 (자가 증식)
+    if (data.expansions && data.expansions.length > 0) {
+      for (const exp of data.expansions) {
+        supabase.from("quiz_bank").upsert({
+          word: exp.word,
+          hanja_combination: exp.hanja,
+          description: exp.description,
+          is_verified: false // AI 생성형이므로 나중에 검증 필요
+        }, { onConflict: 'word' }).then();
       }
-    } catch (dbError) {
-      console.warn("DB validation skipped due to error:", dbError);
     }
     
     const resultData = { 
       hanjaList: finalHanjaList,
       correctedWord: data.correctedWord || null,
-      isLoanword: data.isLoanword || false
+      isLoanword: data.isLoanword || false,
+      expansions: data.expansions || []
     };
 
-    // 4. 결과를 DB에 캐싱 (다음 검색을 위해)
     await supabase.from("word_analysis_cache").upsert({
       word: searchWord,
       analysis_json: resultData

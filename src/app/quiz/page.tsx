@@ -5,7 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, ChevronLeft, ArrowRight, Home, RefreshCw, Star, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { getRandomQuizzes, logLearning } from "../actions";
+import { analyzeWord, getRandomQuizzes, logLearning } from "../actions";
+import HanjaCard from "@/components/HanjaCard";
+import WritingModal from "@/components/WritingModal";
 
 interface Quiz {
   id: string;
@@ -22,6 +24,9 @@ export default function QuizPage() {
   const [gameState, setGameState] = useState<"loading" | "playing" | "result">("loading");
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+  const [isStudied, setIsStudied] = useState(false);
+  const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string} | null>(null);
 
   const fetchQuizzes = useCallback(async () => {
     setGameState("loading");
@@ -48,22 +53,35 @@ export default function QuizPage() {
     setIsCorrect(correct);
     
     if (correct) {
+      // 정답인 경우 단어 분석 결과를 즉시 가져옴
+      const result = await analyzeWord(currentQuiz.word);
+      setAnalysisResult(result);
+      setIsStudied(false);
+    } else {
+      // 오답인 경우 1.5초 후 다음 문제로 (또는 감점 등 처리)
+      setTimeout(() => {
+        handleNext();
+      }, 1500);
+    }
+  };
+
+  const handleNext = async () => {
+    const currentQuiz = quizzes[currentIndex];
+    
+    if (isCorrect) {
       setScore(prev => prev + 10);
+      await logLearning(currentQuiz.word, true);
     }
 
-    // 결과 기록
-    await logLearning(currentQuiz.word, correct);
-
-    // 다음 문제로 넘어가기 전 딜레이
-    setTimeout(() => {
-      if (currentIndex < quizzes.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-        setSelectedAnswer(null);
-        setIsCorrect(null);
-      } else {
-        setGameState("result");
-      }
-    }, 1500);
+    if (currentIndex < quizzes.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setSelectedAnswer(null);
+      setIsCorrect(null);
+      setAnalysisResult(null);
+      setIsStudied(false);
+    } else {
+      setGameState("result");
+    }
   };
 
   if (gameState === "loading") {
@@ -213,7 +231,7 @@ export default function QuizPage() {
         </AnimatePresence>
       </main>
 
-      {/* Bottom Footer Feedback */}
+      {/* Bottom Footer Feedback & Learning */}
       <AnimatePresence>
         {selectedAnswer && (
           <motion.div
@@ -221,45 +239,63 @@ export default function QuizPage() {
             animate={{ y: 0 }}
             exit={{ y: 100 }}
             className={cn(
-              "fixed bottom-0 left-0 right-0 p-6 sm:p-8 backdrop-blur-md border-t-2 z-50",
-              isCorrect ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
+              "fixed bottom-0 left-0 right-0 p-6 sm:p-8 backdrop-blur-md border-t-2 z-50 max-h-[85vh] overflow-y-auto",
+              isCorrect ? "bg-green-50/95 border-green-200" : "bg-red-50/95 border-red-200"
             )}
           >
-            <div className="max-w-2xl mx-auto flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center",
-                  isCorrect ? "bg-white" : "bg-white"
-                )}>
-                  {isCorrect 
-                    ? <CheckCircle2 className="w-8 h-8 text-duo-green" />
-                    : <XCircle className="w-8 h-8 text-red-500" />
-                  }
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    {isCorrect ? <CheckCircle2 className="w-8 h-8 text-duo-green" /> : <XCircle className="w-8 h-8 text-red-500" />}
+                  </div>
+                  <div>
+                    <h3 className={cn("text-xl font-black", isCorrect ? "text-duo-green" : "text-red-500")}>
+                      {isCorrect ? "정답이에요! 한자를 공부하고 넘어가자!" : `아쉬워요! 정답은 '${currentQuiz.word}'`}
+                    </h3>
+                  </div>
                 </div>
-                <div>
-                  <h3 className={cn(
-                    "text-xl font-black",
-                    isCorrect ? "text-duo-green" : "text-red-500"
-                  )}>
-                    {isCorrect ? "정답이에요! 대단해!" : "아까워요! 정답은..."}
-                  </h3>
-                  {!isCorrect && (
-                    <p className="font-bold text-red-400">정답: {currentQuiz.word}</p>
-                  )}
+                {isCorrect && (
+                  <button
+                    onClick={handleNext}
+                    className="bg-duo-green text-white px-8 py-3 rounded-2xl font-black text-lg shadow-duo-green hover:brightness-110 active:translate-y-1 active:shadow-none transition-all"
+                  >
+                    학습 완료! 다음 문제 🚀
+                  </button>
+                )}
+              </div>
+
+              {/* Learning Area for Correct Answer */}
+              {isCorrect && analysisResult && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in pb-12">
+                  {analysisResult.hanjaList?.map((hanja: any, idx: number) => (
+                    <div key={idx} className="scale-90 origin-top">
+                      <HanjaCard
+                        data={hanja}
+                        word={currentQuiz.word}
+                        delay={idx * 0.1}
+                        onWrite={(char, meaning, sound) => {
+                          setSelectedHanjaForWriting({ char, meaning, sound });
+                          setIsStudied(true);
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <div className="hidden sm:block">
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ repeat: Infinity, duration: 1 }}
-                >
-                  <ArrowRight className={cn("w-8 h-8", isCorrect ? "text-duo-green" : "text-red-500")} />
-                </motion.div>
-              </div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Writing Modal for Quiz Page */}
+      <WritingModal
+        char={selectedHanjaForWriting?.char || ""}
+        meaning={selectedHanjaForWriting?.meaning || ""}
+        sound={selectedHanjaForWriting?.sound || ""}
+        isOpen={!!selectedHanjaForWriting}
+        onClose={() => setSelectedHanjaForWriting(null)}
+      />
     </div>
   );
 }
