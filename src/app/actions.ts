@@ -66,9 +66,16 @@ export async function analyzeWord(word: string) {
 
     if (!data.isSafe) return { error: "부적절한 표현이 포함되어 있습니다." };
 
+    interface HanjaItem {
+      char: string;
+      meaning: string;
+      sound: string;
+      level: string;
+    }
+
     // 한자 마스터에서 3개 예시 단어 및 상세 정보 보강
     const finalHanjaList = await Promise.all(
-      data.hanjaList.map(async (item: any) => {
+      data.hanjaList.map(async (item: HanjaItem) => {
         const { data: dbHanja } = await supabase
           .from("hanja_master")
           .select("meaning, sound, level, example_words")

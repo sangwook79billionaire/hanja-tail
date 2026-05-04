@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, ChevronLeft, ArrowRight, Home, RefreshCw, Star, CheckCircle2, XCircle } from "lucide-react";
+import { Trophy, ChevronLeft, Home, RefreshCw, Star, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { analyzeWord, getRandomQuizzes, logLearning } from "../actions";
@@ -17,6 +17,20 @@ interface Quiz {
   options: string[];
 }
 
+interface HanjaItem {
+  char: string;
+  meaning: string;
+  sound: string;
+  level: string;
+  examples?: { word: string; hanja: string }[];
+}
+
+interface AnalysisResult {
+  hanjaList: HanjaItem[];
+  correctedWord?: string;
+  isLoanword?: boolean;
+}
+
 export default function QuizPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -24,8 +38,7 @@ export default function QuizPage() {
   const [gameState, setGameState] = useState<"loading" | "playing" | "result">("loading");
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
-  const [isStudied, setIsStudied] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string} | null>(null);
 
   const fetchQuizzes = useCallback(async () => {
@@ -43,29 +56,7 @@ export default function QuizPage() {
     fetchQuizzes();
   }, [fetchQuizzes]);
 
-  const handleAnswer = async (answer: string) => {
-    if (selectedAnswer) return;
-
-    const currentQuiz = quizzes[currentIndex];
-    const correct = answer === currentQuiz.word;
-    
-    setSelectedAnswer(answer);
-    setIsCorrect(correct);
-    
-    if (correct) {
-      // 정답인 경우 단어 분석 결과를 즉시 가져옴
-      const result = await analyzeWord(currentQuiz.word);
-      setAnalysisResult(result);
-      setIsStudied(false);
-    } else {
-      // 오답인 경우 1.5초 후 다음 문제로 (또는 감점 등 처리)
-      setTimeout(() => {
-        handleNext();
-      }, 1500);
-    }
-  };
-
-  const handleNext = async () => {
+  const handleNext = useCallback(async () => {
     const currentQuiz = quizzes[currentIndex];
     
     if (isCorrect) {
@@ -78,9 +69,27 @@ export default function QuizPage() {
       setSelectedAnswer(null);
       setIsCorrect(null);
       setAnalysisResult(null);
-      setIsStudied(false);
     } else {
       setGameState("result");
+    }
+  }, [currentIndex, isCorrect, quizzes]);
+
+  const handleAnswer = async (answer: string) => {
+    if (selectedAnswer) return;
+
+    const currentQuiz = quizzes[currentIndex];
+    const correct = answer === currentQuiz.word;
+    
+    setSelectedAnswer(answer);
+    setIsCorrect(correct);
+    
+    if (correct) {
+      const result = await analyzeWord(currentQuiz.word);
+      setAnalysisResult(result as AnalysisResult);
+    } else {
+      setTimeout(() => {
+        handleNext();
+      }, 1500);
     }
   };
 
@@ -268,7 +277,7 @@ export default function QuizPage() {
               {/* Learning Area for Correct Answer */}
               {isCorrect && analysisResult && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in pb-12">
-                  {analysisResult.hanjaList?.map((hanja: any, idx: number) => (
+                  {analysisResult.hanjaList?.map((hanja: HanjaItem, idx: number) => (
                     <div key={idx} className="scale-90 origin-top">
                       <HanjaCard
                         data={hanja}
@@ -276,7 +285,6 @@ export default function QuizPage() {
                         delay={idx * 0.1}
                         onWrite={(char, meaning, sound) => {
                           setSelectedHanjaForWriting({ char, meaning, sound });
-                          setIsStudied(true);
                         }}
                       />
                     </div>

@@ -22,6 +22,13 @@ interface LearningLog {
   practiced_writing?: boolean;
 }
 
+interface WordExpansion {
+  word: string;
+  hanja: string;
+  description: string;
+  type: 'synonym' | 'antonym' | 'expansion';
+}
+
 interface HanjaData {
   char: string;
   meaning: string;
@@ -60,7 +67,7 @@ export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string} | null>(null);
-  const [analysisExpansions, setAnalysisExpansions] = useState<any[]>([]);
+  const [analysisExpansions, setAnalysisExpansions] = useState<WordExpansion[]>([]);
 
   const supabase = createClient();
 
@@ -396,7 +403,7 @@ export default function HomePage() {
                   <h3 className="text-2xl font-black text-duo-eel tracking-tight">연관 단어도 함께 배워봐!</h3>
                 </div>
                 <div className="flex flex-wrap gap-4">
-                  {analysisExpansions.map((exp: any, i: number) => (
+                  {analysisExpansions.map((exp: WordExpansion, i: number) => (
                     <button
                       key={i}
                       onClick={() => handleAnalyze(exp.word)}
