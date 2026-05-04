@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { Search, Sparkles, Trophy, Gamepad2, Edit3, Eye, Settings, UserPlus, Map as MapIcon, User } from "lucide-react";
+import { Search, Sparkles, Trophy, Edit3, UserPlus, Map as MapIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateProfile } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, updateProfile } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
@@ -60,7 +59,6 @@ export default function HomePage() {
   const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
   const [recapData, setRecapData] = useState<StatsData | null>(null);
-  const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
   const [currentSearchedWord, setCurrentSearchedWord] = useState<string | null>(null);
   const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
@@ -171,7 +169,6 @@ export default function HomePage() {
         alert(result.error);
       } else {
         setAnalyzedHanja(result.hanjaList);
-        setCorrectionMsg(result.correctedWord ? `${searchWord}가 아니라 ${result.correctedWord}가 맞는 표현이야!` : null);
         setCurrentSearchedWord(result.correctedWord || searchWord.trim());
         setAnalysisExpansions(result.expansions || []);
       }
@@ -512,9 +509,9 @@ function TrophyCelebration({ onClose, onInvite, onStats }: { onClose: () => void
   );
 }
 
-function ChevronRight(props: any) {
+function ChevronRight({ className }: { className?: string }) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
       <path d="m9 18 6-6-6-6"/>
     </svg>
   );

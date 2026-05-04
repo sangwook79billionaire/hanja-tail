@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Star, Trophy, Sparkles, Map as MapIcon, ChevronRight } from "lucide-react";
+import { Lock, Star, Sparkles, Map as MapIcon, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -52,7 +52,7 @@ export default function QuestMap() {
     }
 
     fetchQuestData();
-  }, []);
+  }, [supabase]);
 
   if (isLoading) {
     return (

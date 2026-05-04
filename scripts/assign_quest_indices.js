@@ -4,34 +4,41 @@ require('dotenv').config({ path: '.env.local' });
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 async function assign() {
-  console.log("📍 한자 퀘스트 노드 배치 시작 (정상 컬럼 사용)...");
+  console.log("📍 한자 퀘스트 노드 배치 시작 (페이징 방식)...");
   
-  // 1. 모든 한자 데이터 가져오기 (정상 컬럼명: hanja, level)
-  const { data: hanjas, error } = await supabase
-    .from('hanja_master')
-    .select('hanja, level')
-    .order('level', { ascending: false }); // 8급부터 배치
+  let allHanjas = [];
+  let page = 0;
+  const PAGE_SIZE = 1000;
 
-  if (error) {
-    console.error('❌ 데이터 조회 실패:', error.message);
-    return;
+  while (true) {
+    const { data, error } = await supabase
+      .from('hanja_master')
+      .select('hanja, level')
+      .order('level', { ascending: false })
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+    if (error) {
+      console.error('❌ 데이터 조회 실패:', error.message);
+      break;
+    }
+
+    if (!data || data.length === 0) break;
+
+    allHanjas = allHanjas.concat(data);
+    if (data.length < PAGE_SIZE) break;
+    page++;
   }
 
-  if (!hanjas || hanjas.length === 0) {
-    console.log('⚠️ hanja_master에 데이터가 없습니다.');
-    return;
-  }
+  console.log(`✅ 총 ${allHanjas.length}자의 한자를 발견했습니다. 배치를 시작합니다...`);
 
-  console.log(`✅ ${hanjas.length}자의 한자를 발견했습니다. 배치를 시작합니다...`);
-
-  for (let i = 0; i < hanjas.length; i++) {
+  for (let i = 0; i < allHanjas.length; i++) {
     const { error: updateError } = await supabase
       .from('hanja_master')
       .update({ quest_index: i + 1 })
-      .eq('hanja', hanjas[i].hanja);
+      .eq('hanja', allHanjas[i].hanja);
     
     if (updateError) {
-      console.error(`❌ [${hanjas[i].hanja}] 업데이트 실패:`, updateError.message);
+      console.error(`❌ [${allHanjas[i].hanja}] 업데이트 실패:`, updateError.message);
     }
 
     if ((i + 1) % 100 === 0) console.log(`✅ ${i + 1}자 배치 완료...`);
