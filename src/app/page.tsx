@@ -14,6 +14,7 @@ import LearningMindMap from "@/components/LearningMindMap";
 import { AnimatePresence, motion } from "framer-motion";
 import AuthModal from "@/components/AuthModal";
 import { createClient } from "@/lib/supabase/client";
+import CharacterView from "@/components/CharacterView";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface LearningLog {
@@ -80,6 +81,7 @@ export default function HomePage() {
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
   const [ambiguousCandidates, setAmbiguousCandidates] = useState<AmbiguousCandidate[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [totalScore, setTotalScore] = useState(0);
 
   const supabase = createClient();
 
@@ -89,6 +91,7 @@ export default function HomePage() {
       setNickname(profile.nickname);
       setCurrentStage(profile.current_stage || 8);
       setIsAdmin(!!profile.is_admin);
+      setTotalScore(profile.total_score || 0);
     }
   }, []);
 
@@ -348,11 +351,13 @@ export default function HomePage() {
                 </div>
               </div>
 
+              {/* Character Section */}
+              <div className="w-full max-w-sm mx-auto mb-10">
+                <CharacterView score={totalScore} level={currentStage} />
+              </div>
+
               {/* Search Form */}
               <div className="w-full max-w-2xl mx-auto mb-12">
-                <h2 className="text-center text-3xl font-black text-duo-eel mb-8 tracking-tight">
-                  어떤 한자 단어가 궁금해? 🦉
-                </h2>
                 <form onSubmit={handleSubmit} className="relative group">
                   <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
                     <Search className="w-7 h-7 text-duo-wolf group-focus-within:text-duo-macaw transition-colors" />
