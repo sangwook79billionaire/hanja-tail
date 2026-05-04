@@ -69,8 +69,9 @@ export default function HomePage() {
   const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
   const [hasAwardedTrophy, setHasAwardedTrophy] = useState(false);
-  const [nickname, setNickname] = useState<string | null>(null);
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [nickname, setNickname] = useState<string | null>(null);
+  const [currentStage, setCurrentStage] = useState<number>(8);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string} | null>(null);
@@ -82,7 +83,10 @@ export default function HomePage() {
 
   const fetchProfile = useCallback(async () => {
     const { profile } = await getMyProfile();
-    if (profile) setNickname(profile.nickname);
+    if (profile) {
+      setNickname(profile.nickname);
+      setCurrentStage(profile.current_stage || 8);
+    }
   }, []);
 
   useEffect(() => {
@@ -220,47 +224,48 @@ export default function HomePage() {
     }
   };
 
+  const getGradeName = (stage: number) => {
+    if (stage <= 1) return "천하통일 한자지존";
+    if (stage <= 3) return "명불허전 한자고수";
+    if (stage <= 5) return "승승장구 한자박사";
+    if (stage <= 7) return "일취월장 한자우등생";
+    return "의욕충만 초보탐험가";
+  };
+
   return (
     <div className="min-h-screen bg-white text-duo-eel flex flex-col font-sans pb-24">
       {/* Fixed Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-2 border-duo-snow">
-        <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-duo-macaw rounded-xl flex items-center justify-center shadow-[0_3px_0_0_#1899d6]">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-2xl font-black tracking-tight text-duo-eel">한자 타일</h1>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex flex-col items-end mr-2">
-              <span className="text-[10px] font-black text-duo-wolf uppercase tracking-wider">Explorer</span>
+        <div className="max-w-5xl mx-auto px-6 h-24 flex items-center justify-between">
+          <div className="flex flex-col justify-center">
+            <h1 className="text-xl font-black tracking-tight text-duo-eel mb-1">꼬리에 꼬리를 무는 한자 탐험</h1>
+            <div className="flex items-center gap-2 text-xs font-bold text-duo-wolf">
               <button 
                 onClick={handleUpdateNickname}
-                className="text-sm font-black text-duo-macaw hover:underline transition-all"
+                className="bg-duo-snow px-2 py-0.5 rounded-lg border border-duo-swan hover:bg-duo-swan transition-all"
               >
-                {nickname || "탐험가님"} ✨
+                탐험가 : {nickname || "익명"}
               </button>
+              <span className="bg-duo-macaw/10 text-duo-macaw px-2 py-0.5 rounded-lg border border-duo-macaw/20">탐험가 등급 : {getGradeName(currentStage)}</span>
             </div>
-            
-            <div className="flex items-center gap-2">
-              {!user && (
-                <button 
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="bg-duo-snow text-duo-eel px-4 py-2 rounded-xl font-black text-sm border-b-3 border-duo-swan active:border-b-0 active:translate-y-1 transition-all"
-                >
-                  로그인
-                </button>
-              )}
-              {user && (
-                <button 
-                  onClick={() => supabase.auth.signOut()}
-                  className="text-xs font-bold text-duo-wolf hover:text-duo-eel"
-                >
-                  로그아웃
-                </button>
-              )}
-            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {!user ? (
+              <button 
+                onClick={() => setIsAuthModalOpen(true)}
+                className="bg-duo-snow text-duo-eel px-3 py-1.5 rounded-xl font-black text-xs border-b-2 border-duo-swan active:border-b-0 active:translate-y-1 transition-all"
+              >
+                로그인
+              </button>
+            ) : (
+              <button 
+                onClick={() => supabase.auth.signOut()}
+                className="text-[10px] font-black text-duo-swan hover:text-duo-eel bg-duo-snow/50 px-2 py-1 rounded-lg border border-duo-snow transition-all"
+              >
+                로그아웃
+              </button>
+            )}
           </div>
         </div>
       </header>
