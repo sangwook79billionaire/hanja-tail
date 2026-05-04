@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, Sparkles, Trophy, Gamepad2, Edit3, Eye, Settings } from "lucide-react";
+import { Search, Sparkles, Trophy, Gamepad2, Edit3, Eye, Settings, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateProfile } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
+import InviteModal from "@/components/InviteModal";
 import { AnimatePresence, motion } from "framer-motion";
 import AuthModal from "@/components/AuthModal";
 import { createClient } from "@/lib/supabase/client";
@@ -66,6 +67,7 @@ export default function HomePage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string} | null>(null);
   const [analysisExpansions, setAnalysisExpansions] = useState<WordExpansion[]>([]);
 
@@ -520,12 +522,25 @@ export default function HomePage() {
               </div>
               <h2 className="text-4xl font-black text-duo-eel mb-3">축하해요!</h2>
               <p className="text-duo-wolf font-bold text-lg mb-10 leading-relaxed">오늘의 한자 탐험을 무사히 마쳤어요!<br/>반짝이는 트로피를 얻었습니다.</p>
+              
+              <div className="flex flex-col gap-3 w-full mb-6">
+                <button 
+                  onClick={() => {
+                    setShowTrophyCelebration(false);
+                    setIsInviteModalOpen(true);
+                  }}
+                  className="w-full py-5 bg-amber-100 text-amber-700 rounded-3xl font-black text-xl border-2 border-amber-200 hover:bg-amber-200 transition-all flex items-center justify-center gap-2"
+                >
+                  <UserPlus className="w-6 h-6" /> 친구 초대하고 배지 받기 🎖️
+                </button>
+              </div>
+
               <button 
                 onClick={() => {
                   setShowTrophyCelebration(false);
                   openStats();
                 }}
-                className="w-full py-5 bg-duo-snow text-duo-eel rounded-3xl font-black text-xl hover:bg-duo-swan transition-all mb-3"
+                className="w-full py-4 bg-duo-snow text-duo-eel rounded-2xl font-black text-lg hover:bg-duo-swan transition-all mb-3"
               >
                 나의 기록 보기 📊
               </button>
@@ -540,6 +555,7 @@ export default function HomePage() {
         )}
         
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <InviteModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} />
 
         <WritingModal
           char={selectedHanjaForWriting?.char || ""}
