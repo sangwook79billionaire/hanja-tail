@@ -284,10 +284,10 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-2 border-duo-snow">
         <div className="max-w-5xl mx-auto px-6 h-24 flex items-center justify-between">
           <div className="flex flex-col justify-center">
-            <h1 className="text-4xl font-black tracking-tighter text-duo-eel mb-1 flex items-baseline justify-between w-full">
-              <span className="text-5xl text-duo-macaw">꼬</span>리에 
-              <span className="text-5xl text-duo-macaw">꼬</span>리를 
-              <span className="text-5xl text-duo-macaw">무</span>는 한자
+            <h1 className="text-2xl sm:text-3xl font-black tracking-normal text-duo-eel mb-1 flex items-baseline justify-between w-full px-2">
+              <span className="text-4xl text-duo-macaw">꼬</span>리에 
+              <span className="text-4xl text-duo-macaw">꼬</span>리를 
+              <span className="text-4xl text-duo-macaw">무</span>는 漢字
             </h1>
             <div className="flex items-center gap-2 text-xs font-bold text-duo-wolf">
               <button 
