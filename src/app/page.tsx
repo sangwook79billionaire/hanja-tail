@@ -79,6 +79,7 @@ export default function HomePage() {
   const [analysisExpansions, setAnalysisExpansions] = useState<WordExpansion[]>([]);
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
   const [ambiguousCandidates, setAmbiguousCandidates] = useState<AmbiguousCandidate[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const supabase = createClient();
 
@@ -87,6 +88,7 @@ export default function HomePage() {
     if (profile) {
       setNickname(profile.nickname);
       setCurrentStage(profile.current_stage || 8);
+      setIsAdmin(!!profile.is_admin);
     }
   }, []);
 
@@ -488,14 +490,15 @@ export default function HomePage() {
               exit={{ opacity: 0, y: -20 }}
               className="py-10"
             >
-              {recapData && (
-                <StatsView 
-                  stats={recapData} 
-                  logs={dailyHistory}
-                  onClose={() => setActiveTab('search')} 
-                  onReview={handleReview}
-                />
-              )}
+              {activeTab === 'stats' && recapData && (
+                    <StatsView 
+                      stats={recapData} 
+                      logs={dailyHistory}
+                      onClose={() => setActiveTab('search')} 
+                      onReview={handleReview}
+                      isAdmin={isAdmin}
+                    />
+                  )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Star, Target, ChevronLeft } from "lucide-react";
+import { Calendar, Star, Target, ChevronLeft, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface PeriodStats {
   count: number;
@@ -35,12 +36,14 @@ export default function StatsView({
   stats, 
   logs,
   onClose,
-  onReview
+  onReview,
+  isAdmin
 }: { 
   stats: StatsData; 
   logs: LearningLog[];
   onClose: () => void;
   onReview: (word: string) => void;
+  isAdmin?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<TabType>("today");
 
@@ -84,12 +87,19 @@ export default function StatsView({
       className="fixed inset-0 z-[400] bg-white flex flex-col overflow-hidden"
     >
       {/* Header */}
-      <header className="px-6 py-4 border-b-2 border-duo-snow flex items-center gap-4">
+      <div className="flex items-center justify-between mt-4 mb-2 px-2">
         <button onClick={onClose} className="p-2 hover:bg-duo-snow rounded-xl transition-colors">
-          <ChevronLeft className="w-6 h-6 text-duo-wolf" />
+          <ChevronLeft className="w-8 h-8 text-duo-eel" />
         </button>
-        <h2 className="text-xl font-black text-duo-eel flex-1">나의 탐험 리포트</h2>
-      </header>
+        <h2 className="text-xl font-black text-duo-eel">나의 탐험 리포트</h2>
+        {isAdmin ? (
+          <Link href="/admin" className="p-2 hover:bg-duo-snow rounded-xl transition-colors">
+            <Settings className="w-8 h-8 text-duo-macaw" />
+          </Link>
+        ) : (
+          <div className="w-12 h-12" />
+        )}
+      </div>
 
       {/* Tabs */}
       <div className="px-6 py-4 bg-white border-b-2 border-duo-snow">

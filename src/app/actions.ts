@@ -491,43 +491,33 @@ export async function getLearningRecap() {
 
 export async function getAdminStats() {
   const supabase = createClient();
-  
-  // 1. 관리자 권한 확인
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "로그인이 필요합니다.", stats: null, rankings: [], recentLogs: [] };
+  if (!user) throw new Error("Unauthorized");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) throw new Error("Forbidden");
 
-  if (!profile?.is_admin) return { error: "관리자 권한이 없습니다.", stats: null, rankings: [], recentLogs: [] };
+  const [
+    { count: userCount },
+    { count: logCount },
+    { count: bankCount },
+    { count: cacheCount },
+    { data: rankings },
+    { data: recentLogs }
+  ] = await Promise.all([
+    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+    supabase.from('learning_logs').select('*', { count: 'exact', head: true }),
+    supabase.from('quiz_bank').select('*', { count: 'exact', head: true }),
+    supabase.from('word_analysis_cache').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('nickname, total_score, current_stage').order('total_score', { ascending: false }).limit(10),
+    supabase.from('learning_logs').select('word, is_correct, learned_at, profiles:user_id (nickname)').order('learned_at', { ascending: false }).limit(20)
+  ]);
 
-  // 2. 전체 통계 가져오기
-  const { count: totalUsers } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-  const { data: rankings } = await supabase
-    .from("profiles")
-    .select("nickname, total_score, current_stage")
-    .order("total_score", { ascending: false })
-    .limit(10);
-
-  const { data: recentLogs } = await supabase
-    .from("learning_logs")
-    .select(`
-      word, 
-      is_correct, 
-      learned_at, 
-      profiles:user_id (nickname)
-    `)
-    .order("learned_at", { ascending: false })
-    .limit(20);
-
-  return {
-    stats: {
-      totalUsers: totalUsers || 0,
-      totalLogs: recentLogs?.length || 0,
-    },
+  return { 
+    userCount: userCount || 0, 
+    logCount: logCount || 0, 
+    bankCount: bankCount || 0, 
+    cacheCount: cacheCount || 0,
     rankings: (rankings || []).map(r => ({
       nickname: r.nickname as string | null,
       total_score: r.total_score as number,
@@ -538,60 +528,8 @@ export async function getAdminStats() {
       is_correct: l.is_correct as boolean,
       learned_at: l.learned_at as string,
       profiles: l.profiles ? { nickname: (l.profiles as unknown as { nickname: string | null }).nickname } : null
-    })),
-    error: null
+    }))
   };
-}
-
-export async function getPendingWords() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "로그인이 필요합니다." };
-
-  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
-  if (!profile?.is_admin) return { error: "관리자 권한이 없습니다." };
-
-  // 1. 캐시에는 있지만 퀴즈 뱅크에는 없는 단어들 추출
-  const { data: cacheWords } = await supabase.from("word_analysis_cache").select("word, hanja_list, created_at").order("created_at", { ascending: false }).limit(50);
-  const { data: bankWords } = await supabase.from("quiz_bank").select("word");
-  const bankSet = new Set((bankWords || []).map(b => b.word));
-
-  const pending = (cacheWords || []).filter(c => !bankSet.has(c.word)).map(p => ({
-    word: p.word as string,
-    hanja_list: p.hanja_list as { char: string, sound: string, meaning: string }[],
-    created_at: p.created_at as string
-  }));
-  return { pending };
-}
-
-export async function approveWord(word: string, hanja_list: { char: string, sound: string, meaning: string }[]) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !(await supabase.from("profiles").select("is_admin").eq("id", user.id).single()).data?.is_admin) {
-    return { error: "권한이 없습니다." };
-  }
-
-  // 퀴즈 뱅크에 추가
-  const { error } = await supabase.from("quiz_bank").insert({
-    word,
-    hanja_list,
-    is_verified: true
-  });
-
-  if (error) return { error: error.message };
-  return { success: true };
-}
-
-export async function deletePendingWord(word: string) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !(await supabase.from("profiles").select("is_admin").eq("id", user.id).single()).data?.is_admin) {
-    return { error: "권한이 없습니다." };
-  }
-
-  const { error } = await supabase.from("word_analysis_cache").delete().eq("word", word);
-  if (error) return { error: error.message };
-  return { success: true };
 }
 
 export async function updateProfile(data: { 
@@ -701,4 +639,57 @@ export async function getRandomQuizzes(limit: number = 10) {
     console.error("Get Random Quizzes Error:", error);
     return { error: "퀴즈를 불러오는 중 오류가 발생했습니다." };
   }
+}
+
+// --- Admin Actions ---
+
+export async function getUnverifiedWords() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) throw new Error("Forbidden");
+
+  const { data: cache } = await supabase.from('word_analysis_cache').select('*').order('created_at', { ascending: false }).limit(100);
+  const { data: bank } = await supabase.from('quiz_bank').select('word');
+  const bankWords = new Set((bank || []).map(b => b.word));
+
+  const unverified = (cache || []).filter(c => !bankWords.has(c.word));
+  return unverified;
+}
+
+export async function verifyWord(word: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) throw new Error("Forbidden");
+
+  const { data: cacheItem } = await supabase.from('word_analysis_cache').select('*').eq('word', word).single();
+  if (!cacheItem) return { error: "Cache item not found" };
+
+  const { error } = await supabase.from('quiz_bank').upsert({
+    word: cacheItem.word,
+    hanja_list: cacheItem.hanja_list,
+    expansions: cacheItem.expansions,
+    is_verified: true
+  });
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function deleteWord(word: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) throw new Error("Forbidden");
+
+  const { error } = await supabase.from('word_analysis_cache').delete().eq('word', word);
+  if (error) return { error: error.message };
+  return { success: true };
 }
