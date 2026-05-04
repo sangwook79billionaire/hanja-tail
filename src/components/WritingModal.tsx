@@ -50,7 +50,22 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose }: 
 
           writerInstance.quiz({
             onComplete: () => {
-              if (active) setIsComplete(true);
+              if (active && writerInstance) {
+                // 1. 성공 상태 즉시 표시
+                setIsComplete(true);
+                
+                // 2. 1초 뒤에 데모 애니메이션 자동 재생
+                setTimeout(() => {
+                  if (active && writerInstance) {
+                    setIsComplete(false); // 애니메이션을 보기 위해 오버레이 잠시 제거
+                    writerInstance.animateCharacter({
+                      onComplete: () => {
+                        if (active) setIsComplete(true); // 데모 종료 후 다시 성공 표시
+                      }
+                    });
+                  }
+                }, 1000);
+              }
             }
           });
         } catch (err) {
