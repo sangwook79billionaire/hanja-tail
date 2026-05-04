@@ -69,6 +69,7 @@ export default function HomePage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string} | null>(null);
   const [analysisExpansions, setAnalysisExpansions] = useState<WordExpansion[]>([]);
+  const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -171,6 +172,9 @@ export default function HomePage() {
         setAnalyzedHanja(result.hanjaList);
         setCurrentSearchedWord(result.correctedWord || searchWord.trim());
         setAnalysisExpansions(result.expansions || []);
+        if (result.correctedWord && result.correctedWord !== searchWord.trim()) {
+          setCorrectionMsg(`혹시 '${result.correctedWord}'(을)를 찾으셨나요?`);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -305,6 +309,14 @@ export default function HomePage() {
                   </button>
                 </form>
               </div>
+
+              {/* Correction Message */}
+              {correctionMsg && (
+                <div className="w-full max-w-2xl mx-auto mb-6 px-6 py-4 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 font-bold animate-fade-in">
+                  <Sparkles className="w-5 h-5 text-amber-500" />
+                  {correctionMsg}
+                </div>
+              )}
 
               {/* Search Results */}
               {analyzedHanja.length > 0 && (

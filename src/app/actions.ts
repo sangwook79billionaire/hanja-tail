@@ -35,7 +35,11 @@ export async function analyzeWord(word: string) {
 
     // 3. 캐시가 없으면 Gemini 호출
     console.log("No cache found. Calling Gemini for:", searchWord);
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return { error: "Gemini API 키가 설정되지 않았습니다. 배포 설정을 확인해주세요." };
+    }
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `
@@ -150,7 +154,11 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
     }
 
     // 2. Gemini로 생성 (최대 3번 자동 재시도)
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return { error: "Gemini API 키가 설정되지 않았습니다." };
+    }
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `

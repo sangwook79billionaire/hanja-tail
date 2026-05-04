@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, UserPlus, LogIn, Sparkles, School, GraduationCap, MapPin, User } from "lucide-react";
 import { updateProfile } from "@/app/actions";
+import Image from "next/image";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -240,7 +241,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 }}
                 className="w-full py-4 bg-white border-2 border-duo-swan text-duo-eel font-black text-lg rounded-2xl flex items-center justify-center gap-3 hover:bg-duo-snow transition-all shadow-sm"
               >
-                <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+                <Image 
+                  src="https://www.google.com/favicon.ico" 
+                  width={20} 
+                  height={20} 
+                  alt="Google" 
+                />
                 구글로 계속하기
               </button>
             </form>
