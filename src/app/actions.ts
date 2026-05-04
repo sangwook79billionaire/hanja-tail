@@ -344,7 +344,8 @@ export async function logLearning(word: string, isCorrect: boolean, parentWord?:
       word: word,
       is_correct: isCorrect,
       parent_word: parentWord || null,
-      is_review: isReview
+      is_review: isReview,
+      practiced_writing: isReview // 복습 시 쓰기 연습을 완료한 것으로 간주
     });
     
     if (logError) throw logError;

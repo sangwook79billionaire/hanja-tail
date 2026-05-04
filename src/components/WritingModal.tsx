@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import HanziWriter from "hanzi-writer";
-import { X, RotateCcw, Play, CheckCircle2, Info, Loader2 } from "lucide-react";
+import { X, RotateCcw, Play, CheckCircle2, Info, Loader2, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface WritingModalProps {
   char: string;
@@ -18,6 +19,8 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
   const targetRef = useRef<HTMLDivElement>(null);
   const [writer, setWriter] = useState<HanziWriter | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isReviewFinished, setIsReviewFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -27,8 +30,9 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
     if (isOpen && targetRef.current) {
       setIsLoading(true);
       setIsComplete(false);
+      setIsDemoMode(false);
+      setIsReviewFinished(false);
 
-      // DOM이 확실히 렌더링될 때까지 잠깐 기다립니다.
       const timer = setTimeout(() => {
         if (!active || !targetRef.current) return;
 
@@ -43,7 +47,7 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
             drawingColor: "#58cc02",
             drawingWidth: 15,
             showHintAfterMisses: 1,
-            delayBetweenStrokes: 100,
+            delayBetweenStrokes: 150,
           });
 
           setWriter(writerInstance);
@@ -51,32 +55,42 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
 
           writerInstance.quiz({
             onComplete: () => {
-              if (active && writerInstance) {
-                // 1. 성공 상태 즉시 표시
-                setIsComplete(true);
+              if (!active || !writerInstance) return;
+
+              // Phase 1: Success message
+              setIsComplete(true);
+              
+              // Phase 2: Start Demo after 1.5s
+              setTimeout(() => {
+                if (!active || !writerInstance) return;
+                setIsComplete(false);
+                setIsDemoMode(true);
                 
-                // 2. 1초 뒤에 데모 애니메이션 자동 재생
-                setTimeout(() => {
-                  if (active && writerInstance) {
-                    setIsComplete(false); // 애니메이션을 보기 위해 오버레이 잠시 제거
-                    writerInstance.animateCharacter({
-                      onComplete: () => {
-                        if (active) {
-                          setIsComplete(true); // 데모 종료 후 다시 성공 표시
-                          onComplete?.(); // 학습 완료 콜백 호출
-                        }
+                writerInstance.animateCharacter({
+                  onComplete: () => {
+                    if (!active) return;
+                    setIsDemoMode(false);
+                    
+                    // Phase 3: Final message
+                    setIsReviewFinished(true);
+                    
+                    // Phase 4: Auto-close after 1.5s
+                    setTimeout(() => {
+                      if (active) {
+                        onComplete?.();
+                        onClose();
                       }
-                    });
+                    }, 1500);
                   }
-                }, 1000);
-              }
+                });
+              }, 1500);
             }
           });
         } catch (err) {
           console.error("HanziWriter init error:", err);
           setIsLoading(false);
         }
-      }, 300); // 모달 애니메이션 시간을 고려한 지연
+      }, 300);
 
       const currentTarget = targetRef.current;
       return () => {
@@ -88,11 +102,13 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
         setWriter(null);
       };
     }
-  }, [isOpen, char]);
+  }, [isOpen, char, onClose, onComplete]);
 
   const handleReset = () => {
     if (writer) {
       setIsComplete(false);
+      setIsDemoMode(false);
+      setIsReviewFinished(false);
       writer.cancelQuiz();
       writer.quiz();
     }
@@ -134,12 +150,14 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
                 <h2 className="text-3xl font-black text-duo-eel">{char}</h2>
                 <p className="text-sm font-bold text-duo-wolf">{meaning} {sound}</p>
               </div>
-              <button 
-                onClick={onClose}
-                className="p-2 hover:bg-duo-snow rounded-xl transition-colors"
-              >
-                <X className="w-6 h-6 text-duo-wolf" />
-              </button>
+              {!isReviewFinished && (
+                <button 
+                  onClick={onClose}
+                  className="p-2 hover:bg-duo-snow rounded-xl transition-colors"
+                >
+                  <X className="w-6 h-6 text-duo-wolf" />
+                </button>
+              )}
             </div>
 
             <div className="relative bg-duo-snow rounded-2xl p-4 mb-6 border-2 border-duo-swan group flex items-center justify-center min-h-[282px] min-w-[282px]">
@@ -150,22 +168,45 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
                 </div>
               )}
               
-              <div ref={targetRef} className={cn("touch-none cursor-crosshair", isLoading && "opacity-0")} />
+              <div ref={targetRef} className={cn("touch-none cursor-crosshair", (isLoading || isReviewFinished) && "opacity-0")} />
               
               <AnimatePresence>
                 {isComplete && (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-[2px] rounded-xl z-10"
+                    className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-xl z-10"
                   >
-                    <CheckCircle2 className="w-16 h-16 text-duo-green mb-2" />
-                    <p className="text-xl font-black text-duo-green">참 잘했어요!</p>
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.5, repeat: 2 }}
+                    >
+                      <CheckCircle2 className="w-20 h-20 text-duo-green mb-4" />
+                    </motion.div>
+                    <p className="text-2xl font-black text-duo-green">참 잘했어요! ✨</p>
+                  </motion.div>
+                )}
+
+                {isDemoMode && (
+                  <div className="absolute top-4 left-4 bg-duo-macaw text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse z-10">
+                    획순 다시보기 중...
+                  </div>
+                )}
+
+                {isReviewFinished && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute inset-0 flex flex-col items-center justify-center bg-duo-macaw text-white rounded-xl z-20"
+                  >
+                    <Sparkles className="w-16 h-16 mb-4 animate-bounce" />
+                    <p className="text-2xl font-black">복습을 마쳤어요!</p>
+                    <p className="mt-2 font-bold opacity-80">점수를 받으러 갑니다...</p>
                   </motion.div>
                 )}
               </AnimatePresence>
               
-              {!isLoading && (
+              {!isLoading && !isComplete && !isDemoMode && !isReviewFinished && (
                 <div className="absolute bottom-2 right-2 flex items-center gap-1 text-[10px] font-bold text-duo-swan">
                   <Info className="w-3 h-3" />
                   획순에 맞춰서 써보세요!
@@ -176,14 +217,14 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
             <div className="grid grid-cols-2 gap-3 w-full">
               <button
                 onClick={handleAnimate}
-                disabled={isLoading}
+                disabled={isLoading || isReviewFinished}
                 className="flex items-center justify-center gap-2 py-3 px-4 bg-white border-2 border-duo-swan rounded-2xl font-black text-duo-wolf hover:bg-duo-snow transition-all disabled:opacity-50"
               >
                 <Play className="w-5 h-5 fill-current" /> 순서 보기
               </button>
               <button
                 onClick={handleReset}
-                disabled={isLoading}
+                disabled={isLoading || isReviewFinished}
                 className="flex items-center justify-center gap-2 py-3 px-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-black text-duo-eel hover:bg-duo-swan transition-all disabled:opacity-50"
               >
                 <RotateCcw className="w-5 h-5" /> 다시 쓰기
@@ -201,8 +242,3 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
   );
 }
 
-// Utility to handle class merging without external lib dependency in this component if needed,
-// but since we have cn in lib/utils, let's keep using it.
-function cn(...classes: (string | boolean | undefined | null)[]) {
-  return classes.filter(Boolean).join(" ");
-}

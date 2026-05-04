@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import HanziWriter from "hanzi-writer";
-import { Trophy, Edit3, Sparkles, X } from "lucide-react";
+import { Trophy, Edit3, Sparkles, X, CheckCircle2 } from "lucide-react";
 import { updateLearningProgress } from "../app/actions";
 
 interface HanjaData {
@@ -20,14 +20,16 @@ export default function HanjaCard({
   delay = 0,
   onQuiz,
   onWrite,
-  onProgressUpdate
+  onProgressUpdate,
+  isReviewed = false
 }: { 
   data: HanjaData; 
   word?: string;
   delay?: number;
   onQuiz?: (hanja: string) => void;
-  onWrite?: (char: string, meaning: string, sound: string) => void;
+  onWrite?: (char: string, meaning: string, sound: string, isReview: boolean) => void;
   onProgressUpdate?: () => void;
+  isReviewed?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -61,12 +63,7 @@ export default function HanjaCard({
 
   const handleWriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (word) {
-      updateLearningProgress(word, 'writing').then(() => {
-        onProgressUpdate?.();
-      });
-    }
-    onWrite?.(data.char, data.meaning, data.sound);
+    onWrite?.(data.char, data.meaning, data.sound, true); // true for isReview
   };
 
   return (
@@ -74,16 +71,34 @@ export default function HanjaCard({
       {/* Mini Card View */}
       <motion.div
         layoutId={`card-${data.char}`}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ delay }}
         onClick={() => setIsExpanded(true)}
-        className="relative bg-white border-2 border-duo-snow rounded-2xl p-4 shadow-[0_4px_0_0_#e5e5e5] hover:translate-y-[-2px] hover:shadow-[0_6px_0_0_#e5e5e5] transition-all cursor-pointer group flex flex-col items-center justify-center aspect-[4/5] w-full"
+        className="relative bg-white border-3 border-duo-snow rounded-[32px] p-4 shadow-sm hover:border-duo-macaw transition-all cursor-pointer group flex flex-col items-center justify-between aspect-[4/5] w-full overflow-hidden"
       >
-        <div className="text-7xl font-black text-duo-eel mb-2 group-hover:scale-110 transition-transform">{data.char}</div>
-        <div className="text-lg font-black text-duo-wolf text-center leading-tight">
-          {data.meaning}<br/>{data.sound}
+        {/* Status Badge */}
+        {isReviewed && (
+          <div className="absolute top-3 right-3 bg-white rounded-full p-0.5 shadow-sm border-2 border-duo-green z-10">
+            <CheckCircle2 className="w-5 h-5 text-duo-green" />
+          </div>
+        )}
+
+        <div className="flex-1 flex flex-col items-center justify-center pt-2">
+          <div className="text-6xl font-black text-duo-eel group-hover:scale-110 transition-transform">{data.char}</div>
+          <div className="text-base font-black text-duo-wolf text-center leading-tight mt-1">
+            {data.meaning}<br/>{data.sound}
+          </div>
         </div>
+
+        {/* Review CTA Button */}
+        <button
+          onClick={handleWriteClick}
+          className="w-full mt-3 py-2.5 bg-duo-macaw text-white rounded-2xl font-black text-xs shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase tracking-wider"
+        >
+          <Edit3 className="w-3.5 h-3.5" />
+          복습하기
+        </button>
       </motion.div>
 
       {/* Expanded Detailed View (Modal) */}

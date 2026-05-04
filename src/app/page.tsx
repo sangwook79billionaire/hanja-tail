@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Sparkles, Trophy, Edit3, UserPlus, Map as MapIcon } from "lucide-react";
+import { Search, Trophy, Map as MapIcon, Info, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, updateProfile, logLearning } from "./actions";
@@ -23,19 +23,6 @@ interface LearningLog {
   learned_at: string;
   viewed_stroke?: boolean;
   practiced_writing?: boolean;
-}
-
-interface WordExpansion {
-  word: string;
-  hanja: string;
-  description: string;
-  type: 'synonym' | 'antonym' | 'expansion';
-}
-
-interface AmbiguousCandidate {
-  word: string;
-  hanja: string;
-  description: string;
 }
 
 interface HanjaData {
@@ -77,9 +64,6 @@ export default function HomePage() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, isReview?: boolean} | null>(null);
-  const [analysisExpansions, setAnalysisExpansions] = useState<WordExpansion[]>([]);
-  const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
-  const [ambiguousCandidates, setAmbiguousCandidates] = useState<AmbiguousCandidate[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
 
@@ -193,11 +177,11 @@ export default function HomePage() {
 
 
   const handleAnalyze = async (searchWord: string, isFromExpansion = false) => {
-    if (!searchWord.trim()) return;
-    setIsLoading(true);
-    setCorrectionMsg(null);
-    setAnalysisExpansions([]);
-    setAmbiguousCandidates([]);
+    if (recapData && (recapData.today.count >= 5) && !isFromExpansion) {
+      alert("오늘의 신규 한자 학습량(5개)을 모두 채웠어요! 여의주를 더 모으려면 복습을 해보세요. ✨");
+      setIsLoading(false);
+      return;
+    }
     
     // 이전에 검색한 단어를 부모 단어로 설정 (꼬리 물기 추적용)
     const parent = isFromExpansion ? currentSearchedWord : null;
@@ -206,16 +190,9 @@ export default function HomePage() {
       const result = await analyzeWord(searchWord.trim());
       if (result.error) {
         alert(result.error);
-      } else if (result.isAmbiguous) {
-        setAmbiguousCandidates(result.candidates);
-        setAnalyzedHanja([]);
       } else {
         setAnalyzedHanja(result.hanjaList);
         setCurrentSearchedWord(searchWord.trim());
-        setAnalysisExpansions(result.expansions || []);
-        if (result.correctedWord && result.correctedWord !== searchWord.trim()) {
-          setCorrectionMsg(`혹시 '${result.correctedWord}'(을)를 찾으셨나요?`);
-        }
 
         // 학습 로그 기록 (부모 단어 포함)
         await logLearning(searchWord.trim(), true, parent || undefined);
@@ -237,7 +214,6 @@ export default function HomePage() {
       if (!result.error && !result.isAmbiguous && result.hanjaList.length > 0) {
         setWord(reviewWord);
         setAnalyzedHanja(result.hanjaList);
-        setAnalysisExpansions(result.expansions || []);
         setCurrentSearchedWord(reviewWord);
         setActiveTab('search');
         
@@ -345,34 +321,57 @@ export default function HomePage() {
               exit={{ opacity: 0, y: -20 }}
               className="py-8"
             >
-              {/* Daily Mission Progress */}
-              <div className="w-full max-w-sm mb-10 mx-auto">
+              {/* 1. Character & Level Section */}
+              <div className="w-full flex flex-col items-center mb-10">
+                <CharacterView score={totalScore} level={currentStage} />
+                <div className="mt-6 text-center">
+                  <h2 className="text-2xl font-black text-duo-eel mb-2">용치와 함께 여의주를 모아보자! 🐉</h2>
+                  <p className="text-duo-wolf font-bold">한자 공부를 할수록 용치의 꼬리가 빛나요!</p>
+                </div>
+              </div>
+
+              {/* 2. Instructions Section */}
+              <div className="w-full max-w-sm mx-auto mb-10 bg-blue-50 border-2 border-blue-100 rounded-3xl p-6 shadow-sm">
+                <h3 className="text-lg font-black text-duo-macaw mb-4 flex items-center gap-2">
+                  <Info className="w-5 h-5" /> 여의주를 모으는 방법
+                </h3>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3 text-sm font-bold text-duo-eel">
+                    <span className="flex-shrink-0 w-6 h-6 bg-duo-macaw text-white rounded-full flex items-center justify-center text-xs">1</span>
+                    <span>새로운 단어를 검색해서 공부하기 (하루 최대 5개!)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-sm font-bold text-duo-eel">
+                    <span className="flex-shrink-0 w-6 h-6 bg-duo-macaw text-white rounded-full flex items-center justify-center text-xs">2</span>
+                    <span>공부했던 한자를 다시 쓰며 복습하기</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* 3. Daily Mission Progress */}
+              <div className="w-full max-w-sm mb-12 mx-auto">
                 <div className="bg-white border-3 border-duo-snow rounded-[32px] p-6 shadow-sm">
                   <div className="flex justify-between items-end mb-4">
                     <span className="text-lg font-black text-duo-eel flex items-center gap-2">
-                      <Edit3 className="w-5 h-5 text-amber-500" /> 오늘의 미션
+                      <Trophy className="w-5 h-5 text-amber-500" /> 오늘 배운 한자
                     </span>
                     <span className="text-sm font-black text-duo-wolf">
-                      {recapData?.today?.count || 0} / {trophyGoal}
+                      {recapData?.today?.count || 0} / 5
                     </span>
                   </div>
-                  <div className="h-4 w-full bg-duo-snow rounded-full overflow-hidden border-2 border-duo-snow">
+                  <div className="h-5 w-full bg-duo-snow rounded-full overflow-hidden border-2 border-duo-snow shadow-inner">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(((recapData?.today?.count || 0) / trophyGoal) * 100, 100)}%` }}
-                      className="h-full bg-gradient-to-r from-amber-400 to-orange-500"
-                    />
+                      animate={{ width: `${Math.min(((recapData?.today?.count || 0) / 5) * 100, 100)}%` }}
+                      className="h-full bg-gradient-to-r from-duo-macaw to-blue-400 relative"
+                    >
+                      <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:20px_20px] animate-[progress-stripe_2s_linear_infinite]" />
+                    </motion.div>
                   </div>
                 </div>
               </div>
 
-              {/* Character Section */}
-              <div className="w-full max-w-sm mx-auto mb-10">
-                <CharacterView score={totalScore} level={currentStage} />
-              </div>
-
-              {/* Search Form */}
-              <div className="w-full max-w-2xl mx-auto mb-12">
+              {/* 4. Search Form */}
+              <div className="w-full max-w-2xl mx-auto mb-16">
                 <form onSubmit={handleSubmit} className="relative group">
                   <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
                     <Search className="w-7 h-7 text-duo-wolf group-focus-within:text-duo-macaw transition-colors" />
@@ -381,8 +380,8 @@ export default function HomePage() {
                     type="text"
                     value={word}
                     onChange={(e) => setWord(e.target.value)}
-                    placeholder="단어를 검색해봐! (예: 도서관)"
-                    className="w-full h-20 pl-16 pr-36 bg-white border-3 border-duo-snow rounded-[32px] text-2xl font-black text-duo-eel placeholder:text-duo-swan/70 focus:outline-none focus:border-duo-macaw focus:ring-8 focus:ring-duo-macaw/5 shadow-[0_6px_0_0_#e5e5e5] transition-all"
+                    placeholder="단어를 검색해봐!"
+                    className="w-full h-20 pl-16 pr-36 bg-white border-3 border-duo-snow rounded-[32px] text-2xl font-black text-duo-eel focus:outline-none focus:border-duo-macaw focus:ring-8 focus:ring-duo-macaw/5 shadow-[0_6px_0_0_#e5e5e5] transition-all"
                     disabled={isLoading}
                   />
                   <button
@@ -390,57 +389,16 @@ export default function HomePage() {
                     disabled={isLoading || !word.trim()}
                     className="absolute right-3 top-3 bottom-3 px-8 bg-duo-macaw text-white rounded-2xl font-black text-xl shadow-[0_4px_0_0_#1899d6] hover:brightness-110 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50"
                   >
-                    {isLoading ? "분석 중..." : "찾아봐!"}
+                    찾기!
                   </button>
                 </form>
               </div>
 
-              {/* Correction Message */}
-              {correctionMsg && (
-                <div className="w-full max-w-2xl mx-auto mb-6 px-6 py-4 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 font-bold animate-fade-in">
-                  <Sparkles className="w-5 h-5 text-amber-500" />
-                  {correctionMsg}
-                </div>
-              )}
-
-              {/* Ambiguous Candidates */}
-              {ambiguousCandidates.length > 0 && (
-                <div className="w-full max-w-2xl mx-auto mb-12 animate-fade-in">
-                  <h3 className="text-xl font-black text-duo-eel mb-4 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-duo-macaw" /> 어떤 단어를 찾으시나요?
-                  </h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    {ambiguousCandidates.map((can, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          const searchStr = `${can.word}(${can.hanja})`;
-                          setWord(searchStr);
-                          handleAnalyze(searchStr);
-                        }}
-                        className="w-full p-6 bg-white border-3 border-duo-snow rounded-3xl flex flex-col hover:border-duo-macaw hover:bg-duo-macaw/5 transition-all group text-left shadow-sm"
-                      >
-                        <p className="text-xl font-black text-duo-eel group-hover:text-duo-macaw mb-2">
-                          {can.description}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-black bg-duo-snow px-2 py-1 rounded-lg text-duo-wolf group-hover:bg-duo-macaw/10 group-hover:text-duo-macaw">
-                            {can.word}
-                          </span>
-                          <span className="text-sm font-bold text-duo-swan">
-                            {can.hanja}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Search Results */}
+              {/* 5. Search Results / Cards */}
               {analyzedHanja.length > 0 && (
-                <div className="w-full flex flex-col gap-8 animate-fade-in">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                <div className="w-full flex flex-col gap-8 animate-fade-in mb-16">
+                  <h3 className="text-xl font-black text-duo-eel px-4">찾아낸 한자 카드</h3>
+                  <div className="grid grid-cols-2 gap-4 sm:gap-6">
                     {analyzedHanja.map((hanja, idx) => (
                       <HanjaCard 
                         key={`${currentSearchedWord}-${idx}`} 
@@ -448,41 +406,19 @@ export default function HomePage() {
                         word={currentSearchedWord || undefined}
                         delay={idx * 0.1}
                         onQuiz={(h) => handleRequestQuiz(h)}
-                        onWrite={(char, meaning, sound) => setSelectedHanjaForWriting({ char, meaning, sound })}
+                        onWrite={(char, meaning, sound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, isReview })}
                         onProgressUpdate={() => fetchDailyHistory()}
+                        isReviewed={dailyHistory.some(log => log.word === currentSearchedWord && log.practiced_writing)}
                       />
                     ))}
                   </div>
-
-                  {analysisExpansions.length > 0 && (
-                    <div className="bg-duo-snow/50 border-3 border-duo-snow rounded-[40px] p-8 shadow-sm">
-                      <h3 className="text-2xl font-black text-duo-eel mb-6 flex items-center gap-3">
-                        <Sparkles className="w-7 h-7 text-duo-bee" /> 연관 단어도 배워봐!
-                      </h3>
-                      <div className="flex flex-wrap gap-4">
-                        {analysisExpansions.map((exp, i) => (
-                          <button
-                            key={i}
-                            onClick={() => handleAnalyze(exp.word, true)}
-                            className="bg-white border-2 border-duo-snow hover:border-duo-macaw p-6 rounded-3xl transition-all hover:-translate-y-1.5 shadow-sm text-left"
-                          >
-                            <span className="block text-[10px] font-black text-duo-wolf uppercase mb-2">
-                              {exp.type === 'synonym' ? '비슷한 말' : exp.type === 'antonym' ? '반대 말' : '3글자 뭉치'}
-                            </span>
-                            <span className="text-xl font-black text-duo-eel">{exp.word}</span>
-                            <span className="block text-sm font-bold text-duo-swan mt-1">{exp.hanja}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
-              {/* Daily History */}
+              {/* Mind Map / History */}
               {dailyHistory.length > 0 && analyzedHanja.length === 0 && (
                 <div className="mt-12 w-full">
-                  <h3 className="text-2xl font-black text-duo-eel mb-6 px-4">오늘의 한자 꼬리 마인드맵</h3>
+                  <h3 className="text-2xl font-black text-duo-eel mb-6 px-4">오늘의 한자 꼬리</h3>
                   <div className="bg-white border-3 border-duo-snow rounded-[40px] p-8 shadow-sm overflow-hidden">
                     <LearningMindMap logs={dailyHistory} onReview={handleReview} />
                   </div>
