@@ -373,10 +373,10 @@ export default function HomePage() {
             </h3>
             
             <div className={cn(
-              "grid gap-8 mb-12",
-              analyzedHanja.length === 1 ? "max-w-sm mx-auto" :
-              analyzedHanja.length === 2 ? "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto" :
-              "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full"
+              "grid gap-4 mb-12",
+              analyzedHanja.length === 1 ? "max-w-[160px] mx-auto" :
+              analyzedHanja.length === 2 ? "grid-cols-2 max-w-[340px] mx-auto" :
+              "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 w-full"
             )}>
               {analyzedHanja.map((hanja, idx) => (
                 <HanjaCard 

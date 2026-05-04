@@ -276,18 +276,17 @@ export default function QuizPage() {
 
               {/* Learning Area for Correct Answer */}
               {isCorrect && analysisResult && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in pb-12">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 animate-fade-in pb-12">
                   {analysisResult.hanjaList?.map((hanja: HanjaItem, idx: number) => (
-                    <div key={idx} className="scale-90 origin-top">
-                      <HanjaCard
-                        data={hanja}
-                        word={currentQuiz.word}
-                        delay={idx * 0.1}
+                    <HanjaCard
+                      key={idx}
+                      data={hanja}
+                      word={currentQuiz.word}
+                      delay={idx * 0.1}
                         onWrite={(char, meaning, sound) => {
                           setSelectedHanjaForWriting({ char, meaning, sound });
                         }}
                       />
-                    </div>
                   ))}
                 </div>
               )}
