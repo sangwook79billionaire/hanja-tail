@@ -77,8 +77,11 @@ export async function analyzeWord(word: string) {
       Analyze the following word (Hangul or Hanja): "${searchWord}"
       
       1. Check if this Hangul word has multiple common Hanja meanings (homonyms).
-         This is VERY IMPORTANT. If the word has different Hanja meanings (e.g., "과실" -> "果實" or "過失"), ALWAYS set "isAmbiguous" to true.
-      2. If "isAmbiguous" is true, list ALL common Hanja combinations in "candidates".
+         This is EXTREMELY CRITICAL for educational accuracy. Many Korean words share the same Hangul but have different Hanja meanings.
+         If there is ANY other common Hanja combination for this Hangul word, you MUST set "isAmbiguous" to true.
+         DO NOT guess the user's intent. Even if one meaning is much more common than others, you MUST provide options in "candidates".
+         Example: "사과" can be "謝過"(apology) or "沙果"(apple). "배" can be "梨"(pear), "舟"(boat), or "腹"(belly).
+      2. If "isAmbiguous" is true, list ALL common Hanja combinations in "candidates" with child-friendly descriptions.
       3. If the user provided a specific Hanja (e.g., "지도(地圖)") or there is only one clear meaning, "isAmbiguous" should be false.
 
       Return ONLY a JSON object in this format:

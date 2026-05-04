@@ -351,13 +351,19 @@ export default function HomePage() {
                           setWord(searchStr);
                           handleAnalyze(searchStr);
                         }}
-                        className="w-full p-6 bg-white border-3 border-duo-snow rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-duo-macaw hover:bg-duo-macaw/5 transition-all group text-left"
+                        className="w-full p-6 bg-white border-3 border-duo-snow rounded-3xl flex flex-col hover:border-duo-macaw hover:bg-duo-macaw/5 transition-all group text-left shadow-sm"
                       >
-                        <div>
-                          <span className="text-xl font-black text-duo-eel group-hover:text-duo-macaw">{can.word}</span>
-                          <span className="ml-2 text-lg font-bold text-duo-wolf">{can.hanja}</span>
+                        <p className="text-xl font-black text-duo-eel group-hover:text-duo-macaw mb-2">
+                          {can.description}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black bg-duo-snow px-2 py-1 rounded-lg text-duo-wolf group-hover:bg-duo-macaw/10 group-hover:text-duo-macaw">
+                            {can.word}
+                          </span>
+                          <span className="text-sm font-bold text-duo-swan">
+                            {can.hanja}
+                          </span>
                         </div>
-                        <p className="text-sm font-bold text-duo-swan group-hover:text-duo-wolf">{can.description}</p>
                       </button>
                     ))}
                   </div>
