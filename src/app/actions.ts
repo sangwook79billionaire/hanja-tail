@@ -105,6 +105,25 @@ export async function analyzeWord(word: string) {
 
     if (!data.isSafe) return { error: "부적절한 표현이 포함되어 있습니다." };
 
+    if (data.isAmbiguous) {
+      // AI가 새롭게 찾아낸 동음이의어 후보들을 DB에 저장 (자가 증식)
+      if (data.candidates && data.candidates.length > 0) {
+        for (const can of data.candidates) {
+          supabase.from("quiz_bank").upsert({
+            word: can.word,
+            hanja_combination: can.hanja,
+            description: can.description,
+            is_verified: false
+          }, { onConflict: 'word, hanja_combination' }).then();
+        }
+      }
+      
+      return {
+        isAmbiguous: true,
+        candidates: data.candidates || []
+      };
+    }
+
     interface HanjaItem {
       char: string;
       meaning: string;
