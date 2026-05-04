@@ -440,22 +440,27 @@ export async function getAdminStats() {
   };
 }
 
-export async function updateNickname(newNickname: string) {
+export async function updateProfile(data: { 
+  nickname?: string; 
+  school?: string; 
+  grade?: number; 
+  city?: string;
+  marketing_agree?: boolean;
+}) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { error: "로그인이 필요합니다." };
 
-  // update 대신 upsert를 사용하여 프로필이 없으면 생성하고, 있으면 수정합니다.
   const { error } = await supabase
     .from("profiles")
     .upsert({ 
       id: user.id, 
-      nickname: newNickname
+      ...data
     });
 
   if (error) {
-    console.error("Nickname update error details:", error);
+    console.error("Profile update error details:", error);
     return { error: `DB 저장 실패: ${error.message}` };
   }
   return { success: true };

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, Sparkles, Trophy, Gamepad2, Edit3, Eye, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateNickname } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, updateProfile } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
@@ -83,7 +83,7 @@ export default function HomePage() {
   const handleUpdateNickname = async () => {
     const newName = prompt("멋진 탐험가 이름을 정해볼까요?", nickname || "");
     if (newName && newName.trim()) {
-      const result = await updateNickname(newName.trim());
+      const result = await updateProfile({ nickname: newName.trim() });
       if (result.success) {
         setNickname(newName.trim());
         alert("와우! 이제부터 " + newName + " 탐험가님이라고 부를게요!");
