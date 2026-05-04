@@ -11,6 +11,8 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
+const IS_BETA_MODE = true; // 베타 기간 동안은 이메일 가입만 활성화
+
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -136,7 +138,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   />
                 </div>
 
-                {isSignUp && (
+                {isSignUp && !IS_BETA_MODE && (
                   <>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-duo-wolf" />
@@ -191,29 +193,23 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {isSignUp && (
                 <div className="bg-duo-snow p-4 rounded-3xl space-y-3 mt-4 border-2 border-duo-swan">
                   <label className="flex items-start gap-3 cursor-pointer group">
-                    <input type="checkbox" className="mt-1" checked={agreedTerms} onChange={e => setAgreedTerms(e.target.checked)} />
+                    <input type="checkbox" className="mt-1" checked={agreedTerms && agreedPrivacy && agreedParent} onChange={e => {
+                      setAgreedTerms(e.target.checked);
+                      setAgreedPrivacy(e.target.checked);
+                      setAgreedParent(e.target.checked);
+                    }} />
                     <span className="text-xs font-bold text-duo-wolf group-hover:text-duo-eel transition-colors">
-                      [필수] 이용약관 동의
+                      [필수] 이용약관 및 개인정보 수집 이용 동의
                     </span>
                   </label>
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input type="checkbox" className="mt-1" checked={agreedPrivacy} onChange={e => setAgreedPrivacy(e.target.checked)} />
-                    <span className="text-xs font-bold text-duo-wolf group-hover:text-duo-eel transition-colors">
-                      [필수] 개인정보 수집 및 이용 동의 (학교, 지역 랭킹 제공 등)
-                    </span>
-                  </label>
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input type="checkbox" className="mt-1" checked={agreedParent} onChange={e => setAgreedParent(e.target.checked)} />
-                    <span className="text-xs font-black text-duo-macaw group-hover:brightness-110 transition-colors">
-                      [필수] 만 14세 미만 보호자 동의를 받았습니다
-                    </span>
-                  </label>
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input type="checkbox" className="mt-1" checked={agreedMarketing} onChange={e => setAgreedMarketing(e.target.checked)} />
-                    <span className="text-xs font-bold text-duo-wolf group-hover:text-duo-eel transition-colors">
-                      [선택] 마케팅 정보 수신 및 맞춤형 광고 제공 동의
-                    </span>
-                  </label>
+                  {!IS_BETA_MODE && (
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <input type="checkbox" className="mt-1" checked={agreedMarketing} onChange={e => setAgreedMarketing(e.target.checked)} />
+                      <span className="text-xs font-bold text-duo-wolf group-hover:text-duo-eel transition-colors">
+                        [선택] 마케팅 정보 수신 및 맞춤형 광고 제공 동의
+                      </span>
+                    </label>
+                  )}
                 </div>
               )}
 
