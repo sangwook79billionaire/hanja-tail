@@ -84,47 +84,7 @@ export default function HomePage() {
   const [totalScore, setTotalScore] = useState(0);
 
   const supabase = createClient();
-
-  const fetchProfile = useCallback(async () => {
-    const { profile } = await getMyProfile();
-    if (profile) {
-      setNickname(profile.nickname);
-      setCurrentStage(profile.current_stage || 8);
-      setIsAdmin(!!profile.is_admin);
-      setTotalScore(profile.total_score || 0);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user) fetchProfile();
-  }, [user, fetchProfile]);
-
-  const handleUpdateNickname = async () => {
-    const newName = prompt("멋진 탐험가 이름을 정해볼까요?", nickname || "");
-    if (newName && newName.trim()) {
-      const result = await updateProfile({ nickname: newName.trim() });
-      if (result.success) {
-        setNickname(newName.trim());
-        alert("와우! 이제부터 " + newName + " 탐험가님이라고 부를게요!");
-      } else if (result.error) {
-        alert("앗! 닉네임을 바꾸지 못했어요: " + result.error);
-      }
-    }
-  };
-
   const trophyGoal = 5;
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase]);
 
   const fetchDailyHistory = useCallback(async () => {
     const result = await getLearningRecap();
@@ -173,9 +133,64 @@ export default function HomePage() {
     }
   }, [hasAwardedTrophy, trophyGoal]);
 
+  const fetchProfile = useCallback(async () => {
+    const { profile } = await getMyProfile();
+    if (profile) {
+      setNickname(profile.nickname);
+      setCurrentStage(profile.current_stage || 8);
+      setIsAdmin(!!profile.is_admin);
+      setTotalScore(profile.total_score || 0);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchDailyHistory();
-  }, [fetchDailyHistory]);
+    if (user) {
+      fetchProfile();
+      fetchDailyHistory();
+    } else {
+      setNickname(null);
+      setCurrentStage(8);
+      setDailyHistory([]);
+      setRecapData(null);
+      setTotalScore(0);
+      setIsAdmin(false);
+      setHasAwardedTrophy(false);
+      setShowTrophyCelebration(false);
+    }
+  }, [user, fetchProfile, fetchDailyHistory]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        setNickname(null);
+        setDailyHistory([]);
+        setRecapData(null);
+        setAnalyzedHanja([]);
+        setCurrentSearchedWord(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  const handleUpdateNickname = async () => {
+    const newName = prompt("멋진 탐험가 이름을 정해볼까요?", nickname || "");
+    if (newName && newName.trim()) {
+      const result = await updateProfile({ nickname: newName.trim() });
+      if (result.success) {
+        setNickname(newName.trim());
+        alert("와우! 이제부터 " + newName + " 탐험가님이라고 부를게요!");
+      } else if (result.error) {
+        alert("앗! 닉네임을 바꾸지 못했어요: " + result.error);
+      }
+    }
+  };
+
 
   const handleAnalyze = async (searchWord: string, isFromExpansion = false) => {
     if (!searchWord.trim()) return;
