@@ -23,7 +23,8 @@ export default function QuestMap() {
   useEffect(() => {
     async function fetchQuestData() {
       // 1. 프로필에서 현재 진행도 가져오기
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
+      const user = data?.user;
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')

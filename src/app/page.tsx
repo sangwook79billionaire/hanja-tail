@@ -152,7 +152,9 @@ export default function HomePage() {
       );
 
       setDailyHistory(uniqueLogs);
-      setRecapData(result as unknown as StatsData);
+      if (result.stats) {
+        setRecapData(result.stats as unknown as StatsData);
+      }
 
       if (uniqueLogs.length >= trophyGoal && !hasAwardedTrophy) {
         setShowTrophyCelebration(true);

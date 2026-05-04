@@ -23,7 +23,18 @@ type TabType = "today" | "weekly" | "monthly" | "total";
 export default function StatsView({ stats, onClose }: { stats: StatsData; onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<TabType>("weekly");
 
-  const currentStats = stats[activeTab];
+  if (!stats || !stats.total) {
+    return (
+      <div className="fixed inset-0 z-[400] bg-white flex flex-col items-center justify-center p-6 text-center">
+        <p className="text-duo-wolf font-black mb-4">학습 데이터를 불러오지 못했어요.</p>
+        <button onClick={onClose} className="px-6 py-3 bg-duo-macaw text-white rounded-2xl font-black">
+          돌아가기
+        </button>
+      </div>
+    );
+  }
+
+  const currentStats = stats[activeTab] || { count: 0, correct: 0, days: 0 };
 
   const getTrophyInfo = () => {
     const days = stats.total.days;
