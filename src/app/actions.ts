@@ -543,6 +543,57 @@ export async function getAdminStats() {
   };
 }
 
+export async function getPendingWords() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+  if (!profile?.is_admin) return { error: "관리자 권한이 없습니다." };
+
+  // 1. 캐시에는 있지만 퀴즈 뱅크에는 없는 단어들 추출
+  const { data: cacheWords } = await supabase.from("word_analysis_cache").select("word, hanja_list, created_at").order("created_at", { ascending: false }).limit(50);
+  const { data: bankWords } = await supabase.from("quiz_bank").select("word");
+  const bankSet = new Set((bankWords || []).map(b => b.word));
+
+  const pending = (cacheWords || []).filter(c => !bankSet.has(c.word)).map(p => ({
+    word: p.word as string,
+    hanja_list: p.hanja_list as { char: string, sound: string, meaning: string }[],
+    created_at: p.created_at as string
+  }));
+  return { pending };
+}
+
+export async function approveWord(word: string, hanja_list: { char: string, sound: string, meaning: string }[]) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !(await supabase.from("profiles").select("is_admin").eq("id", user.id).single()).data?.is_admin) {
+    return { error: "권한이 없습니다." };
+  }
+
+  // 퀴즈 뱅크에 추가
+  const { error } = await supabase.from("quiz_bank").insert({
+    word,
+    hanja_list,
+    is_verified: true
+  });
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function deletePendingWord(word: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !(await supabase.from("profiles").select("is_admin").eq("id", user.id).single()).data?.is_admin) {
+    return { error: "권한이 없습니다." };
+  }
+
+  const { error } = await supabase.from("word_analysis_cache").delete().eq("word", word);
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
 export async function updateProfile(data: { 
   nickname?: string; 
   school?: string; 
