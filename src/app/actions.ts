@@ -307,20 +307,56 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
   }
 }
 
-export async function logLearning(word: string, isCorrect: boolean) {
+export async function logLearning(word: string, isCorrect: boolean, parentWord?: string, isReview: boolean = false) {
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
-  const userId = userData?.user?.id || "00000000-0000-0000-0000-000000000000";
+  const userId = userData?.user?.id;
+
+  if (!userId) return { error: "로그인이 필요합니다." };
 
   try {
-    const { error } = await supabase.from("learning_logs").insert({
+    // 1. 오늘 획득한 포인트 확인 (한도 체크용)
+    const kstFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    const today = kstFormatter.format(new Date());
+
+    const { data: todayLogs } = await supabase
+      .from("learning_logs")
+      .select("is_review, word")
+      .eq("user_id", userId)
+      .gte("learned_at", `${today}T00:00:00Z`);
+
+    const newWordCount = (todayLogs || []).filter(l => !l.is_review).length;
+    const reviewCount = (todayLogs || []).filter(l => l.is_review).length;
+
+    let pointsToAdd = 0;
+    if (isReview) {
+      if (reviewCount < 20) pointsToAdd = 0.5;
+    } else {
+      if (newWordCount < 5) pointsToAdd = 1;
+    }
+
+    // 2. 학습 로그 저장
+    const { error: logError } = await supabase.from("learning_logs").insert({
       user_id: userId,
       word: word,
-      is_correct: isCorrect
+      is_correct: isCorrect,
+      parent_word: parentWord || null,
+      is_review: isReview
     });
     
-    if (error) throw error;
-    return { success: true };
+    if (logError) throw logError;
+
+    // 3. 보너스 점수 업데이트
+    if (pointsToAdd > 0) {
+      const { data: profile } = await supabase.from("profiles").select("bonus_points").eq("id", userId).single();
+      const currentPoints = profile?.bonus_points || 0;
+      await supabase.from("profiles").update({ bonus_points: currentPoints + pointsToAdd }).eq("id", userId);
+    }
+
+    return { success: true, pointsAwarded: pointsToAdd };
   } catch (error) {
     console.error("Log Learning Error:", error);
     return { error: "학습 기록 저장 중 오류가 발생했습니다." };
@@ -550,7 +586,30 @@ export async function getMyProfile() {
     return { profile: null };
   }
 
-  return { profile };
+  // 오늘 획득 가능한 남은 점수 계산
+  const kstFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  });
+  const today = kstFormatter.format(new Date());
+  
+  const { data: todayLogs } = await supabase
+    .from("learning_logs")
+    .select("is_review")
+    .eq("user_id", user.id)
+    .gte("learned_at", `${today}T00:00:00Z`);
+
+  const newWordCount = (todayLogs || []).filter(l => !l.is_review).length;
+  const reviewCount = (todayLogs || []).filter(l => l.is_review).length;
+
+  return { 
+    profile,
+    dailyStats: {
+      newWords: newWordCount,
+      reviews: reviewCount,
+      totalToday: (newWordCount * 1) + (reviewCount * 0.5)
+    }
+  };
 }
 
 export async function getRandomQuizzes(limit: number = 10) {

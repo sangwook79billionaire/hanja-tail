@@ -14,7 +14,7 @@ interface QuestNode {
   quest_index: number;
 }
 
-export default function QuestMap() {
+export default function QuestMap({ onNodeClick }: { onNodeClick?: (hanja: string) => void }) {
   const [nodes, setNodes] = useState<QuestNode[]>([]);
   const [currentProgress, setCurrentProgress] = useState({ stage: 8, node: 1 });
   const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +64,8 @@ export default function QuestMap() {
     );
   }
 
+  const currentNodeHanja = nodes[currentProgress.node - 1]?.hanja;
+
   return (
     <div className="relative w-full max-w-md mx-auto py-10 px-6">
       {/* Header */}
@@ -82,7 +84,7 @@ export default function QuestMap() {
           <div className="w-24 h-3 bg-duo-snow rounded-full mt-1 overflow-hidden border border-duo-swan">
             <motion.div 
               initial={{ width: 0 }}
-              animate={{ width: "30%" }}
+              animate={{ width: `${Math.min((currentProgress.node / nodes.length) * 100, 100)}%` }}
               className="h-full bg-duo-macaw"
             />
           </div>
@@ -113,6 +115,7 @@ export default function QuestMap() {
               <motion.button
                 whileHover={isUnlocked ? { scale: 1.1 } : {}}
                 whileTap={isUnlocked ? { scale: 0.9 } : {}}
+                onClick={() => isUnlocked && onNodeClick?.(node.hanja)}
                 className={cn(
                   "relative w-20 h-20 rounded-[28px] flex flex-col items-center justify-center transition-all z-10",
                   isUnlocked 
@@ -160,7 +163,10 @@ export default function QuestMap() {
 
       {/* Footer Floating Action */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 w-full max-w-xs px-4">
-        <button className="w-full py-5 bg-duo-macaw text-white rounded-[32px] font-black text-xl shadow-[0_6px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2">
+        <button 
+          onClick={() => currentNodeHanja && onNodeClick?.(currentNodeHanja)}
+          className="w-full py-5 bg-duo-macaw text-white rounded-[32px] font-black text-xl shadow-[0_6px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
+        >
           계속 탐험하기 <ChevronRight className="w-6 h-6" />
         </button>
       </div>

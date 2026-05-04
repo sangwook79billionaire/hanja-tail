@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Sparkles, Trophy, Edit3, UserPlus, Map as MapIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, updateProfile } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, updateProfile, logLearning } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
 import InviteModal from "@/components/InviteModal";
 import QuestMap from "@/components/QuestMap";
+import LearningMindMap from "@/components/LearningMindMap";
 import { AnimatePresence, motion } from "framer-motion";
 import AuthModal from "@/components/AuthModal";
 import { createClient } from "@/lib/supabase/client";
@@ -171,11 +172,15 @@ export default function HomePage() {
     fetchDailyHistory();
   }, [fetchDailyHistory]);
 
-  const handleAnalyze = async (searchWord: string, skipLoadingState = false) => {
+  const handleAnalyze = async (searchWord: string, isFromExpansion = false) => {
     if (!searchWord.trim()) return;
-    if (!skipLoadingState) setIsLoading(true);
+    setIsLoading(true);
     setCorrectionMsg(null);
     setAnalysisExpansions([]);
+    setAmbiguousCandidates([]);
+    
+    // 이전에 검색한 단어를 부모 단어로 설정 (꼬리 물기 추적용)
+    const parent = isFromExpansion ? currentSearchedWord : null;
 
     try {
       const result = await analyzeWord(searchWord.trim());
@@ -185,19 +190,49 @@ export default function HomePage() {
         setAmbiguousCandidates(result.candidates);
         setAnalyzedHanja([]);
       } else {
-        setAmbiguousCandidates([]);
         setAnalyzedHanja(result.hanjaList);
-        setCurrentSearchedWord(result.correctedWord || searchWord.trim());
+        setCurrentSearchedWord(searchWord.trim());
         setAnalysisExpansions(result.expansions || []);
         if (result.correctedWord && result.correctedWord !== searchWord.trim()) {
           setCorrectionMsg(`혹시 '${result.correctedWord}'(을)를 찾으셨나요?`);
         }
+
+        // 학습 로그 기록 (부모 단어 포함)
+        await logLearning(searchWord.trim(), true, parent || undefined);
+        fetchDailyHistory();
       }
     } catch (e) {
       console.error(e);
       alert("분석 중 오류가 발생했습니다.");
     } finally {
-      if (!skipLoadingState) setIsLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleReview = async (reviewWord: string) => {
+    // 복습 모드: 해당 단어로 바로 검색을 수행하되, 로그를 복습으로 기록
+    setWord(reviewWord);
+    setActiveTab('search');
+    setIsLoading(true);
+    
+    try {
+      const result = await analyzeWord(reviewWord);
+      if (!result.error && !result.isAmbiguous) {
+        setAnalyzedHanja(result.hanjaList);
+        setAnalysisExpansions(result.expansions || []);
+        setCurrentSearchedWord(reviewWord);
+        
+        // 복습 로그 기록 (+0.5점)
+        const logRes = await logLearning(reviewWord, true, undefined, true);
+        if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
+          alert(`✨ 복습 성공! 보너스 점수 ${logRes.pointsAwarded}점을 받았어요!`);
+        }
+        fetchDailyHistory();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -396,7 +431,7 @@ export default function HomePage() {
                         {analysisExpansions.map((exp, i) => (
                           <button
                             key={i}
-                            onClick={() => handleAnalyze(exp.word)}
+                            onClick={() => handleAnalyze(exp.word, true)}
                             className="bg-white border-2 border-duo-snow hover:border-duo-macaw p-6 rounded-3xl transition-all hover:-translate-y-1.5 shadow-sm text-left"
                           >
                             <span className="block text-[10px] font-black text-duo-wolf uppercase mb-2">
@@ -414,22 +449,10 @@ export default function HomePage() {
 
               {/* Daily History */}
               {dailyHistory.length > 0 && analyzedHanja.length === 0 && (
-                <div className="mt-12">
-                  <h3 className="text-2xl font-black text-duo-eel mb-6">오늘 공부한 단어들</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {dailyHistory.map((item, idx) => (
-                      <div 
-                        key={idx}
-                        onClick={() => { setWord(item.word); handleAnalyze(item.word); }}
-                        className="bg-white border-2 border-duo-snow px-6 py-5 rounded-3xl flex items-center justify-between shadow-sm hover:border-duo-macaw transition-all cursor-pointer group"
-                      >
-                        <span className="text-xl font-black text-duo-eel group-hover:text-duo-macaw">{item.word}</span>
-                        <div className="flex items-center gap-3">
-                          {item.is_correct && <span className="bg-green-100 text-duo-green px-3 py-1 rounded-full text-[10px] font-black">퀴즈 완료</span>}
-                          <ChevronRight className="w-5 h-5 text-duo-swan" />
-                        </div>
-                      </div>
-                    ))}
+                <div className="mt-12 w-full">
+                  <h3 className="text-2xl font-black text-duo-eel mb-6 px-4">오늘의 한자 꼬리 마인드맵</h3>
+                  <div className="bg-white border-3 border-duo-snow rounded-[40px] p-8 shadow-sm overflow-hidden">
+                    <LearningMindMap logs={dailyHistory} onReview={handleReview} />
                   </div>
                 </div>
               )}
@@ -443,7 +466,11 @@ export default function HomePage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <QuestMap />
+              <QuestMap onNodeClick={(hanja) => {
+                setWord(hanja);
+                handleAnalyze(hanja);
+                setActiveTab('search');
+              }} />
             </motion.div>
           )}
 
@@ -455,7 +482,14 @@ export default function HomePage() {
               exit={{ opacity: 0, y: -20 }}
               className="py-10"
             >
-              {recapData && <StatsView stats={recapData} onClose={() => setActiveTab('search')} />}
+              {recapData && (
+                <StatsView 
+                  stats={recapData} 
+                  logs={dailyHistory}
+                  onClose={() => setActiveTab('search')} 
+                  onReview={handleReview}
+                />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -573,10 +607,3 @@ function TrophyCelebration({ onClose, onInvite, onStats }: { onClose: () => void
   );
 }
 
-function ChevronRight({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6"/>
-    </svg>
-  );
-}
