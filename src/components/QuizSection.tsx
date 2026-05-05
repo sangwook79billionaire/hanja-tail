@@ -99,7 +99,7 @@ export default function QuizSection({
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 bg-duo-green text-white px-5 py-1.5 rounded-full text-sm font-black mb-4 shadow-sm">
             <Sparkles className="w-4 h-4" />
-            &apos;{hanja}&apos; 연관 단어 꼬리물기
+            &apos;<span className="font-myeongjo">{hanja}</span>&apos; 연관 단어 꼬리물기
           </div>
           <h2 className="text-3xl font-black text-duo-eel leading-tight">
             이 한자가 들어가는<br />단어는 무엇일까요?

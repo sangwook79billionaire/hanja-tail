@@ -85,7 +85,7 @@ export default function HanjaCard({
         )}
 
         <div className="flex-1 flex flex-col items-center justify-center pt-2">
-          <div className="text-6xl font-black text-duo-eel group-hover:scale-110 transition-transform">{data.char}</div>
+          <div className="text-6xl font-black text-duo-eel group-hover:scale-110 transition-transform font-myeongjo">{data.char}</div>
           <div className="text-center leading-tight mt-2 flex flex-col items-center">
             <span className="text-lg font-black text-amber-600">{data.meaning}</span>
             <span className="text-xl font-black text-duo-macaw">{data.sound}</span>
@@ -131,7 +131,7 @@ export default function HanjaCard({
               >
                 {/* Front Detail */}
                 <div className="absolute w-full h-full backface-hidden bg-white border-[4px] border-duo-snow rounded-[40px] shadow-2xl flex flex-col items-center justify-center p-8 text-center">
-                  <div className="text-8xl font-black text-duo-eel mb-4 drop-shadow-md">{data.char}</div>
+                  <div className="text-8xl font-black text-duo-eel mb-4 drop-shadow-md font-myeongjo">{data.char}</div>
                   <div className="flex flex-col items-center mb-6">
                     <span className="text-3xl font-black text-amber-600 leading-tight">{data.meaning}</span>
                     <span className="text-4xl font-black text-duo-macaw leading-tight">{data.sound}</span>

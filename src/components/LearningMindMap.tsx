@@ -149,7 +149,7 @@ export default function LearningMindMap({
                 transition={{ delay: (xIdx + yIdx) * 0.05 }}
                 onClick={() => onReview(item.words[0])}
                 className={cn(
-                  "w-[50px] h-[50px] rounded-xl flex items-center justify-center text-xl font-black transition-all shadow-sm border-2 relative",
+                  "w-[50px] h-[50px] rounded-xl flex items-center justify-center text-xl font-black transition-all shadow-sm border-2 relative font-myeongjo",
                   isIntersection 
                     ? "bg-amber-400 border-amber-500 text-white shadow-[0_4px_0_0_#d97706] z-10 scale-110" 
                     : "bg-white border-duo-snow text-duo-eel",
