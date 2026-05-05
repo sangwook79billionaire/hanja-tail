@@ -52,9 +52,9 @@ export default function QuizSection({
 
   const checkAnswer = (e: React.FormEvent) => {
     e.preventDefault();
-    const correct = answer.trim() === quiz.word;
+    const isActuallyCorrect = answer.trim() === quiz.word;
     
-    if (correct) {
+    if (isActuallyCorrect) {
       setIsCorrect(true);
       setIsSubmitted(true);
       logLearning(quiz.word, true);
@@ -66,18 +66,22 @@ export default function QuizSection({
         colors: ["#58cc02", "#1cb0f6", "#ffc800"],
       });
     } else {
+      // 틀렸을 때
       setIsCorrect(false);
-      // Auto-advance hint level on failure
-      if (hintLevel < 3) {
-        setHintLevel(prev => prev + 1);
-      }
+      setAnswer(""); // 입력창 비우기 (다시 시도 유도)
       
-      // If we've reached hintLevel 3 (show answer), auto-complete
-      if (hintLevel === 2) {
+      // 힌트 레벨 올리기
+      if (hintLevel < 2) {
+        setHintLevel(prev => prev + 1);
+      } else if (hintLevel === 2) {
+        // 마지막 힌트 상태에서도 틀리면 정답 공개 모드로 전환
         setAnswer(quiz.word);
         setIsCorrect(true);
         setIsSubmitted(true);
       }
+
+      // 틀렸을 때 잠깐 빨간색으로 깜빡이는 효과를 위해
+      setTimeout(() => setIsCorrect(null), 1000);
     }
   };
 
@@ -146,14 +150,34 @@ export default function QuizSection({
 
           {/* Hint Area */}
           <div className="flex flex-col items-center gap-3">
-            {hintLevel === 0 && !isSubmitted && (
-              <button
-                type="button"
-                onClick={() => setHintLevel(1)}
-                className="flex items-center gap-2 px-6 py-2 bg-amber-50 text-amber-600 rounded-full text-sm font-black border-2 border-amber-200 hover:bg-amber-100 transition-all shadow-sm"
-              >
-                <Lightbulb className="w-4 h-4" /> 초성 힌트 보기
-              </button>
+            {!isSubmitted && (
+              <AnimatePresence mode="wait">
+                {hintLevel === 0 ? (
+                  <motion.button
+                    key="hint-0"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    type="button"
+                    onClick={() => setHintLevel(1)}
+                    className="flex items-center gap-2 px-6 py-2 bg-amber-50 text-amber-600 rounded-full text-sm font-black border-2 border-amber-200 hover:bg-amber-100 transition-all shadow-sm"
+                  >
+                    <Lightbulb className="w-4 h-4" /> 초성 힌트 보기
+                  </motion.button>
+                ) : hintLevel === 1 ? (
+                  <motion.button
+                    key="hint-1"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    type="button"
+                    onClick={() => setHintLevel(2)}
+                    className="flex items-center gap-2 px-6 py-2 bg-blue-50 text-duo-macaw rounded-full text-sm font-black border-2 border-blue-200 hover:bg-blue-100 transition-all shadow-sm"
+                  >
+                    <Sparkles className="w-4 h-4" /> 한 글자 더 보기
+                  </motion.button>
+                ) : null}
+              </AnimatePresence>
             )}
             
             {hintLevel >= 1 && (
@@ -162,11 +186,14 @@ export default function QuizSection({
                 animate={{ scale: 1, opacity: 1 }}
                 className="flex flex-col items-center gap-2"
               >
-                <div className="text-2xl tracking-[0.4em] font-black text-duo-macaw bg-blue-50 px-8 py-3 rounded-2xl border-2 border-duo-macaw/20 shadow-sm">
+                <div className="text-xs font-black text-duo-wolf mb-1">
+                  {hintLevel === 1 ? "🔍 초성 힌트" : "💡 한 글자 힌트"}
+                </div>
+                <div className="text-2xl tracking-[0.4em] font-black text-duo-macaw bg-blue-50 px-8 py-3 rounded-2xl border-2 border-duo-macaw/20 shadow-sm min-w-[160px] text-center">
                   {hintLevel === 1 ? getChosung(quiz.word) : getPartialHint(quiz.word)}
                 </div>
                 {hintLevel === 1 && !isSubmitted && (
-                  <p className="text-[10px] font-black text-duo-wolf">한 번 더 틀리면 한 글자를 더 보여줄게! 🦉</p>
+                  <p className="text-[10px] font-black text-duo-wolf">틀리거나 버튼을 누르면 한 글자를 더 보여줄게! 🦉</p>
                 )}
               </motion.div>
             )}
