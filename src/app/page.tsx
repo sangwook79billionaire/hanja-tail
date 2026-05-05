@@ -66,6 +66,7 @@ export default function HomePage() {
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, isReview?: boolean} | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
+  const [practicedChars, setPracticedChars] = useState<Set<string>>(new Set());
 
   const supabase = createClient();
   const trophyGoal = 5;
@@ -192,6 +193,7 @@ export default function HomePage() {
       } else {
         setAnalyzedHanja(result.hanjaList);
         setCurrentSearchedWord(searchWord.trim());
+        setPracticedChars(new Set()); // 신규 검색 시 연습 상태 리셋
 
         // 학습 로그 기록 (부모 단어 포함)
         await logLearning(searchWord.trim(), true, parent || undefined);
@@ -407,9 +409,31 @@ export default function HomePage() {
                         onQuiz={(h) => handleRequestQuiz(h)}
                         onWrite={(char, meaning, sound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, isReview })}
                         onProgressUpdate={() => fetchDailyHistory()}
-                        isReviewed={(dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}
+                        isReviewed={practicedChars.has(hanja.char) || (dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}
                       />
                     ))}
+                  </div>
+                  
+                  {/* Word Completion Progress Info */}
+                  <div className="bg-blue-50 border-2 border-blue-100 rounded-3xl p-6 text-center">
+                    <p className="text-sm font-black text-duo-macaw mb-2">
+                      {practicedChars.size === analyzedHanja.length 
+                        ? "✨ 와우! 단어의 모든 한자를 써봤어요! 점수를 획득했습니다." 
+                        : `✍️ 단어 완성까지 ${analyzedHanja.length - practicedChars.size}글자 남았어요!`}
+                    </p>
+                    <div className="flex justify-center gap-2">
+                      {analyzedHanja.map((h, i) => (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all",
+                            practicedChars.has(h.char) ? "bg-duo-green border-duo-green text-white" : "bg-white border-duo-snow text-duo-swan"
+                          )}
+                        >
+                          {h.char}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -519,12 +543,27 @@ export default function HomePage() {
           isOpen={!!selectedHanjaForWriting}
           onClose={() => setSelectedHanjaForWriting(null)}
           onComplete={async () => {
-            if (selectedHanjaForWriting?.isReview && currentSearchedWord) {
-              const logRes = await logLearning(currentSearchedWord, true, undefined, true);
-              if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
-                alert(`✨ 복습 성공! 보너스 점수 ${logRes.pointsAwarded}점을 받았어요!`);
+            if (!selectedHanjaForWriting) return;
+            
+            const char = selectedHanjaForWriting.char;
+            const newPracticed = new Set(practicedChars);
+            newPracticed.add(char);
+            setPracticedChars(newPracticed);
+
+            if (currentSearchedWord) {
+              // 모든 글자를 다 썼을 때만 DB에 완료 기록 및 포인트 지급
+              if (newPracticed.size === analyzedHanja.length) {
+                const logRes = await logLearning(currentSearchedWord, true, undefined, true);
+                if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
+                  alert(`✨ 참 잘했어요! '${currentSearchedWord}'의 모든 글자를 써봤네요! 보너스 점수 ${logRes.pointsAwarded}점을 받았어요!`);
+                }
+                fetchDailyHistory();
+                fetchProfile(); // 포인트 갱신을 위해 프로필 다시 불러오기
+              } else {
+                // 아직 남은 글자가 있는 경우
+                const remaining = analyzedHanja.length - newPracticed.size;
+                alert(`참 잘했어요! ✨\n이제 '${currentSearchedWord}' 단어 완성을 위해 남은 ${remaining}글자도 더 써볼까?`);
               }
-              fetchDailyHistory();
             }
           }}
         />
