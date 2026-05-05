@@ -83,10 +83,15 @@ export async function analyzeWord(word: string) {
          Example: "사과" can be "謝過"(apology) or "沙果"(apple). "배" can be "梨"(pear), "舟"(boat), or "腹"(belly).
       2. If "isAmbiguous" is true, list ALL common Hanja combinations in "candidates" with child-friendly descriptions.
       3. If the user provided a specific Hanja (e.g., "지도(地圖)") or there is only one clear meaning, "isAmbiguous" should be false.
+      4. CRITICAL: Check if "${searchWord}" is a REAL, standard Korean dictionary word (사전에 등재된 명사).
+         If it is a fake word created by simply combining Hanja (like "신술어" when it doesn't exist in standard dictionaries), 
+         or if it's not a common Hanja-based word, set "isValid" to false.
 
       Return ONLY a JSON object in this format:
       {
         "isSafe": boolean,
+        "isValid": boolean,
+        "invalidReason": "string (why it is invalid)",
         "isAmbiguous": boolean,
         "candidates": [
           { "word": "한글단어", "hanja": "한자조합", "description": "아이들이 이해하기 쉬운 짧은 뜻풀이" }
@@ -107,6 +112,18 @@ export async function analyzeWord(word: string) {
     const data = JSON.parse(jsonMatch[0]);
 
     if (!data.isSafe) return { error: "부적절한 표현이 포함되어 있습니다." };
+    if (data.isValid === false) {
+      console.warn(`Invalid word detected: ${searchWord}. Reason: ${data.invalidReason}`);
+      // 비정상 단어 로그 기록 (백단 모니터링용)
+      supabase.from("monitoring_log").insert({
+        event_type: "invalid_word",
+        word: searchWord,
+        reason: data.invalidReason,
+        details: data
+      }).then();
+      
+      return { error: `아쉽게도 '${searchWord}'(은)는 사전에 없는 단어인 것 같아요. 한자 카드를 다시 확인하거나 다른 단어를 찾아볼래?` };
+    }
 
     if (data.isAmbiguous) {
       // AI가 새롭게 찾아낸 동음이의어 후보들을 DB에 저장 (자가 증식)

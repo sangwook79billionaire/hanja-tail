@@ -86,8 +86,9 @@ export default function HanjaCard({
 
         <div className="flex-1 flex flex-col items-center justify-center pt-2">
           <div className="text-6xl font-black text-duo-eel group-hover:scale-110 transition-transform">{data.char}</div>
-          <div className="text-base font-black text-duo-wolf text-center leading-tight mt-1">
-            {data.meaning}<br/>{data.sound}
+          <div className="text-center leading-tight mt-2 flex flex-col items-center">
+            <span className="text-lg font-black text-amber-600">{data.meaning}</span>
+            <span className="text-xl font-black text-duo-macaw">{data.sound}</span>
           </div>
         </div>
 
@@ -97,7 +98,7 @@ export default function HanjaCard({
           className="w-full mt-3 py-2.5 bg-duo-macaw text-white rounded-2xl font-black text-xs shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase tracking-wider"
         >
           <Edit3 className="w-3.5 h-3.5" />
-          복습하기
+          한자공부하기
         </button>
       </motion.div>
 
@@ -131,13 +132,18 @@ export default function HanjaCard({
                 {/* Front Detail */}
                 <div className="absolute w-full h-full backface-hidden bg-white border-[4px] border-duo-snow rounded-[40px] shadow-2xl flex flex-col items-center justify-center p-8 text-center">
                   <div className="text-8xl font-black text-duo-eel mb-4 drop-shadow-md">{data.char}</div>
-                  <div className="text-2xl font-black text-duo-wolf leading-snug">
-                    {data.meaning}<br />{data.sound}
+                  <div className="flex flex-col items-center mb-6">
+                    <span className="text-3xl font-black text-amber-600 leading-tight">{data.meaning}</span>
+                    <span className="text-4xl font-black text-duo-macaw leading-tight">{data.sound}</span>
                   </div>
-                  <div className="mt-8 px-6 py-2 bg-duo-snow rounded-2xl text-sm font-black text-duo-wolf">
+                  
+                  <p className="mb-4 text-lg font-black text-duo-macaw animate-bounce bg-blue-50 px-4 py-2 rounded-full border-2 border-blue-100 shadow-sm">
+                    카드를 눌러서 뒤집어봐! 🔄
+                  </p>
+
+                  <div className="mt-4 px-4 py-1.5 bg-duo-snow/50 rounded-xl text-xs font-bold text-duo-wolf">
                     {data.level}급 한자
                   </div>
-                  <p className="mt-6 text-xs font-bold text-duo-swan animate-pulse">카드를 눌러서 뒤집어봐! 🔄</p>
                   
                   <button 
                     onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
@@ -177,18 +183,24 @@ export default function HanjaCard({
                   <div className="flex gap-3 w-full mt-6">
                     <button 
                       onClick={handleWriteClick}
-                      className="flex-1 flex items-center justify-center gap-2 bg-duo-snow text-duo-eel h-14 rounded-2xl font-black text-base border-2 border-duo-swan hover:bg-duo-swan transition-all shadow-sm"
+                      className="flex-1 flex flex-col items-center justify-center bg-duo-snow text-duo-eel h-16 rounded-2xl border-2 border-duo-swan hover:bg-duo-swan transition-all shadow-sm group"
                     >
-                      <Edit3 className="w-5 h-5" /> 써보기
+                      <div className="flex items-center gap-2 font-black text-base">
+                        <Edit3 className="w-5 h-5" /> 써보기
+                      </div>
+                      <div className="text-[10px] font-black text-duo-green">+0.5 POINT</div>
                     </button>
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         onQuiz?.(data.char);
                       }}
-                      className="flex-1 flex items-center justify-center gap-2 bg-duo-bee text-white h-14 rounded-2xl font-black text-base shadow-[0_5px_0_0_#e5a500] hover:translate-y-[1px] hover:shadow-[0_3px_0_0_#e5a500] active:translate-y-[3px] active:shadow-none transition-all"
+                      className="flex-1 flex flex-col items-center justify-center bg-duo-bee text-white h-16 rounded-2xl shadow-[0_5px_0_0_#e5a500] hover:translate-y-[1px] hover:shadow-[0_3px_0_0_#e5a500] active:translate-y-[3px] active:shadow-none transition-all"
                     >
-                      <Trophy className="w-5 h-5" /> 퀴즈
+                      <div className="flex items-center gap-2 font-black text-sm">
+                        <Trophy className="w-5 h-5" /> 연관 단어 꼬리물기
+                      </div>
+                      <div className="text-[10px] font-black text-white/90">+1.0 POINT</div>
                     </button>
                   </div>
                 </div>
