@@ -152,7 +152,7 @@ export default function QuestMap({ onNodeClick }: { onNodeClick?: (hanja: string
                   className="absolute left-full ml-6 top-1/2 -translate-y-1/2 bg-white p-3 rounded-2xl border-2 border-duo-snow shadow-sm w-32 animate-fade-in"
                   style={{ transform: `translateX(${xOffset}px)` }}
                 >
-                  <p className="text-[10px] font-black text-duo-macaw mb-1 uppercase tracking-tighter">Next Milestone</p>
+                  <p className="text-[10px] font-black text-duo-macaw mb-1 uppercase tracking-tighter">다음 목표</p>
                   <p className="text-sm font-black text-duo-eel">{node.meaning} {node.sound}</p>
                 </div>
               )}

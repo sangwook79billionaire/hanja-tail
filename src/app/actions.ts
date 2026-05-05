@@ -99,7 +99,7 @@ export async function analyzeWord(word: string) {
         "correctedWord": "string",
         "hanjaList": [{ "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }],
         "expansions": [
-          { "word": "유의어/반의어", "hanja": "한자조합", "type": "synonym|antonym|related3", "description": "아이들용 설명" }
+          { "word": "유의어/반의어", "hanja": "한자조합", "type": "synonym|antonym|related", "description": "아이들에게 친절하고 따뜻한 설명 (절대 '1단계 이웃', '관계성' 같은 딱딱한 전문 용어를 쓰지 마세요!)" }
         ]
       }
     `;
