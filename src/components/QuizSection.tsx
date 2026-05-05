@@ -181,10 +181,13 @@ export default function QuizSection({
                 exit={{ opacity: 0, y: -10 }}
                 type="submit"
                 disabled={!answer.trim()}
-                className="w-full h-16 bg-duo-green text-white rounded-3xl font-black text-2xl shadow-[0_6px_0_0_#46a302] active:translate-y-[4px] active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
+                className="w-full h-20 bg-duo-green text-white rounded-[24px] font-black shadow-[0_8px_0_0_#46a302] active:translate-y-[4px] active:shadow-[0_4px_0_0_#46a302] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4 group"
               >
-                <span>확인하기</span>
-                <span className="text-[10px] opacity-80">+1.0 POINT</span>
+                <span className="text-2xl">확인하기</span>
+                <span className="bg-black/10 px-4 py-1.5 rounded-xl text-base flex items-center gap-1.5 border border-white/20">
+                  <Trophy className="w-4 h-4 text-amber-300" />
+                  +1.0 POINT
+                </span>
               </motion.button>
             ) : (
               <motion.div
@@ -201,7 +204,7 @@ export default function QuizSection({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="w-full h-16 bg-duo-macaw text-white rounded-3xl font-black text-2xl shadow-[0_6px_0_0_#1899d6] active:translate-y-[4px] active:shadow-none transition-all"
+                      className="w-full h-20 bg-duo-macaw text-white rounded-[24px] font-black text-2xl shadow-[0_8px_0_0_#1899d6] active:translate-y-[4px] active:shadow-[0_4px_0_0_#1899d6] transition-all"
                     >
                       다른 한자 공부하기
                     </button>
@@ -219,7 +222,7 @@ export default function QuizSection({
                         setIsCorrect(null);
                         // Hint level is preserved or incremented automatically
                       }}
-                      className="w-full h-16 bg-duo-eel text-white rounded-3xl font-black text-2xl shadow-[0_6px_0_0_#2b2b2b] active:translate-y-[4px] active:shadow-none transition-all"
+                      className="w-full h-20 bg-duo-eel text-white rounded-[24px] font-black text-2xl shadow-[0_8px_0_0_#2b2b2b] active:translate-y-[4px] active:shadow-[0_4px_0_0_#2b2b2b] transition-all"
                     >
                       다시 도전하기
                     </button>
