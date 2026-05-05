@@ -23,87 +23,129 @@ export default function LearningMindMap({
   // 1. 단어들을 가로세로 그리드에 배치하는 알고리즘
   const generateCrossword = () => {
     const grid: Record<string, { char: string; words: string[]; type: 'hanja' | 'hangul' }> = {};
-    const placedWords: { word: string; start: { x: number; y: number }; horizontal: boolean }[] = [];
-    
-    // 편의상 15x15 가상 그리드 중심에서 시작
-    const centerX = 7, centerY = 7;
-    
-    const tryPlace = (wordIdx: number, wordObj: LearningLog) => {
-      const chars = wordObj.hanja ? wordObj.hanja.split('') : wordObj.word.split('');
-      const type = wordObj.hanja ? 'hanja' : 'hangul';
+    const processedLogs = logs.map(l => ({
+      ...l,
+      chars: l.hanja ? l.hanja.split('') : l.word.split(''),
+      type: (l.hanja ? 'hanja' : 'hangul') as 'hanja' | 'hangul'
+    }));
 
-      if (placedWords.length === 0) {
-        // 첫 단어는 가로로 중심에 배치
-        chars.forEach((char, i) => {
-          grid[`${centerX + i},${centerY}`] = { char, words: [wordObj.word], type };
+    // 1. 연결된 단어들끼리 클러스터링
+    const clusters: (typeof processedLogs)[] = [];
+    const usedIndices = new Set<number>();
+
+    processedLogs.forEach((log, i) => {
+      if (usedIndices.has(i)) return;
+
+      const cluster: (typeof processedLogs) = [log];
+      usedIndices.add(i);
+
+      let foundNew = true;
+      while (foundNew) {
+        foundNew = false;
+        processedLogs.forEach((otherLog, j) => {
+          if (usedIndices.has(j)) return;
+          
+          const sharesChar = cluster.some(cLog => 
+            cLog.chars.some(c => otherLog.chars.includes(c))
+          );
+
+          if (sharesChar) {
+            cluster.push(otherLog);
+            usedIndices.add(j);
+            foundNew = true;
+          }
         });
-        placedWords.push({ word: wordObj.word, start: { x: centerX, y: centerY }, horizontal: true });
-        return true;
       }
+      clusters.push(cluster);
+    });
 
-      // 기존 배치된 단어들과 교차점 찾기
-      for (const placed of placedWords) {
-        const placedChars = logs.find(l => l.word === placed.word)?.hanja?.split('') || placed.word.split('');
-        
-        for (let i = 0; i < chars.length; i++) {
-          for (let j = 0; j < placedChars.length; j++) {
-            if (chars[i] === placedChars[j]) {
-              // 교차점 발견! 수직 방향으로 배치 시도
-              const isHorizontal = !placed.horizontal;
-              const startX = isHorizontal ? (placed.horizontal ? placed.start.x + j : placed.start.x) - i : (placed.horizontal ? placed.start.x + j : placed.start.x);
-              const startY = isHorizontal ? (placed.horizontal ? placed.start.y : placed.start.y + j) : (placed.horizontal ? placed.start.y : placed.start.y + j) - i;
+    // 2. 각 클러스터 내에서 단어 배치
+    let globalMinX = 0, globalMaxX = 0, globalMinY = 0, globalMaxY = 0;
+    let currentYOffset = 0;
 
-              // 충돌 검사 (단순화: 다른 단어와 겹치거나 인접하는지 확인)
-              let canPlace = true;
-              for (let k = 0; k < chars.length; k++) {
-                const curX = isHorizontal ? startX + k : startX;
-                const curY = isHorizontal ? startY : startY + k;
-                const existing = grid[`${curX},${curY}`];
-                if (existing && existing.char !== chars[k]) {
-                  canPlace = false;
-                  break;
-                }
-              }
+    clusters.forEach((cluster) => {
+      const clusterGrid: Record<string, { char: string; words: string[]; type: 'hanja' | 'hangul' }> = {};
+      const placedWords: { word: string; start: { x: number; y: number }; horizontal: boolean }[] = [];
 
-              if (canPlace) {
-                chars.forEach((char, k) => {
+      const tryPlaceInCluster = (wordObj: typeof processedLogs[0]) => {
+        if (placedWords.length === 0) {
+          wordObj.chars.forEach((char, i) => {
+            clusterGrid[`${i},0`] = { char, words: [wordObj.word], type: wordObj.type };
+          });
+          placedWords.push({ word: wordObj.word, start: { x: 0, y: 0 }, horizontal: true });
+          return;
+        }
+
+        // 연결 가능한 지점 찾기
+        for (const placed of placedWords) {
+          const placedLog = cluster.find(l => l.word === placed.word)!;
+          const placedChars = placedLog.chars;
+
+          for (let i = 0; i < wordObj.chars.length; i++) {
+            for (let j = 0; j < placedChars.length; j++) {
+              if (wordObj.chars[i] === placedChars[j]) {
+                const isHorizontal = !placed.horizontal;
+                const startX = isHorizontal ? (placed.horizontal ? placed.start.x + j : placed.start.x) - i : (placed.horizontal ? placed.start.x + j : placed.start.x);
+                const startY = isHorizontal ? (placed.horizontal ? placed.start.y : placed.start.y + j) : (placed.horizontal ? placed.start.y : placed.start.y + j) - i;
+
+                // 충돌 검사
+                let canPlace = true;
+                for (let k = 0; k < wordObj.chars.length; k++) {
                   const curX = isHorizontal ? startX + k : startX;
                   const curY = isHorizontal ? startY : startY + k;
-                  if (!grid[`${curX},${curY}`]) {
-                    grid[`${curX},${curY}`] = { char, words: [wordObj.word], type };
-                  } else {
-                    grid[`${curX},${curY}`].words.push(wordObj.word);
+                  const existing = clusterGrid[`${curX},${curY}`];
+                  if (existing && existing.char !== wordObj.chars[k]) {
+                    canPlace = false;
+                    break;
                   }
-                });
-                placedWords.push({ word: wordObj.word, start: { x: startX, y: startY }, horizontal: isHorizontal });
-                return true;
+                }
+
+                if (canPlace) {
+                  wordObj.chars.forEach((char, k) => {
+                    const curX = isHorizontal ? startX + k : startX;
+                    const curY = isHorizontal ? startY : startY + k;
+                    if (!clusterGrid[`${curX},${curY}`]) {
+                      clusterGrid[`${curX},${curY}`] = { char, words: [wordObj.word], type: wordObj.type };
+                    } else {
+                      clusterGrid[`${curX},${curY}`].words.push(wordObj.word);
+                    }
+                  });
+                  placedWords.push({ word: wordObj.word, start: { x: startX, y: startY }, horizontal: isHorizontal });
+                  return;
+                }
               }
             }
           }
         }
-      }
+      };
 
-      // 교차점을 못 찾으면 적당히 떨어진 곳에 배치 (새로운 클러스터)
-      const last = placedWords[placedWords.length - 1];
-      const nextX = last.start.x;
-      const nextY = last.start.y + 3;
-      chars.forEach((char, i) => {
-        grid[`${nextX + i},${nextY}`] = { char, words: [wordObj.word], type };
+      // 클러스터 내 단어들 배치 시도 (연결된 단어가 먼저 오도록 정렬 가능하지만 여기선 순서대로)
+      cluster.forEach(log => tryPlaceInCluster(log));
+
+      // 3. 배치된 클러스터를 글로벌 그리드에 합치기 (Y 오프셋 적용)
+      const coords = Object.keys(clusterGrid).map(k => k.split(',').map(Number));
+      const clusterMinY = Math.min(...coords.map(c => c[1]));
+      const clusterMinX = Math.min(...coords.map(c => c[0]));
+      
+      const yAdjustment = currentYOffset - clusterMinY;
+      const xAdjustment = -clusterMinX; // 각 클러스터를 왼쪽 정렬
+
+      Object.entries(clusterGrid).forEach(([key, val]) => {
+        const [x, y] = key.split(',').map(Number);
+        const newX = x + xAdjustment;
+        const newY = y + yAdjustment;
+        grid[`${newX},${newY}`] = val;
+        
+        globalMinX = Math.min(globalMinX, newX);
+        globalMaxX = Math.max(globalMaxX, newX);
+        globalMinY = Math.min(globalMinY, newY);
+        globalMaxY = Math.max(globalMaxY, newY);
       });
-      placedWords.push({ word: wordObj.word, start: { x: nextX, y: nextY }, horizontal: true });
-      return true;
-    };
 
-    logs.forEach((log, idx) => tryPlace(idx, log));
+      currentYOffset = globalMaxY + 3; // 클러스터 간 간격 (3칸 패딩)
+    });
 
-    // 그리드 범위 계산
-    const coords = Object.keys(grid).map(k => k.split(',').map(Number));
-    const minX = Math.min(...coords.map(c => c[0]));
-    const maxX = Math.max(...coords.map(c => c[0]));
-    const minY = Math.min(...coords.map(c => c[1]));
-    const maxY = Math.max(...coords.map(c => c[1]));
-
-    return { grid, minX, maxX, minY, maxY };
+    return { grid, minX: globalMinX, maxX: globalMaxX, minY: globalMinY, maxY: globalMaxY };
   };
 
   const { grid, minX, maxX, minY, maxY } = generateCrossword();
