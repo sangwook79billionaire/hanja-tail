@@ -17,7 +17,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   const handleShare = async () => {
     const shareData = {
       title: '꼬리에 꼬리를 무는 한자 탐험',
-      text: '안녕! 나랑 같이 한자 탐험하지 않을래? 용치와 함께 한자 마스터가 되어보자! 🐉✨',
+      text: '안녕 ! 나랑 같이 꼬리에 꼬리를 무는 한자 탐험을 떠나보자! 용치와 함께 한자 마스터가 되어보자! 🐉✨',
       url: inviteLink,
     };
 
@@ -33,7 +33,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(`안녕! 나랑 같이 한자 타일에서 한자 탐험하지 않을래? 🚀\n초대 링크: ${inviteLink}`);
+    navigator.clipboard.writeText(`안녕 ! 나랑 같이 꼬리에 꼬리를 무는 한자 탐험을 떠나보자! 🚀\n초대 링크: ${inviteLink}`);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
