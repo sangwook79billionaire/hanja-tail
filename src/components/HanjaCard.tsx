@@ -44,10 +44,13 @@ export default function HanjaCard({
         padding: 5,
         strokeColor: "#4b4b4b",
         radicalColor: "#58cc02",
-        delayBetweenStrokes: 10,
+        delayBetweenStrokes: 150, // 조금 더 천천히 보여주기
       });
       setWriterInstance(writer);
       
+      // 카드 뒤집히면 자동으로 한 번 애니메이션 보여주기
+      writer.animateCharacter();
+
       if (word) {
         updateLearningProgress(word, 'stroke').then(() => {
           onProgressUpdate?.();

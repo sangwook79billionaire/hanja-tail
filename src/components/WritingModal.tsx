@@ -53,37 +53,47 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
           setWriter(writerInstance);
           setIsLoading(false);
 
-          writerInstance.quiz({
+          // 1단계: 먼저 획순 데모 보여주기
+          setIsDemoMode(true);
+          writerInstance.animateCharacter({
             onComplete: () => {
               if (!active || !writerInstance) return;
+              setIsDemoMode(false);
 
-              // Phase 1: Success message
-              setIsComplete(true);
-              
-              // Phase 2: Start Demo after 1.5s
-              setTimeout(() => {
-                if (!active || !writerInstance) return;
-                setIsComplete(false);
-                setIsDemoMode(true);
-                
-                writerInstance.animateCharacter({
-                  onComplete: () => {
-                    if (!active) return;
-                    setIsDemoMode(false);
+              // 2단계: 직접 써보기 시작
+              writerInstance.quiz({
+                onComplete: () => {
+                  if (!active || !writerInstance) return;
+
+                  // 3단계: 성공 메시지 표시
+                  setIsComplete(true);
+                  
+                  // 4단계: 마무리 데모 보여주기
+                  setTimeout(() => {
+                    if (!active || !writerInstance) return;
+                    setIsComplete(false);
+                    setIsDemoMode(true);
                     
-                    // Phase 3: Final message
-                    setIsReviewFinished(true);
-                    
-                    // Phase 4: Auto-close after 1.5s
-                    setTimeout(() => {
-                      if (active) {
-                        onComplete?.();
-                        onClose();
+                    writerInstance.animateCharacter({
+                      onComplete: () => {
+                        if (!active) return;
+                        setIsDemoMode(false);
+                        
+                        // 5단계: 최종 완료 메시지
+                        setIsReviewFinished(true);
+                        
+                        // 6단계: 자동 종료
+                        setTimeout(() => {
+                          if (active) {
+                            onComplete?.();
+                            onClose();
+                          }
+                        }, 1500);
                       }
-                    }, 1500);
-                  }
-                });
-              }, 1500);
+                    });
+                  }, 1500);
+                }
+              });
             }
           });
         } catch (err) {
