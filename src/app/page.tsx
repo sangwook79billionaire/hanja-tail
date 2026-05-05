@@ -183,6 +183,16 @@ export default function HomePage() {
       setIsLoading(false);
       return;
     }
+
+    const trimmedWord = searchWord.trim();
+    
+    // 단순 자음/모음만 있는 오타 체크
+    if (/[ㄱ-ㅎㅏ-ㅣ]/.test(trimmedWord)) {
+      alert("단어를 올바르게 입력했는지 확인해줄래? 자음이나 모음만 있는 글자는 공부할 수 없어! 🦉");
+      setIsLoading(false);
+      return;
+    }
+
     // 이전에 검색한 단어를 부모 단어로 설정 (꼬리 물기 추적용)
     const parent = isFromExpansion ? currentSearchedWord : null;
 

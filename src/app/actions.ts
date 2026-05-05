@@ -331,6 +331,13 @@ export async function logLearning(word: string, isCorrect: boolean, parentWord?:
 
   if (!userId) return { error: "로그인이 필요합니다." };
 
+  // 단어 유효성 검사 (오타 방지: 자음/모음만 있는 경우 등)
+  const isTypo = /[ㄱ-ㅎㅏ-ㅣ]/.test(word);
+  if (isTypo) {
+    console.warn(`Typo log rejected: ${word}`);
+    return { error: "올바른 단어 형식이 아닙니다." };
+  }
+
   try {
     // 1. 오늘 획득한 포인트 확인 (한도 체크용)
     const kstFormatter = new Intl.DateTimeFormat('en-CA', {
