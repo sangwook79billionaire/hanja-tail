@@ -711,3 +711,78 @@ export async function deleteWord(word: string) {
   if (error) return { error: error.message };
   return { success: true };
 }
+
+export async function getMonitoringLogs() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) throw new Error("Forbidden");
+
+  const { data, error } = await supabase
+    .from('monitoring_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) return { error: error.message };
+  return { logs: data || [] };
+}
+
+export async function bulkVerifyWords(words: string[]) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) throw new Error("Forbidden");
+
+  const { data: cacheItems } = await supabase.from('word_analysis_cache').select('*').in('word', words);
+  if (!cacheItems || cacheItems.length === 0) return { error: "No items found" };
+
+  const insertData = cacheItems.map(item => {
+    const analysis = item.analysis_json as { hanjaList: { char: string }[]; description: string };
+    return {
+      word: item.word,
+      hanja_combination: analysis.hanjaList.map(h => h.char).join(''),
+      description: analysis.description || `${item.word}의 의미`,
+      is_verified: true
+    };
+  });
+
+  const { error } = await supabase.from('quiz_bank').upsert(insertData, { onConflict: 'word' });
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function bulkDeleteWords(words: string[]) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) throw new Error("Forbidden");
+
+  const { error } = await supabase.from('word_analysis_cache').delete().in('word', words);
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function updateWord(originalWord: string, newData: { word: string; analysis_json: unknown }) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) throw new Error("Forbidden");
+
+  const { error } = await supabase
+    .from('word_analysis_cache')
+    .update({ word: newData.word, analysis_json: newData.analysis_json })
+    .eq('word', originalWord);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
