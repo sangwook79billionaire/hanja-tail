@@ -395,13 +395,21 @@ export default function HomePage() {
                     className="w-full h-20 pl-20 pr-36 bg-white border-3 border-duo-snow rounded-[32px] text-2xl font-black text-duo-eel focus:outline-none focus:border-duo-macaw focus:ring-8 focus:ring-duo-macaw/5 shadow-[0_6px_0_0_#e5e5e5] transition-all"
                     disabled={isLoading}
                   />
-                  <button
+                  <motion.button
                     type="submit"
+                    whileTap={{ scale: 0.95 }}
                     disabled={isLoading || !word.trim()}
-                    className="absolute right-3 top-3 bottom-3 px-8 bg-duo-macaw text-white rounded-2xl font-black text-xl shadow-[0_4px_0_0_#1899d6] hover:brightness-110 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50"
+                    className="absolute right-3 top-3 bottom-3 px-8 bg-duo-macaw text-white rounded-2xl font-black text-xl shadow-[0_4px_0_0_#1899d6] hover:brightness-110 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2 min-w-[120px]"
                   >
-                    찾기!
-                  </button>
+                    {isLoading ? (
+                      <>
+                        <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span className="text-sm">분석 중...</span>
+                      </>
+                    ) : (
+                      "찾기!"
+                    )}
+                  </motion.button>
                 </form>
               </div>
 
