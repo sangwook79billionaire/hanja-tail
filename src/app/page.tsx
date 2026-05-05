@@ -383,25 +383,27 @@ export default function HomePage() {
 
               {/* 4. Search Form */}
               <div className="w-full max-w-2xl mx-auto mb-16">
-                <form onSubmit={handleSubmit} className="relative group">
+                <form onSubmit={handleSubmit} className="relative group max-w-md mx-auto">
                   <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
-                    <Search className="w-7 h-7 text-duo-wolf group-focus-within:text-duo-macaw transition-colors" />
+                    <Search className="w-8 h-8 text-duo-wolf group-focus-within:text-duo-macaw transition-all" />
                   </div>
                   <input
                     type="text"
                     value={word}
                     onChange={(e) => setWord(e.target.value)}
                     placeholder="단어를 검색해봐!"
-                    className="w-full h-20 pl-16 pr-36 bg-white border-3 border-duo-snow rounded-[32px] text-2xl font-black text-duo-eel focus:outline-none focus:border-duo-macaw focus:ring-8 focus:ring-duo-macaw/5 shadow-[0_6px_0_0_#e5e5e5] transition-all"
+                    className="w-full h-24 pl-18 pr-36 bg-white border-4 border-duo-snow rounded-[40px] text-3xl font-black text-duo-eel focus:outline-none focus:border-duo-macaw focus:ring-12 focus:ring-duo-macaw/5 shadow-[0_8px_0_0_#e5e5e5] transition-all placeholder:text-duo-wolf/40"
                     disabled={isLoading}
                   />
-                  <button
+                  <motion.button
                     type="submit"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     disabled={isLoading || !word.trim()}
-                    className="absolute right-3 top-3 bottom-3 px-8 bg-duo-macaw text-white rounded-2xl font-black text-xl shadow-[0_4px_0_0_#1899d6] hover:brightness-110 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50"
+                    className="absolute right-4 top-4 bottom-4 px-10 bg-duo-macaw text-white rounded-[28px] font-black text-2xl shadow-[0_6px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center"
                   >
                     찾기!
-                  </button>
+                  </motion.button>
                 </form>
               </div>
 
