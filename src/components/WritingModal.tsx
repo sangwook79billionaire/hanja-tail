@@ -161,13 +161,12 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
                 <p className="text-sm font-bold text-duo-wolf">{meaning} {sound}</p>
               </div>
               {!isReviewFinished && (
-                <motion.button 
-                  whileTap={{ scale: 0.9 }}
+                <button 
                   onClick={onClose}
-                  className="p-2.5 bg-duo-snow hover:bg-duo-swan rounded-2xl transition-all border-2 border-transparent hover:border-duo-swan"
+                  className="p-2 hover:bg-duo-snow rounded-xl transition-colors"
                 >
-                  <X className="w-7 h-7 text-duo-wolf" />
-                </motion.button>
+                  <X className="w-6 h-6 text-duo-wolf" />
+                </button>
               )}
             </div>
 
@@ -225,23 +224,21 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 w-full">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+            <div className="grid grid-cols-2 gap-3 w-full">
+              <button
                 onClick={handleAnimate}
                 disabled={isLoading || isReviewFinished}
-                className="flex items-center justify-center gap-2 py-4 px-4 bg-white border-3 border-duo-snow rounded-2xl font-black text-duo-wolf hover:bg-duo-snow transition-all disabled:opacity-50 shadow-[0_5px_0_0_#e5e5e5] active:translate-y-[3px] active:shadow-none"
+                className="flex items-center justify-center gap-2 py-3 px-4 bg-white border-2 border-duo-swan rounded-2xl font-black text-duo-wolf hover:bg-duo-snow transition-all disabled:opacity-50"
               >
                 <Play className="w-5 h-5 fill-current" /> 순서 보기
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+              </button>
+              <button
                 onClick={handleReset}
                 disabled={isLoading || isReviewFinished}
-                className="flex items-center justify-center gap-2 py-4 px-4 bg-duo-snow border-3 border-duo-swan rounded-2xl font-black text-duo-eel hover:bg-duo-swan transition-all disabled:opacity-50 shadow-[0_5px_0_0_#e5e5e5] active:translate-y-[3px] active:shadow-none"
+                className="flex items-center justify-center gap-2 py-3 px-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-black text-duo-eel hover:bg-duo-swan transition-all disabled:opacity-50"
               >
                 <RotateCcw className="w-5 h-5" /> 다시 쓰기
-              </motion.button>
+              </button>
             </div>
 
             <p className="mt-6 text-xs font-bold text-duo-wolf text-center leading-relaxed">

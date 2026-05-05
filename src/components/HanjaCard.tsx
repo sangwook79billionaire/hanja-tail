@@ -96,14 +96,13 @@ export default function HanjaCard({
         </div>
 
         {/* Review CTA Button */}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
+        <button
           onClick={handleWriteClick}
-          className="w-full mt-3 py-3 bg-duo-macaw text-white rounded-2xl font-black text-sm shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 uppercase tracking-wider"
+          className="w-full mt-3 py-2.5 bg-duo-macaw text-white rounded-2xl font-black text-xs shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase tracking-wider"
         >
-          <Edit3 className="w-4 h-4" />
+          <Edit3 className="w-3.5 h-3.5" />
           한자공부하기
-        </motion.button>
+        </button>
       </motion.div>
 
       {/* Expanded Detailed View (Modal) */}
@@ -185,29 +184,27 @@ export default function HanjaCard({
                   </div>
 
                   <div className="flex gap-3 w-full mt-6">
-                    <motion.button 
-                      whileTap={{ scale: 0.95 }}
+                    <button 
                       onClick={handleWriteClick}
-                      className="flex-1 flex flex-col items-center justify-center bg-duo-snow text-duo-eel h-20 rounded-2xl border-b-4 border-duo-swan hover:bg-duo-swan transition-all shadow-sm group"
+                      className="flex-1 flex flex-col items-center justify-center bg-duo-snow text-duo-eel h-16 rounded-2xl border-2 border-duo-swan hover:bg-duo-swan transition-all shadow-sm group"
                     >
                       <div className="flex items-center gap-2 font-black text-base">
                         <Edit3 className="w-5 h-5" /> 써보기
                       </div>
                       <div className="text-[10px] font-black text-duo-green">+0.5 POINT</div>
-                    </motion.button>
-                    <motion.button 
-                      whileTap={{ scale: 0.95 }}
+                    </button>
+                    <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         onQuiz?.(data.char);
                       }}
-                      className="flex-1 flex flex-col items-center justify-center bg-duo-bee text-white h-20 rounded-2xl shadow-[0_6px_0_0_#e5a500] active:translate-y-[2px] active:shadow-[0_4px_0_0_#e5a500] transition-all"
+                      className="flex-1 flex flex-col items-center justify-center bg-duo-bee text-white h-16 rounded-2xl shadow-[0_5px_0_0_#e5a500] hover:translate-y-[1px] hover:shadow-[0_3px_0_0_#e5a500] active:translate-y-[3px] active:shadow-none transition-all"
                     >
                       <div className="flex items-center gap-2 font-black text-sm">
-                        <Trophy className="w-5 h-5" /> 단어 꼬리물기
+                        <Trophy className="w-5 h-5" /> 연관 단어 꼬리물기
                       </div>
                       <div className="text-[10px] font-black text-white/90">+1.0 POINT</div>
-                    </motion.button>
+                    </button>
                   </div>
                 </div>
               </motion.div>
