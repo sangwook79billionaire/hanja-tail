@@ -15,10 +15,12 @@ interface LearningLog {
 
 export default function LearningMindMap({ 
   logs, 
-  onReview 
+  onReview,
+  disabled = false
 }: { 
   logs: LearningLog[]; 
-  onReview: (word: string) => void 
+  onReview: (word: string) => void;
+  disabled?: boolean;
 }) {
   // 1. 단어들을 가로세로 그리드에 배치하는 알고리즘
   const generateCrossword = () => {
@@ -188,10 +190,14 @@ export default function LearningMindMap({
                 key={`${x}-${y}`}
                 initial={{ scale: 0, rotate: -10 }}
                 animate={{ scale: 1, rotate: 0 }}
+                whileHover={!disabled ? { scale: 1.05, y: -2 } : {}}
+                whileTap={!disabled ? { scale: 0.95 } : {}}
                 transition={{ delay: (xIdx + yIdx) * 0.05 }}
-                onClick={() => onReview(item.words[0])}
+                onClick={() => !disabled && onReview(item.words[0])}
+                disabled={disabled}
                 className={cn(
                   "w-[50px] h-[50px] rounded-xl flex items-center justify-center text-xl font-black transition-all shadow-sm border-2 relative font-myeongjo",
+                  disabled && "opacity-60 cursor-not-allowed",
                   isIntersection 
                     ? "bg-amber-400 border-amber-500 text-white shadow-[0_4px_0_0_#d97706] z-10 scale-110" 
                     : "bg-white border-duo-snow text-duo-eel",

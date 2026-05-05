@@ -37,13 +37,15 @@ export default function StatsView({
   logs,
   onClose,
   onReview,
-  isAdmin
+  isAdmin,
+  disabled = false
 }: { 
   stats: StatsData; 
   logs: LearningLog[];
   onClose: () => void;
   onReview: (word: string) => void;
   isAdmin?: boolean;
+  disabled?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<TabType>("today");
 
@@ -131,7 +133,7 @@ export default function StatsView({
               <p className="text-xs font-bold text-duo-wolf mb-6">
                 단어를 클릭해서 복습하면 추가 보너스 점수(+0.5)를 받을 수 있어요!
               </p>
-              <LearningMindMap logs={logs} onReview={onReview} />
+              <LearningMindMap logs={logs} onReview={onReview} disabled={disabled} />
             </div>
 
             {/* Daily Point Progress */}

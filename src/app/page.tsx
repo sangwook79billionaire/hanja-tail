@@ -453,7 +453,7 @@ export default function HomePage() {
                 <div className="mt-12 w-full">
                   <h3 className="text-2xl font-black text-duo-eel mb-6 px-4">오늘의 한자 꼬리</h3>
                   <div className="bg-white border-3 border-duo-snow rounded-[40px] p-8 shadow-sm overflow-hidden">
-                    <LearningMindMap logs={dailyHistory} onReview={handleReview} />
+                    <LearningMindMap logs={dailyHistory} onReview={handleReview} disabled={isLoading} />
                   </div>
                 </div>
               )}
@@ -468,6 +468,7 @@ export default function HomePage() {
               exit={{ opacity: 0, x: -20 }}
             >
               <QuestMap onNodeClick={(hanja) => {
+                if (isLoading) return;
                 setWord(hanja);
                 handleAnalyze(hanja);
                 setActiveTab('search');
@@ -490,12 +491,27 @@ export default function HomePage() {
                       onClose={() => setActiveTab('search')} 
                       onReview={handleReview}
                       isAdmin={isAdmin}
+                      disabled={isLoading}
                     />
                   )}
             </motion.div>
           )}
         </AnimatePresence>
       </main>
+
+      {/* Global Loading Overlay */}
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] bg-white/20 backdrop-blur-[1px] flex items-center justify-center cursor-wait"
+          >
+            {/* No spinner needed to keep it clean, but interaction is blocked */}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Persistent Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t-2 border-duo-snow pb-safe">
