@@ -242,15 +242,17 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
       Target Hanja (Unicode character): "${hanja}"
       
       Task:
-      1. Find a very common Korean word (2~3 letters) that MUST contain the SPECIFIC Hanja character "${hanja}" in its Hanja representation.
-      2. Write a fun, kid-friendly description/hint that explains the meaning of the word.
-      3. Provide full Hanja analysis for the chosen word.
+      1. Find a VERY COMMON, EVERYDAY Korean noun (2~3 letters) that children (ages 6-10) definitely know.
+      2. The word MUST contain the SPECIFIC Hanja character "${hanja}" in its Hanja representation.
+      3. Write a fun, kid-friendly description/hint that explains the meaning of the word WITHOUT using the word itself.
+      4. CRITICAL: "word" field MUST be in HANGUL only. "hanja_combination" MUST be in HANJA.
+      5. DO NOT create fake words by simply combining Hanja. It MUST be a standard word found in a dictionary.
       
       Return ONLY a JSON object in this format:
       {
-        "word": "정답 단어 (한글)",
+        "word": "정답 단어 (한글 - 반드시 한글만!)",
         "hanja_combination": "정답 단어 (한자 - 반드시 '${hanja}' 포함)",
-        "description": "재미있는 힌트",
+        "description": "아이들이 좋아할 만한 친절하고 재미있는 힌트",
         "hanja_list": [
           { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
         ]
@@ -266,6 +268,12 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
         if (!jsonMatch) throw new Error("JSON not found in response");
         const quizData = JSON.parse(jsonMatch[0]);
 
+        // 검증: 정답 단어는 반드시 한글만 포함해야 함
+        const isHangulOnly = /^[가-힣]+$/.test(quizData.word);
+        if (!isHangulOnly) {
+          throw new Error("Word must be Hangul only.");
+        }
+
         // 검증: 정답 단어의 한자 표기에 우리가 찾는 한자가 실제로 포함되어 있는지 확인
         if (!quizData.hanja_combination.includes(hanja)) {
           throw new Error("Generated word does not contain the target Hanja character.");
@@ -276,7 +284,7 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
           throw new Error("Generated word is the excluded word.");
         }
 
-        // 선제적 캐싱: 정답을 맞혔을 때 바로 보여주기 위해 word_analysis_cache에 미리 저장
+        // 선제적 캐싱
         await supabase.from("word_analysis_cache").upsert({
           word: quizData.word,
           analysis_json: {
