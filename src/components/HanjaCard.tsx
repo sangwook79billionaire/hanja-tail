@@ -120,20 +120,21 @@ export default function HanjaCard({
             <motion.div
               layoutId={`card-${data.char}`}
               className="relative w-full max-w-sm aspect-[4/5] perspective-1000"
-              style={{ transformStyle: "preserve-3d" }}
             >
               <motion.div
                 className="w-full h-full relative preserve-3d"
                 animate={{ rotateY: isFlipped ? 180 : 0 }}
                 transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
-                style={{ transformStyle: "preserve-3d" }}
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsFlipped(!isFlipped);
                 }}
               >
                 {/* Front Detail */}
-                <div className="absolute w-full h-full backface-hidden bg-white border-[4px] border-duo-snow rounded-[40px] shadow-2xl flex flex-col items-center justify-center p-8 text-center">
+                <div 
+                  className="absolute w-full h-full backface-hidden bg-white border-[4px] border-duo-snow rounded-[40px] shadow-2xl flex flex-col items-center justify-center p-8 text-center"
+                  style={{ transform: "translateZ(1px)" }}
+                >
                   <div className="text-8xl font-black text-duo-eel mb-4 drop-shadow-md font-myeongjo">{data.char}</div>
                   <div className="flex flex-col items-center mb-6">
                     <span className="text-3xl font-black text-amber-600 leading-tight">{data.meaning}</span>
@@ -159,7 +160,7 @@ export default function HanjaCard({
                 {/* Back Detail */}
                 <div 
                   className="absolute w-full h-full backface-hidden bg-white border-[4px] border-duo-snow rounded-[40px] shadow-2xl flex flex-col items-center justify-between p-8"
-                  style={{ transform: "rotateY(180deg)" }}
+                  style={{ transform: "rotateY(180deg) translateZ(1px)" }}
                 >
                   <div className="flex flex-col items-center w-full">
                     <div className="text-xs font-black text-duo-macaw mb-4 uppercase tracking-widest">획순 따라가기</div>
