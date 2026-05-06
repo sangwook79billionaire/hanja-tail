@@ -163,8 +163,18 @@ export default function HanjaCard({
                   style={{ transform: "rotateY(180deg) translateZ(1px)" }}
                 >
                   <div className="flex flex-col items-center w-full">
-                    <div className="text-xs font-black text-duo-macaw mb-4 uppercase tracking-widest">획순 따라가기</div>
-                    <div ref={writerRef} className="w-[140px] h-[140px] mb-6 bg-duo-snow/30 rounded-3xl p-2"></div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-3xl font-black text-duo-eel font-myeongjo">{data.char}</span>
+                      <div className="flex flex-col items-start">
+                        <span className="text-[10px] font-black text-duo-swan uppercase tracking-widest leading-none">한자 뜻과 음</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-lg font-black text-amber-600">{data.meaning}</span>
+                          <span className="text-lg font-black text-duo-macaw">{data.sound}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] font-black text-duo-wolf/60 mb-4 uppercase tracking-[0.2em]">— 획순 따라가기 —</div>
+                    <div ref={writerRef} className="w-[140px] h-[140px] mb-6 bg-duo-snow/30 rounded-3xl p-2 border-2 border-duo-snow shadow-inner relative"></div>
                     
                     {data.examples && data.examples.length > 0 && (
                       <div className="w-full border-t-2 border-duo-snow pt-4">
