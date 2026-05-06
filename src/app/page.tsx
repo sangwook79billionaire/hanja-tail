@@ -107,6 +107,7 @@ export default function HomePage() {
       );
 
       setDailyHistory(uniqueLogs);
+
       if (result.stats) {
         setRecapData(result.stats as unknown as StatsData);
       }
@@ -203,10 +204,20 @@ export default function HomePage() {
       } else {
         setAnalyzedHanja(result.hanjaList);
         setCurrentSearchedWord(searchWord.trim());
-        setPracticedChars(new Set()); // 신규 검색 시 연습 상태 리셋
+        
+        // 겹쳐진 단어(이미 오늘 써본 한자)는 자동으로 완료 처리
+        // 현재 세션의 practicedChars가 누적되고 있으므로, 
+        // 이번 단어의 모든 한자가 이미 practicedChars에 있는지 확인
+        const isAlreadyComplete = result.hanjaList.length > 0 && result.hanjaList.every((h: HanjaData) => practicedChars.has(h.char));
 
-        // 학습 로그 기록 (부모 단어 포함)
-        await logLearning(searchWord.trim(), true, parent || undefined);
+        // 만약 모든 글자가 이미 다른 단어에서 써본 글자라면 즉시 포인트 지급 시도
+        if (isAlreadyComplete) {
+          const logRes = await logLearning(searchWord.trim(), true, parent || undefined, true);
+          if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
+            alert(`✨ 와우! '${searchWord.trim()}'에 포함된 한자들을 이미 모두 마스터했네요!\n꼬리 물기 성공 보너스 ${logRes.pointsAwarded}점을 바로 지급해드렸어요!`);
+          }
+        }
+
         fetchDailyHistory();
       }
     } catch (e) {
@@ -435,9 +446,9 @@ export default function HomePage() {
                   {/* Word Completion Progress Info */}
                   <div className="bg-blue-50 border-2 border-blue-100 rounded-3xl p-6 text-center">
                     <p className="text-sm font-black text-duo-macaw mb-2">
-                      {practicedChars.size === analyzedHanja.length 
+                      {analyzedHanja.every((h: HanjaData) => practicedChars.has(h.char))
                         ? "✨ 와우! 단어의 모든 한자를 써봤어요! 점수를 획득했습니다." 
-                        : `✍️ 단어 완성까지 ${analyzedHanja.length - practicedChars.size}글자 남았어요!`}
+                        : `✍️ 단어 완성까지 ${analyzedHanja.filter((h: HanjaData) => !practicedChars.has(h.char)).length}글자 남았어요!`}
                     </p>
                     <div className="flex justify-center gap-2">
                       {analyzedHanja.map((h, i) => (
@@ -586,7 +597,10 @@ export default function HomePage() {
 
             if (currentSearchedWord) {
               // 모든 글자를 다 썼을 때만 DB에 완료 기록 및 포인트 지급
-              if (newPracticed.size === analyzedHanja.length) {
+              // 현재 단어의 모든 한자를 다 썼는지 확인 (누적 데이터 기준)
+              const isWordComplete = analyzedHanja.every((h: HanjaData) => newPracticed.has(h.char));
+
+              if (isWordComplete) {
                 const logRes = await logLearning(currentSearchedWord, true, undefined, true);
                 if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
                   alert(`✨ 참 잘했어요! '${currentSearchedWord}'의 모든 글자를 써봤네요! 보너스 점수 ${logRes.pointsAwarded}점을 받았어요!`);
@@ -595,7 +609,7 @@ export default function HomePage() {
                 fetchProfile(); // 포인트 갱신을 위해 프로필 다시 불러오기
               } else {
                 // 아직 남은 글자가 있는 경우
-                const remaining = analyzedHanja.length - newPracticed.size;
+                const remaining = analyzedHanja.filter((h: HanjaData) => !newPracticed.has(h.char)).length;
                 alert(`참 잘했어요! ✨\n이제 '${currentSearchedWord}' 단어 완성을 위해 남은 ${remaining}글자도 더 써볼까?`);
               }
             }
