@@ -30,6 +30,7 @@ interface LearningLog {
   learned_at: string;
   practiced_writing?: boolean;
   parent_word?: string;
+  meaning?: string;
 }
 
 export default function StatsView({ 
@@ -134,6 +135,54 @@ export default function StatsView({
                 단어를 클릭해서 복습하면 추가 보너스 점수(+0.5)를 받을 수 있어요!
               </p>
               <LearningMindMap logs={logs} onReview={onReview} disabled={disabled} />
+            </div>
+
+            {/* Total Word List - New Section */}
+            <div className="bg-white border-2 border-duo-swan rounded-[32px] p-6 shadow-sm">
+              <h3 className="text-lg font-black text-duo-eel mb-6 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-duo-macaw" /> 전체 단어 리스트
+              </h3>
+              <div className="space-y-4">
+                {logs.length > 0 ? (
+                  logs.map((log, idx) => (
+                    <motion.div 
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="flex items-center justify-between p-4 bg-duo-snow/30 rounded-2xl border-2 border-duo-snow group hover:border-duo-macaw transition-all cursor-pointer"
+                      onClick={() => onReview(log.word)}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl font-black text-duo-eel">{log.word}</span>
+                          {log.hanja && (
+                            <span className="text-sm font-bold text-duo-wolf bg-white px-2 py-0.5 rounded-lg border border-duo-snow">
+                              {log.hanja}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-bold text-duo-wolf line-clamp-1">{log.meaning || "뜻 정보 없음"}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {log.practiced_writing && (
+                          <div className="bg-duo-green/10 text-duo-green px-2 py-1 rounded-lg text-[10px] font-black border border-duo-green/20">
+                            쓰기 완료
+                          </div>
+                        )}
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center",
+                          log.is_correct ? "bg-duo-green text-white" : "bg-duo-snow text-duo-swan"
+                        )}>
+                          <Target className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <p className="text-center py-10 text-duo-wolf font-bold">학습한 단어가 없어요!</p>
+                )}
+              </div>
             </div>
 
             {/* Daily Point Progress */}

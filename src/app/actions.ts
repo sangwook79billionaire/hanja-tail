@@ -503,10 +503,29 @@ export async function getLearningRecap() {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
+    interface AnalysisResult {
+      hanjaList?: { char: string; meaning: string }[];
+    }
+
+    const allLogsWithMeta = await Promise.all(allLogs.map(async (log) => {
+      const { data: cache } = await supabase
+        .from("word_analysis_cache")
+        .select("analysis_json")
+        .eq("word", log.word)
+        .maybeSingle();
+      
+      const analysis = cache?.analysis_json as AnalysisResult | undefined;
+      return {
+        ...log,
+        hanja: log.hanja || (analysis?.hanjaList ? analysis.hanjaList.map(h => h.char).join('') : undefined),
+        meaning: analysis?.hanjaList ? analysis.hanjaList.map(h => h.meaning).join(', ') : undefined
+      };
+    }));
+
     return {
-      logs: allLogs,
+      logs: allLogsWithMeta,
       stats: {
-        today: processLogs(allLogs, undefined, true), // 오늘 미션은 풀 연습(쓰기 완료)만 카운트!
+        today: processLogs(allLogs, undefined, true),
         weekly: processLogs(allLogs, startOfWeek),
         monthly: processLogs(allLogs, startOfMonth),
         total: {

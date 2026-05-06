@@ -44,74 +44,98 @@ export default function LearningMindMap({
     const nodesMap = new Map<string, Node>();
     const linksList: Link[] = [];
     
-    // 1. 단어들 클러스터링 및 노드 생성
+    // 1. 단어들 클러스터링 (연결된 단어들끼리 묶기)
     const processedWords = logs.map(l => ({
       ...l,
       chars: l.hanja ? l.hanja.split('') : l.word.split(''),
     }));
 
-    // 간단한 그리드 레이아웃 대신 클러스터별 배치
-    const currentXOffset = 100;
-    let currentYOffset = 100;
+    const wordClusters: (typeof processedWords)[] = [];
+    const usedWordIndices = new Set<number>();
 
-    // 단어들을 돌면서 노드와 링크 구성
-    processedWords.forEach((wordObj, wordIdx) => {
-      const charNodes: string[] = [];
-      
-      wordObj.chars.forEach((char, charIdx) => {
-        // 이미 존재하는 노드인지 확인 (허브 노드)
-        const nodeId = char;
-        let existing = nodesMap.get(nodeId);
-        
-        if (!existing) {
-          // 새로운 노드 생성
-          // 기본 위치는 순차적으로 배치하되, 클러스터링을 위해 조정
-          const node: Node = {
-            id: nodeId,
-            char,
-            x: currentXOffset + charIdx * 120 + (wordIdx * 20),
-            y: currentYOffset + (wordIdx % 2 === 0 ? 50 : -50),
-            isHub: false,
-            practiced: !!wordObj.practiced_writing,
-            words: [wordObj.word]
-          };
-          nodesMap.set(nodeId, node);
-          existing = node;
-        } else {
-          existing.isHub = true;
-          if (!existing.words.includes(wordObj.word)) {
-            existing.words.push(wordObj.word);
+    processedWords.forEach((word, i) => {
+      if (usedWordIndices.has(i)) return;
+      const cluster = [word];
+      usedWordIndices.add(i);
+
+      let foundNew = true;
+      while (foundNew) {
+        foundNew = false;
+        processedWords.forEach((other, j) => {
+          if (usedWordIndices.has(j)) return;
+          const sharesChar = cluster.some(cw => 
+            cw.chars.some(c => other.chars.includes(c))
+          );
+          if (sharesChar) {
+            cluster.push(other);
+            usedWordIndices.add(j);
+            foundNew = true;
           }
-          if (wordObj.practiced_writing) existing.practiced = true;
-        }
-        charNodes.push(nodeId);
-      });
-
-      // 링크 생성
-      for (let i = 0; i < charNodes.length - 1; i++) {
-        linksList.push({
-          source: charNodes[i],
-          target: charNodes[i+1]
         });
       }
-
-      // 다음 단어를 위해 오프셋 조정 (겹침 방지)
-      if (wordIdx % 3 === 0) {
-        currentYOffset += 180;
-      }
+      wordClusters.push(cluster);
     });
 
-    // 노드 위치 최적화 (매우 간단한 반발력 적용)
+    // 2. 각 클러스터별로 노드 및 링크 생성 (클러스터 간 간격 확보)
+    wordClusters.forEach((cluster, clusterIdx) => {
+      const clusterXOffset = (clusterIdx % 2) * 600;
+      const clusterYOffset = Math.floor(clusterIdx / 2) * 600;
+
+      cluster.forEach((wordObj, wordInClusterIdx) => {
+        const charNodes: string[] = [];
+        
+        wordObj.chars.forEach((char, charIdx) => {
+          // 노드 ID를 한자로 유니크하게 (단순 한글만 있을 땐 한글로)
+          const nodeId = char; 
+          let existing = nodesMap.get(nodeId);
+          
+          if (!existing) {
+            const node: Node = {
+              id: nodeId,
+              char,
+              x: clusterXOffset + charIdx * 120 + (wordInClusterIdx * 40),
+              y: clusterYOffset + (wordInClusterIdx % 2 === 0 ? 60 : -60),
+              isHub: false,
+              practiced: !!wordObj.practiced_writing,
+              words: [wordObj.word]
+            };
+            nodesMap.set(nodeId, node);
+            existing = node;
+          } else {
+            existing.isHub = true;
+            if (!existing.words.includes(wordObj.word)) {
+              existing.words.push(wordObj.word);
+            }
+            if (wordObj.practiced_writing) existing.practiced = true;
+          }
+          charNodes.push(nodeId);
+        });
+
+        for (let i = 0; i < charNodes.length - 1; i++) {
+          // 중복 링크 방지
+          const linkId = [charNodes[i], charNodes[i+1]].sort().join('-');
+          if (!linksList.find(l => [l.source, l.target].sort().join('-') === linkId)) {
+            linksList.push({
+              source: charNodes[i],
+              target: charNodes[i+1]
+            });
+          }
+        }
+      });
+    });
+
+    // 노드 위치 최적화 (반발력)
     const nodesArr = Array.from(nodesMap.values());
-    for (let iter = 0; iter < 50; iter++) {
+    for (let iter = 0; iter < 60; iter++) {
       nodesArr.forEach(n1 => {
         nodesArr.forEach(n2 => {
           if (n1.id === n2.id) return;
           const dx = n1.x - n2.x;
           const dy = n1.y - n2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            const force = (100 - dist) / 10;
+          // 같은 클러스터 노드끼리만 강한 반발력
+          if (dist < 150) {
+            const force = (150 - dist) / 8;
             n1.x += (dx / dist) * force;
             n1.y += (dy / dist) * force;
             n2.x -= (dx / dist) * force;
