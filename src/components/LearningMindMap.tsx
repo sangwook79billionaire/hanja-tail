@@ -139,8 +139,8 @@ export default function LearningMindMap({
           const dy = n1.y - n2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           // 같은 클러스터 노드끼리만 강한 반발력
-          if (dist < 150) {
-            const force = (150 - dist) / 8;
+          if (dist < 200) {
+            const force = (200 - dist) / 8;
             n1.x += (dx / dist) * force;
             n1.y += (dy / dist) * force;
             n2.x -= (dx / dist) * force;
@@ -217,7 +217,7 @@ export default function LearningMindMap({
             >
               {/* Difficulty Halo Ring */}
               <circle
-                cx={node.x} cy={node.y} r="42"
+                cx={node.x} cy={node.y} r="60"
                 className={cn(
                   "fill-none stroke-[4] opacity-40",
                   node.difficulty === 1 ? "stroke-duo-green" :
@@ -228,7 +228,7 @@ export default function LearningMindMap({
               {/* Glow Effect for Hubs */}
               {node.isHub && (
                 <motion.circle
-                  cx={node.x} cy={node.y} r="48"
+                  cx={node.x} cy={node.y} r="68"
                   animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
                   transition={{ repeat: Infinity, duration: 2 }}
                   className={cn(
@@ -241,7 +241,7 @@ export default function LearningMindMap({
 
               {/* Node Circle (Bead) */}
               <circle
-                cx={node.x} cy={node.y} r="35"
+                cx={node.x} cy={node.y} r="50"
                 className={cn(
                   "stroke-[6] transition-colors drop-shadow-md",
                   node.isHub 
@@ -259,7 +259,7 @@ export default function LearningMindMap({
                 dy="0.35em"
                 textAnchor="middle"
                 className={cn(
-                  "text-2xl font-black font-myeongjo select-none",
+                  "text-4xl font-black font-myeongjo select-none",
                   node.isHub || node.practiced ? "fill-white" : "fill-duo-eel"
                 )}
               >
@@ -268,13 +268,13 @@ export default function LearningMindMap({
 
               {/* Status Icon */}
               {node.practiced && !node.isHub && (
-                <g transform={`translate(${node.x + 22}, ${node.y - 22})`}>
-                  <circle r="10" fill="white" className="stroke-duo-green stroke-2" />
+                <g transform={`translate(${node.x + 35}, ${node.y - 35})`}>
+                  <circle r="14" fill="white" className="stroke-duo-green stroke-2" />
                   <path 
-                    d="M-4 0 L-1 3 L4 -3" 
+                    d="M-5 0 L-1 4 L6 -4" 
                     fill="none" 
                     stroke="#58cc02" 
-                    strokeWidth="2.5" 
+                    strokeWidth="3.5" 
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
                   />
