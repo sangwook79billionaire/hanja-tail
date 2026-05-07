@@ -186,7 +186,7 @@ export async function analyzeWord(word: string) {
           description: exp.description,
           difficulty_level: exp.difficultyLevel || data.difficultyLevel || 1,
           is_verified: false // AI 생성형이므로 나중에 검증 필요
-        }, { onConflict: 'word' }).then();
+        }, { onConflict: 'word, hanja_combination' }).then();
       }
     }
     
@@ -262,6 +262,7 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
         "word": "정답 단어 (한글 - 반드시 한글만!)",
         "hanja_combination": "정답 단어 (한자 - 반드시 '${hanja}' 포함)",
         "description": "아이들이 좋아할 만한 친절하고 재미있는 힌트",
+        "difficulty_level": number (1: Basic/1-2 Grade, 2: Intermediate/3-4 Grade, 3: Advanced/5-6 Grade+),
         "hanja_list": [
           { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
         ]
@@ -277,21 +278,10 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
         if (!jsonMatch) throw new Error("JSON not found in response");
         const quizData = JSON.parse(jsonMatch[0]);
 
-        // 검증: 정답 단어는 반드시 한글만 포함해야 함
+        // ... (validation remains same) ...
         const isHangulOnly = /^[가-힣]+$/.test(quizData.word);
-        if (!isHangulOnly) {
-          throw new Error("Word must be Hangul only.");
-        }
-
-        // 검증: 정답 단어의 한자 표기에 우리가 찾는 한자가 실제로 포함되어 있는지 확인
-        if (!quizData.hanja_combination.includes(hanja)) {
-          throw new Error("Generated word does not contain the target Hanja character.");
-        }
-
-        // 검증: 제외할 단어와 겹치면 한 번 더 요청
-        if (excludedWord && quizData.word === excludedWord) {
-          throw new Error("Generated word is the excluded word.");
-        }
+        if (!isHangulOnly) throw new Error("Word must be Hangul only.");
+        if (!quizData.hanja_combination.includes(hanja)) throw new Error("Missing target Hanja.");
 
         // 선제적 캐싱
         await supabase.from("word_analysis_cache").upsert({
@@ -299,19 +289,21 @@ export async function generateQuiz(hanja: string, excludedWord?: string) {
           analysis_json: {
             hanjaList: quizData.hanja_list,
             correctedWord: null,
-            isLoanword: false
+            isLoanword: false,
+            difficultyLevel: quizData.difficulty_level || 1
           }
         });
 
         // quiz_bank에도 저장
         const { data: newQuiz } = await supabase
           .from("quiz_bank")
-          .insert({
+          .upsert({
             word: quizData.word,
             hanja_combination: quizData.hanja_combination,
             description: quizData.description,
+            difficulty_level: quizData.difficulty_level || 1,
             is_verified: false
-          })
+          }, { onConflict: 'word, hanja_combination' })
           .select()
           .single();
 
@@ -733,12 +725,15 @@ export async function verifyWord(word: string) {
   const { data: cacheItem } = await supabase.from('word_analysis_cache').select('*').eq('word', word).single();
   if (!cacheItem) return { error: "Cache item not found" };
 
+  const analysis = cacheItem.analysis_json as { hanjaList: { char: string }[]; description: string; difficultyLevel?: number };
+  
   const { error } = await supabase.from('quiz_bank').upsert({
     word: cacheItem.word,
-    hanja_list: cacheItem.hanja_list,
-    expansions: cacheItem.expansions,
+    hanja_combination: analysis.hanjaList.map(h => h.char).join(''),
+    description: analysis.description || `${cacheItem.word}의 의미`,
+    difficulty_level: analysis.difficultyLevel || 1,
     is_verified: true
-  });
+  }, { onConflict: 'word, hanja_combination' });
 
   if (error) return { error: error.message };
   return { success: true };
@@ -787,16 +782,17 @@ export async function bulkVerifyWords(words: string[]) {
   if (!cacheItems || cacheItems.length === 0) return { error: "No items found" };
 
   const insertData = cacheItems.map(item => {
-    const analysis = item.analysis_json as { hanjaList: { char: string }[]; description: string };
+    const analysis = item.analysis_json as { hanjaList: { char: string }[]; description: string; difficultyLevel?: number };
     return {
       word: item.word,
       hanja_combination: analysis.hanjaList.map(h => h.char).join(''),
       description: analysis.description || `${item.word}의 의미`,
+      difficulty_level: analysis.difficultyLevel || 1,
       is_verified: true
     };
   });
 
-  const { error } = await supabase.from('quiz_bank').upsert(insertData, { onConflict: 'word' });
+  const { error } = await supabase.from('quiz_bank').upsert(insertData, { onConflict: 'word, hanja_combination' });
 
   if (error) return { error: error.message };
   return { success: true };
