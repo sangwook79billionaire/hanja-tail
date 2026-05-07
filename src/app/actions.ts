@@ -98,7 +98,15 @@ export async function analyzeWord(word: string) {
         ],
         "correctedWord": "string",
         "difficultyLevel": number (1: Basic/1-2 Grade, 2: Intermediate/3-4 Grade, 3: Advanced/5-6 Grade or Middle),
-        "hanjaList": [{ "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }],
+        "hanjaList": [
+          { 
+            "char": "한자", 
+            "meaning": "뜻", 
+            "originalSound": "본음 (예: 녀)", 
+            "appliedSound": "두음법칙 적용음 (예: 여)", 
+            "level": "급수" 
+          }
+        ],
         "expansions": [
           { 
             "word": "유의어/반의어", 
@@ -155,6 +163,8 @@ export async function analyzeWord(word: string) {
       char: string;
       meaning: string;
       sound: string;
+      originalSound?: string;
+      appliedSound?: string;
       level: string;
     }
 
@@ -170,9 +180,10 @@ export async function analyzeWord(word: string) {
         return {
           ...item,
           meaning: dbHanja?.meaning || item.meaning,
-          sound: dbHanja?.sound || item.sound,
+          sound: item.appliedSound || dbHanja?.sound || item.sound, // 두음법칙 적용음 우선
+          originalSound: item.originalSound || dbHanja?.sound || item.sound,
           level: dbHanja?.level || item.level,
-          examples: dbHanja?.example_words || [] // 1,800자 시딩에서 넣은 예시 단어 3개
+          examples: dbHanja?.example_words || []
         };
       })
     );

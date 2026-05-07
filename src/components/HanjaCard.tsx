@@ -10,6 +10,7 @@ interface HanjaData {
   char: string;
   meaning: string;
   sound: string;
+  originalSound?: string;
   level: string;
   examples?: { word: string; hanja: string }[];
 }
@@ -27,7 +28,7 @@ export default function HanjaCard({
   word?: string;
   delay?: number;
   onQuiz?: (hanja: string) => void;
-  onWrite?: (char: string, meaning: string, sound: string, isReview: boolean) => void;
+  onWrite?: (char: string, meaning: string, sound: string, originalSound: string | undefined, isReview: boolean) => void;
   onProgressUpdate?: () => void;
   isReviewed?: boolean;
 }) {
@@ -66,7 +67,7 @@ export default function HanjaCard({
 
   const handleWriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onWrite?.(data.char, data.meaning, data.sound, true); // true for isReview
+    onWrite?.(data.char, data.meaning, data.sound, data.originalSound, true); // true for isReview
   };
 
   return (
@@ -91,7 +92,12 @@ export default function HanjaCard({
           <div className="text-6xl font-black text-duo-eel group-hover:scale-110 transition-transform font-myeongjo">{data.char}</div>
           <div className="text-center leading-tight mt-2 flex flex-col items-center">
             <span className="text-lg font-black text-amber-600">{data.meaning}</span>
-            <span className="text-xl font-black text-duo-macaw">{data.sound}</span>
+            <div className="flex flex-col items-center">
+              <span className="text-xl font-black text-duo-macaw">{data.sound}</span>
+              {data.originalSound && data.originalSound !== data.sound && (
+                <span className="text-[10px] font-bold text-duo-wolf opacity-60">(본: {data.originalSound})</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -138,7 +144,12 @@ export default function HanjaCard({
                   <div className="text-8xl font-black text-duo-eel mb-4 drop-shadow-md font-myeongjo">{data.char}</div>
                   <div className="flex flex-col items-center mb-6">
                     <span className="text-3xl font-black text-amber-600 leading-tight">{data.meaning}</span>
-                    <span className="text-4xl font-black text-duo-macaw leading-tight">{data.sound}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-black text-duo-macaw leading-tight">{data.sound}</span>
+                      {data.originalSound && data.originalSound !== data.sound && (
+                        <span className="text-xl font-bold text-duo-wolf opacity-40">(본: {data.originalSound})</span>
+                      )}
+                    </div>
                   </div>
                   
                   <p className="mb-4 text-lg font-black text-duo-macaw animate-bounce bg-blue-50 px-4 py-2 rounded-full border-2 border-blue-100 shadow-sm">
@@ -165,9 +176,14 @@ export default function HanjaCard({
                   <div className="flex flex-col items-center w-full flex-1">
                     <div className="flex flex-col items-center mb-4 w-full">
                       <div className="text-4xl font-black text-duo-eel font-myeongjo mb-1">{data.char}</div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-baseline gap-3">
                         <span className="text-3xl font-black text-amber-600">{data.meaning}</span>
-                        <span className="text-4xl font-black text-duo-macaw">{data.sound}</span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-black text-duo-macaw">{data.sound}</span>
+                          {data.originalSound && data.originalSound !== data.sound && (
+                            <span className="text-xl font-bold text-duo-wolf opacity-40">({data.originalSound})</span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-[10px] font-black text-duo-swan uppercase tracking-[0.2em] mt-1">한자 뜻과 음</div>
                     </div>

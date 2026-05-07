@@ -10,12 +10,13 @@ interface WritingModalProps {
   char: string;
   meaning: string;
   sound: string;
+  originalSound?: string;
   isOpen: boolean;
   onClose: () => void;
   onComplete?: () => void;
 }
 
-export default function WritingModal({ char, meaning, sound, isOpen, onClose, onComplete }: WritingModalProps) {
+export default function WritingModal({ char, meaning, sound, originalSound, isOpen, onClose, onComplete }: WritingModalProps) {
   const targetRef = useRef<HTMLDivElement>(null);
   const [writer, setWriter] = useState<HanziWriter | null>(null);
   const [isComplete, setIsComplete] = useState(false);
@@ -160,7 +161,15 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
             <div className="w-full flex justify-between items-center mb-4">
               <div className="text-left">
                 <h2 className="text-5xl font-black text-duo-eel font-myeongjo mb-1">{char}</h2>
-                <p className="text-2xl font-black text-amber-600">{meaning} <span className="text-duo-macaw">{sound}</span></p>
+                <div className="flex items-baseline gap-3">
+                  <p className="text-2xl font-black text-amber-600">{meaning}</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-black text-duo-macaw">{sound}</p>
+                    {originalSound && originalSound !== sound && (
+                      <p className="text-sm font-bold text-duo-wolf opacity-40">(본: {originalSound})</p>
+                    )}
+                  </div>
+                </div>
               </div>
               {!isReviewFinished && (
                 <button 

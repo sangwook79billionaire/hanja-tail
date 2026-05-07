@@ -63,7 +63,7 @@ export default function HomePage() {
   const [currentStage, setCurrentStage] = useState<number>(8);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, isReview?: boolean} | null>(null);
+  const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, originalSound?: string, isReview?: boolean} | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
   const [practicedChars, setPracticedChars] = useState<Set<string>>(new Set());
@@ -247,6 +247,7 @@ export default function HomePage() {
           char: firstHanja.char,
           meaning: firstHanja.meaning,
           sound: firstHanja.sound,
+          originalSound: firstHanja.originalSound,
           isReview: true // 복습 여부 플래그
         });
       }
@@ -436,7 +437,7 @@ export default function HomePage() {
                         word={currentSearchedWord || undefined}
                         delay={idx * 0.1}
                         onQuiz={(h) => handleRequestQuiz(h)}
-                        onWrite={(char, meaning, sound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, isReview })}
+                        onWrite={(char, meaning, sound, originalSound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, originalSound, isReview })}
                         onProgressUpdate={() => fetchDailyHistory()}
                         isReviewed={practicedChars.has(hanja.char) || (dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}
                       />
@@ -585,6 +586,7 @@ export default function HomePage() {
           char={selectedHanjaForWriting?.char || ""}
           meaning={selectedHanjaForWriting?.meaning || ""}
           sound={selectedHanjaForWriting?.sound || ""}
+          originalSound={selectedHanjaForWriting?.originalSound}
           isOpen={!!selectedHanjaForWriting}
           onClose={() => setSelectedHanjaForWriting(null)}
           onComplete={async () => {
