@@ -97,9 +97,16 @@ export async function analyzeWord(word: string) {
           { "word": "한글단어", "hanja": "한자조합", "description": "아이들이 이해하기 쉬운 짧은 뜻풀이" }
         ],
         "correctedWord": "string",
+        "difficultyLevel": number (1: Basic/1-2 Grade, 2: Intermediate/3-4 Grade, 3: Advanced/5-6 Grade or Middle),
         "hanjaList": [{ "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }],
         "expansions": [
-          { "word": "유의어/반의어", "hanja": "한자조합", "type": "synonym|antonym|related", "description": "아이들에게 친절하고 따뜻한 설명 (절대 '1단계 이웃', '관계성' 같은 딱딱한 전문 용어를 쓰지 마세요!)" }
+          { 
+            "word": "유의어/반의어", 
+            "hanja": "한자조합", 
+            "type": "synonym|antonym|related", 
+            "description": "설명",
+            "difficultyLevel": number
+          }
         ]
       }
     `;
@@ -177,6 +184,7 @@ export async function analyzeWord(word: string) {
           word: exp.word,
           hanja_combination: exp.hanja,
           description: exp.description,
+          difficulty_level: exp.difficultyLevel || data.difficultyLevel || 1,
           is_verified: false // AI 생성형이므로 나중에 검증 필요
         }, { onConflict: 'word' }).then();
       }
@@ -188,7 +196,8 @@ export async function analyzeWord(word: string) {
       isLoanword: data.isLoanword || false,
       expansions: data.expansions || [],
       isAmbiguous: data.isAmbiguous || false,
-      candidates: data.candidates || []
+      candidates: data.candidates || [],
+      difficultyLevel: data.difficultyLevel || 1
     };
 
     await supabase.from("word_analysis_cache").upsert({
@@ -505,6 +514,7 @@ export async function getLearningRecap() {
 
     interface AnalysisResult {
       hanjaList?: { char: string; meaning: string }[];
+      difficultyLevel?: number;
     }
 
     const allLogsWithMeta = await Promise.all(allLogs.map(async (log) => {
@@ -518,7 +528,8 @@ export async function getLearningRecap() {
       return {
         ...log,
         hanja: log.hanja || (analysis?.hanjaList ? analysis.hanjaList.map(h => h.char).join('') : undefined),
-        meaning: analysis?.hanjaList ? analysis.hanjaList.map(h => h.meaning).join(', ') : undefined
+        meaning: analysis?.hanjaList ? analysis.hanjaList.map(h => h.meaning).join(', ') : undefined,
+        difficulty: analysis?.difficultyLevel || 1
       };
     }));
 
