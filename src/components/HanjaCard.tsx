@@ -159,32 +159,33 @@ export default function HanjaCard({
 
                 {/* Back Detail */}
                 <div 
-                  className="absolute w-full h-full backface-hidden bg-white border-[4px] border-duo-snow rounded-[40px] shadow-2xl flex flex-col items-center justify-between p-8"
+                  className="absolute w-full h-full backface-hidden bg-white border-[4px] border-duo-snow rounded-[40px] shadow-2xl flex flex-col items-center p-8 overflow-y-auto scrollbar-hide"
                   style={{ transform: "rotateY(180deg) translateZ(1px)" }}
                 >
-                  <div className="flex flex-col items-center w-full">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-3xl font-black text-duo-eel font-myeongjo">{data.char}</span>
-                      <div className="flex flex-col items-start">
-                        <span className="text-[10px] font-black text-duo-swan uppercase tracking-widest leading-none">한자 뜻과 음</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-lg font-black text-amber-600">{data.meaning}</span>
-                          <span className="text-lg font-black text-duo-macaw">{data.sound}</span>
-                        </div>
+                  <div className="flex flex-col items-center w-full flex-1">
+                    <div className="flex flex-col items-center mb-4 w-full">
+                      <div className="text-4xl font-black text-duo-eel font-myeongjo mb-1">{data.char}</div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl font-black text-amber-600">{data.meaning}</span>
+                        <span className="text-4xl font-black text-duo-macaw">{data.sound}</span>
                       </div>
+                      <div className="text-[10px] font-black text-duo-swan uppercase tracking-[0.2em] mt-1">한자 뜻과 음</div>
                     </div>
-                    <div className="text-[10px] font-black text-duo-wolf/60 mb-4 uppercase tracking-[0.2em]">— 획순 따라가기 —</div>
-                    <div ref={writerRef} className="w-[140px] h-[140px] mb-6 bg-duo-snow/30 rounded-3xl p-2 border-2 border-duo-snow shadow-inner relative"></div>
+                    
+                    <div className="w-full bg-duo-snow/30 rounded-3xl p-4 border-2 border-duo-snow mb-4 flex flex-col items-center relative">
+                      <div className="absolute top-2 left-4 text-[8px] font-black text-duo-wolf/40 uppercase tracking-widest">획순 따라가기</div>
+                      <div ref={writerRef} className="w-[120px] h-[120px]"></div>
+                    </div>
                     
                     {data.examples && data.examples.length > 0 && (
-                      <div className="w-full border-t-2 border-duo-snow pt-4">
-                        <div className="flex items-center justify-center gap-2 mb-3">
-                          <Sparkles className="w-4 h-4 text-duo-bee" />
-                          <p className="text-sm font-black text-duo-eel uppercase tracking-tight">활용 단어</p>
+                      <div className="w-full mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="w-3 h-3 text-duo-bee" />
+                          <p className="text-[10px] font-black text-duo-eel uppercase tracking-tight">이 한자가 들어간 단어</p>
                         </div>
-                        <div className="flex flex-col gap-2">
-                          {data.examples.slice(0, 3).map((ex, i) => (
-                            <div key={i} className="flex justify-between items-center bg-duo-snow/50 px-4 py-2 rounded-2xl text-sm font-bold">
+                        <div className="flex flex-col gap-1.5">
+                          {data.examples.slice(0, 2).map((ex, i) => (
+                            <div key={i} className="flex justify-between items-center bg-duo-snow/30 px-3 py-1.5 rounded-xl text-xs font-bold border border-duo-snow/50">
                               <span className="text-duo-eel">{ex.word}</span>
                               <span className="text-duo-macaw font-black">{ex.hanja}</span>
                             </div>
@@ -194,27 +195,28 @@ export default function HanjaCard({
                     )}
                   </div>
 
-                  <div className="flex gap-3 w-full mt-6">
+                  <div className="flex flex-col gap-3 w-full mt-auto">
                     <button 
                       onClick={handleWriteClick}
-                      className="flex-1 flex flex-col items-center justify-center bg-duo-snow text-duo-eel h-16 rounded-2xl border-2 border-duo-swan hover:bg-duo-swan transition-all shadow-sm group"
+                      className="w-full flex items-center justify-between bg-duo-macaw text-white h-14 px-6 rounded-2xl shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all group"
                     >
-                      <div className="flex items-center gap-2 font-black text-base">
-                        <Edit3 className="w-5 h-5" /> 써보기
+                      <div className="flex items-center gap-3 font-black text-lg">
+                        <Edit3 className="w-6 h-6" /> 따라 써보기
                       </div>
-                      <div className="text-[10px] font-black text-duo-green">+0.5 POINT</div>
+                      <div className="bg-white/20 px-2 py-0.5 rounded-lg text-[10px] font-black">+0.5 POINT</div>
                     </button>
+                    
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         onQuiz?.(data.char);
                       }}
-                      className="flex-1 flex flex-col items-center justify-center bg-duo-bee text-white h-16 rounded-2xl shadow-[0_5px_0_0_#e5a500] hover:translate-y-[1px] hover:shadow-[0_3px_0_0_#e5a500] active:translate-y-[3px] active:shadow-none transition-all"
+                      className="w-full flex items-center justify-between bg-duo-bee text-white h-14 px-6 rounded-2xl shadow-[0_4px_0_0_#e5a500] active:translate-y-1 active:shadow-none transition-all"
                     >
-                      <div className="flex items-center gap-2 font-black text-sm">
-                        <Trophy className="w-5 h-5" /> 연관 단어 꼬리물기
+                      <div className="flex items-center gap-3 font-black text-lg">
+                        <Trophy className="w-6 h-6" /> 연관 단어 퀴즈
                       </div>
-                      <div className="text-[10px] font-black text-white/90">+1.0 POINT</div>
+                      <div className="bg-white/20 px-2 py-0.5 rounded-lg text-[10px] font-black">+1.0 POINT</div>
                     </button>
                   </div>
                 </div>
