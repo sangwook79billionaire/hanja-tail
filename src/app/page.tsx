@@ -13,6 +13,7 @@ import QuestMap from "@/components/QuestMap";
 import LearningMindMap from "@/components/LearningMindMap";
 import { AnimatePresence, motion } from "framer-motion";
 import AuthModal from "@/components/AuthModal";
+import RequiredInfoModal from "@/components/RequiredInfoModal";
 import { createClient } from "@/lib/supabase/client";
 import CharacterView from "@/components/CharacterView";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -63,6 +64,7 @@ export default function HomePage() {
   const [currentStage, setCurrentStage] = useState<number>(8);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [showRequiredInfoModal, setShowRequiredInfoModal] = useState(false);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, originalSound?: string, isReview?: boolean} | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
@@ -126,6 +128,11 @@ export default function HomePage() {
       setCurrentStage(profile.current_stage || 8);
       setIsAdmin(!!profile.is_admin);
       setTotalScore(profile.total_score || 0);
+      
+      // [추가] 학교나 학년 정보가 없으면 필수 정보 입력 모달 띄우기
+      if (!profile.school || !profile.grade) {
+        setShowRequiredInfoModal(true);
+      }
     }
   }, []);
 
@@ -596,6 +603,13 @@ export default function HomePage() {
         )}
         
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <RequiredInfoModal
+          isOpen={showRequiredInfoModal}
+          onComplete={() => {
+            setShowRequiredInfoModal(false);
+            fetchProfile(); // 프로필 다시 불러오기
+          }}
+        />
         <InviteModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} />
         <WritingModal
           char={selectedHanjaForWriting?.char || ""}

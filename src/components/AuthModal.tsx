@@ -139,9 +139,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   />
                 </div>
 
-                {isSignUp && !IS_BETA_MODE && (
+                {isSignUp && (
                   <>
-                    <div className="relative">
+                    <div className="relative col-span-1 sm:col-span-2">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-duo-wolf" />
                       <input
                         type="text"
@@ -149,17 +149,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         className="w-full pl-12 pr-4 py-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-bold focus:border-duo-green outline-none transition-colors"
                         value={nickname}
                         onChange={(e) => setNickname(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="relative">
-                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-duo-wolf" />
-                      <input
-                        type="text"
-                        placeholder="거주 지역 (예: 서울시)"
-                        className="w-full pl-12 pr-4 py-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-bold focus:border-duo-green outline-none transition-colors"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
                         required
                       />
                     </div>
@@ -186,6 +175,17 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                           <option key={g} value={g}>{g}학년</option>
                         ))}
                       </select>
+                    </div>
+                    <div className="relative col-span-1 sm:col-span-2">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-duo-wolf" />
+                      <input
+                        type="text"
+                        placeholder="거주 지역 (예: 서울시)"
+                        className="w-full pl-12 pr-4 py-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-bold focus:border-duo-green outline-none transition-colors"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        required
+                      />
                     </div>
                   </>
                 )}
