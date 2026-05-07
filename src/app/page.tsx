@@ -178,7 +178,7 @@ export default function HomePage() {
   };
 
 
-  const handleAnalyze = async (searchWord: string, isFromExpansion = false) => {
+  const handleAnalyze = async (searchWord: string, isFromExpansion = false, autoOpenFirst = false) => {
     setIsLoading(true);
     setAnalyzedHanja([]); // 기존 데이터 초기화
 
@@ -207,6 +207,18 @@ export default function HomePage() {
       } else {
         setAnalyzedHanja(result.hanjaList);
         setCurrentSearchedWord(searchWord.trim());
+        
+        // [추가] autoOpenFirst가 true면 첫 번째 한자 쓰기 모달 바로 열기
+        if (autoOpenFirst && result.hanjaList.length > 0) {
+          const first = result.hanjaList[0];
+          setSelectedHanjaForWriting({
+            char: first.char,
+            meaning: first.meaning,
+            sound: first.sound,
+            originalSound: first.originalSound,
+            isReview: false
+          });
+        }
         
         // 겹쳐진 단어(이미 오늘 써본 한자)는 자동으로 완료 처리
         // 현재 세션의 practicedChars가 누적되고 있으므로, 
@@ -568,7 +580,7 @@ export default function HomePage() {
             quiz={currentQuiz}
             onSuccess={(solvedWord) => {
               setWord(solvedWord);
-              handleAnalyze(solvedWord, true); 
+              handleAnalyze(solvedWord, true, true); // 세 번째 인자 autoOpenFirst=true
               setTimeout(() => { setSelectedHanjaForQuiz(null); setCurrentQuiz(null); }, 1500);
             }}
             onClose={() => { setSelectedHanjaForQuiz(null); setCurrentQuiz(null); }}
