@@ -10,7 +10,8 @@ import {
   getMonitoringLogs, 
   bulkVerifyWords, 
   bulkDeleteWords,
-  updateWord
+  updateWord,
+  runBatchGeneration
 } from "../actions";
 import { 
   Users, 
@@ -71,6 +72,8 @@ export default function AdminDashboard() {
   const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
   const [editingWord, setEditingWord] = useState<UnverifiedWord | null>(null);
   const [activeTab, setActiveTab] = useState<'queue' | 'logs'>('queue');
+  const [batchResults, setBatchResults] = useState<string[]>([]);
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -184,6 +187,23 @@ export default function AdminDashboard() {
     setActionLoading(null);
   };
 
+  const handleBatchGenerate = async () => {
+    if (!confirm("AI가 지식 창고를 확장하도록 하시겠습니까?\n(약 10~20초 소요, 한자 5개 분량)")) return;
+    setIsBatchGenerating(true);
+    setBatchResults([]);
+    
+    const res = await runBatchGeneration(5);
+    if (res.success) {
+      setBatchResults(res.details || []);
+      const s = await getAdminStats();
+      setStats(s as AdminStats);
+      alert(res.message);
+    } else {
+      alert("오류: " + res.error);
+    }
+    setIsBatchGenerating(false);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
@@ -248,6 +268,66 @@ export default function AdminDashboard() {
             <StatCard icon={<Database className="text-purple-500" />} label="퀴즈 뱅크" value={stats.bankCount} color="purple" />
             <StatCard icon={<Sparkles className="text-orange-500" />} label="AI 캐시" value={stats.cacheCount} color="orange" />
           </div>
+        )}
+
+        {/* Database Growth Control */}
+        <div className="mb-12 bg-gradient-to-br from-duo-macaw to-blue-600 rounded-[40px] p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex-1">
+            <h2 className="text-2xl font-black mb-2 flex items-center gap-3">
+              <Sparkles className="w-8 h-8 text-yellow-300 fill-yellow-300" /> 
+              지식 창고 자가 증식
+            </h2>
+            <p className="text-white/80 font-bold max-w-xl">
+              AI가 아직 단어가 부족한 한자들을 찾아내어 스스로 새로운 학습 콘텐츠를 생성합니다. 
+              지속적인 실행을 통해 한자 꼬리의 세계를 무한히 확장할 수 있습니다.
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-4">
+            <button 
+              disabled={isBatchGenerating}
+              onClick={handleBatchGenerate}
+              className={cn(
+                "px-8 py-5 bg-white text-duo-macaw rounded-[24px] font-black text-xl shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-3",
+                isBatchGenerating && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              {isBatchGenerating ? (
+                <>
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  생성 중...
+                </>
+              ) : (
+                <>
+                  <Database className="w-6 h-6" />
+                  자가 증식 실행 (+5개 한자)
+                </>
+              )}
+            </button>
+            {batchResults.length > 0 && (
+              <p className="text-[10px] font-black text-white/60 uppercase tracking-widest animate-pulse">
+                최근 완료: {batchResults.length}개 단어 추가됨
+              </p>
+            )}
+          </div>
+        </div>
+
+        {batchResults.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12 bg-white border-3 border-duo-green/30 rounded-[32px] p-6 shadow-sm"
+          >
+            <h3 className="text-sm font-black text-duo-green mb-4 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" /> 방금 추가된 단어들:
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {batchResults.map((r, i) => (
+                <div key={i} className="px-4 py-2 bg-duo-green/5 rounded-xl text-xs font-bold text-duo-green-dark border border-duo-green/10">
+                  {r}
+                </div>
+              ))}
+            </div>
+          </motion.div>
         )}
 
         {activeTab === 'queue' ? (

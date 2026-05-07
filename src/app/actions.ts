@@ -820,3 +820,35 @@ export async function updateWord(originalWord: string, newData: { word: string; 
   if (error) return { error: error.message };
   return { success: true };
 }
+
+export async function runBatchGeneration(limit = 5) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  try {
+    const { data: allHanja } = await supabase.from('hanja_master').select('hanja, meaning, sound').limit(100);
+    const selectedHanja = (allHanja || []).sort(() => Math.random() - 0.5).slice(0, limit);
+    
+    let totalGenerated = 0;
+    const results = [];
+
+    for (const h of selectedHanja) {
+      const res = await generateQuiz(h.hanja); 
+      if (res.quiz) {
+        totalGenerated++;
+        results.push(`${h.hanja}(${h.meaning}) -> ${res.quiz.word}`);
+      }
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    return { 
+      success: true, 
+      message: `${totalGenerated}개의 새로운 단어가 지식 창고에 추가되었습니다!`,
+      details: results
+    };
+  } catch (error) {
+    console.error("Batch Generation Error:", error);
+    return { error: "일괄 생성 중 오류가 발생했습니다." };
+  }
+}
