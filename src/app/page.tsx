@@ -179,6 +179,9 @@ export default function HomePage() {
 
 
   const handleAnalyze = async (searchWord: string, isFromExpansion = false) => {
+    setIsLoading(true);
+    setAnalyzedHanja([]); // 기존 데이터 초기화
+
     if ((recapData?.today?.count || 0) >= 5 && !isFromExpansion) {
       alert("오늘의 신규 한자 학습량(5개)을 모두 채웠어요! 여의주를 더 모으려면 복습을 해보세요. ✨");
       setIsLoading(false);

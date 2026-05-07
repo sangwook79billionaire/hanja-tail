@@ -225,6 +225,7 @@ export default function HanjaCard({
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
+                        setIsExpanded(false); // 퀴즈 시작 전 모달 닫기
                         onQuiz?.(data.char);
                       }}
                       className="w-full flex items-center justify-between bg-duo-bee text-white h-14 px-4 rounded-2xl shadow-[0_4px_0_0_#e5a500] active:translate-y-1 active:shadow-none transition-all"
