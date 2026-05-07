@@ -22,6 +22,7 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isReviewFinished, setIsReviewFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasPlayedDemo, setHasPlayedDemo] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -59,6 +60,7 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
             onComplete: () => {
               if (!active || !writerInstance) return;
               setIsDemoMode(false);
+              setHasPlayedDemo(true);
 
               // 2단계: 직접 써보기 시작
               writerInstance.quiz({
@@ -157,8 +159,8 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
           >
             <div className="w-full flex justify-between items-center mb-4">
               <div className="text-left">
-                <h2 className="text-3xl font-black text-duo-eel">{char}</h2>
-                <p className="text-sm font-bold text-duo-wolf">{meaning} {sound}</p>
+                <h2 className="text-5xl font-black text-duo-eel font-myeongjo mb-1">{char}</h2>
+                <p className="text-2xl font-black text-amber-600">{meaning} <span className="text-duo-macaw">{sound}</span></p>
               </div>
               {!isReviewFinished && (
                 <button 
@@ -199,7 +201,7 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
 
                 {isDemoMode && (
                   <div className="absolute top-4 left-4 bg-duo-macaw text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse z-10">
-                    획순 다시보기 중...
+                    {hasPlayedDemo ? "획순 다시보기 중..." : "획순 보기 중..."}
                   </div>
                 )}
 
@@ -228,9 +230,10 @@ export default function WritingModal({ char, meaning, sound, isOpen, onClose, on
               <button
                 onClick={handleAnimate}
                 disabled={isLoading || isReviewFinished}
-                className="flex items-center justify-center gap-2 py-3 px-4 bg-white border-2 border-duo-swan rounded-2xl font-black text-duo-wolf hover:bg-duo-snow transition-all disabled:opacity-50"
+                className="flex items-center justify-center gap-2 py-3 px-4 bg-white border-2 border-duo-swan rounded-2xl font-black text-duo-eel hover:bg-duo-snow transition-all disabled:opacity-50"
               >
-                <Play className="w-5 h-5 fill-current" /> 순서 보기
+                <Play className="w-5 h-5 fill-current" />
+                {hasPlayedDemo ? "획순 다시보기" : "획순 보기"}
               </button>
               <button
                 onClick={handleReset}
