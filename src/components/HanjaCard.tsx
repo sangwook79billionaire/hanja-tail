@@ -214,12 +214,12 @@ export default function HanjaCard({
                   <div className="flex flex-col gap-3 w-full mt-auto">
                     <button 
                       onClick={handleWriteClick}
-                      className="w-full flex items-center justify-between bg-duo-macaw text-white h-14 px-6 rounded-2xl shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all group"
+                      className="w-full flex items-center justify-between bg-duo-macaw text-white h-14 px-4 rounded-2xl shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all group"
                     >
-                      <div className="flex items-center gap-3 font-black text-lg">
-                        <Edit3 className="w-6 h-6" /> 따라 써보기
+                      <div className="flex items-center gap-2 font-black text-base whitespace-nowrap">
+                        <Edit3 className="w-5 h-5" /> 따라 써보기
                       </div>
-                      <div className="bg-white/20 px-2 py-0.5 rounded-lg text-[10px] font-black">+0.5 POINT</div>
+                      <div className="bg-white/20 px-2 py-0.5 rounded-lg text-[9px] font-black shrink-0">+0.5 POINT</div>
                     </button>
                     
                     <button 
@@ -227,12 +227,12 @@ export default function HanjaCard({
                         e.stopPropagation();
                         onQuiz?.(data.char);
                       }}
-                      className="w-full flex items-center justify-between bg-duo-bee text-white h-14 px-6 rounded-2xl shadow-[0_4px_0_0_#e5a500] active:translate-y-1 active:shadow-none transition-all"
+                      className="w-full flex items-center justify-between bg-duo-bee text-white h-14 px-4 rounded-2xl shadow-[0_4px_0_0_#e5a500] active:translate-y-1 active:shadow-none transition-all"
                     >
-                      <div className="flex items-center gap-3 font-black text-lg">
-                        <Trophy className="w-6 h-6" /> 연관 단어 퀴즈
+                      <div className="flex items-center gap-2 font-black text-base whitespace-nowrap">
+                        <Trophy className="w-5 h-5" /> 연관 단어 퀴즈
                       </div>
-                      <div className="bg-white/20 px-2 py-0.5 rounded-lg text-[10px] font-black">+1.0 POINT</div>
+                      <div className="bg-white/20 px-2 py-0.5 rounded-lg text-[9px] font-black shrink-0">+1.0 POINT</div>
                     </button>
                   </div>
                 </div>
