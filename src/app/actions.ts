@@ -951,3 +951,30 @@ export async function runBatchGeneration(limit = 5) {
     return { error: "일괄 생성 중 오류가 발생했습니다." };
   }
 }
+export async function searchSchools(keyword: string) {
+  if (!keyword || keyword.trim().length < 2) return [];
+
+  const API_KEY = process.env.NEIS_API_KEY;
+  const url = `https://open.neis.go.kr/hub/schoolInfo?KEY=${API_KEY || ""}&Type=json&pIndex=1&pSize=20&SCHUL_NM=${encodeURIComponent(keyword)}&SCHUL_KND_SC_NM=${encodeURIComponent("초등학교")}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.schoolInfo) {
+      const schools = data.schoolInfo[1].row.map((item: any) => ({
+        name: item.SCHUL_NM,
+        address: item.ORG_RDNMA || item.ORG_LNMADR,
+        code: item.SD_SCHUL_CODE,
+        region: item.ATPT_OFCDC_SC_NM
+      }));
+      return schools;
+    }
+    
+    // API 키가 없어도 샘플 데이터(5건)는 나옴
+    return [];
+  } catch (error) {
+    console.error("School Search API Error:", error);
+    return [];
+  }
+}

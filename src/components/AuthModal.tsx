@@ -1,15 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Lock, UserPlus, LogIn, Sparkles, School, GraduationCap, MapPin, User } from "lucide-react";
-import { updateProfile } from "@/app/actions";
+import { X, Mail, Lock, UserPlus, LogIn, Sparkles, School, GraduationCap, MapPin, User, Search, Loader2 } from "lucide-react";
+import { updateProfile, searchSchools } from "@/app/actions";
 import Image from "next/image";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface SchoolItem {
+  name: string;
+  address: string;
+  code: string;
+  region: string;
 }
 
 const IS_BETA_MODE = true; // 베타 기간 동안은 이메일 가입만 활성화
@@ -28,7 +35,31 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [agreedMarketing, setAgreedMarketing] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<SchoolItem[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
   const supabase = createClient();
+
+  // 학교 검색 핸들러
+  useEffect(() => {
+    if (!isSignUp) return;
+
+    const timer = setTimeout(async () => {
+      if (school.trim().length >= 2 && !searchResults.some(s => s.name === school)) {
+        setIsSearching(true);
+        const results = await searchSchools(school);
+        setSearchResults(results);
+        setShowDropdown(results.length > 0);
+        setIsSearching(false);
+      } else {
+        setSearchResults([]);
+        setShowDropdown(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [school, isSignUp]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +114,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const selectSchool = (selected: SchoolItem) => {
+    setSchool(selected.name);
+    if (!city) setCity(selected.region); // 지역 정보 자동 입력
+    setShowDropdown(false);
+    setSearchResults([]);
   };
 
   return (
@@ -153,15 +191,52 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       />
                     </div>
                     <div className="relative">
-                      <School className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-duo-wolf" />
-                      <input
-                        type="text"
-                        placeholder="학교 이름"
-                        className="w-full pl-12 pr-4 py-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-bold focus:border-duo-green outline-none transition-colors"
-                        value={school}
-                        onChange={(e) => setSchool(e.target.value)}
-                        required
-                      />
+                      <div className="relative group">
+                        <School className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-duo-wolf group-focus-within:text-duo-green transition-colors" />
+                        <input
+                          type="text"
+                          placeholder="학교 이름 검색"
+                          className="w-full pl-12 pr-10 py-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-bold focus:border-duo-green outline-none transition-colors"
+                          value={school}
+                          onChange={(e) => setSchool(e.target.value)}
+                          onFocus={() => school.length >= 2 && searchResults.length > 0 && setShowDropdown(true)}
+                          required
+                          autoComplete="off"
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {isSearching ? (
+                            <Loader2 className="w-4 h-4 text-duo-green animate-spin" />
+                          ) : (
+                            <Search className="w-4 h-4 text-duo-swan" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 자동완성 드롭다운 */}
+                      <AnimatePresence>
+                        {showDropdown && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute z-50 left-0 right-0 mt-2 bg-white border-2 border-duo-snow rounded-2xl shadow-xl overflow-hidden max-h-48 overflow-y-auto"
+                          >
+                            {searchResults.map((s, idx) => (
+                              <button
+                                key={`${s.code}-${idx}`}
+                                type="button"
+                                onClick={() => selectSchool(s)}
+                                className="w-full text-left px-4 py-3 hover:bg-duo-snow transition-colors border-b last:border-0 border-duo-snow group"
+                              >
+                                <div className="font-black text-xs text-duo-eel group-hover:text-duo-green transition-colors">{s.name}</div>
+                                <div className="text-[10px] text-duo-wolf mt-0.5 truncate">
+                                  [{s.region}] {s.address}
+                                </div>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                     <div className="relative">
                       <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-duo-wolf" />
@@ -216,7 +291,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || (isSignUp && isSearching)}
                 className="w-full py-5 bg-duo-green text-white font-black text-xl rounded-2xl border-b-4 border-green-700 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-2 mt-6 shadow-sm"
               >
                 {isLoading ? (
@@ -265,3 +340,4 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     </AnimatePresence>
   );
 }
+

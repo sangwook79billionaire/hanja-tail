@@ -1,19 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { School, GraduationCap, Sparkles, Send } from "lucide-react";
-import { updateProfile } from "@/app/actions";
+import { School, GraduationCap, Sparkles, Send, Search, Loader2, MapPin } from "lucide-react";
+import { updateProfile, searchSchools } from "@/app/actions";
+import { cn } from "@/lib/utils";
 
 interface RequiredInfoModalProps {
   isOpen: boolean;
   onComplete: () => void;
 }
 
+interface SchoolItem {
+  name: string;
+  address: string;
+  code: string;
+  region: string;
+}
+
 export default function RequiredInfoModal({ isOpen, onComplete }: RequiredInfoModalProps) {
   const [school, setSchool] = useState("");
   const [grade, setGrade] = useState("1");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<SchoolItem[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // 학교 검색 핸들러
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (school.trim().length >= 2 && !searchResults.some(s => s.name === school)) {
+        setIsSearching(true);
+        const results = await searchSchools(school);
+        setSearchResults(results);
+        setShowDropdown(results.length > 0);
+        setIsSearching(false);
+      } else {
+        setSearchResults([]);
+        setShowDropdown(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [school]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +70,12 @@ export default function RequiredInfoModal({ isOpen, onComplete }: RequiredInfoMo
     }
   };
 
+  const selectSchool = (selected: SchoolItem) => {
+    setSchool(selected.name);
+    setShowDropdown(false);
+    setSearchResults([]);
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -63,15 +98,53 @@ export default function RequiredInfoModal({ isOpen, onComplete }: RequiredInfoMo
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="relative">
-                <School className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-duo-wolf" />
-                <input
-                  type="text"
-                  placeholder="학교 이름"
-                  className="w-full pl-12 pr-4 py-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-bold focus:border-duo-green outline-none transition-colors"
-                  value={school}
-                  onChange={(e) => setSchool(e.target.value)}
-                  required
-                />
+                <div className="relative group">
+                  <School className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-duo-wolf group-focus-within:text-duo-green transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="학교 이름 검색 (예: 서울초)"
+                    className="w-full pl-12 pr-12 py-4 bg-duo-snow border-2 border-duo-swan rounded-2xl font-bold focus:border-duo-green outline-none transition-colors"
+                    value={school}
+                    onChange={(e) => setSchool(e.target.value)}
+                    onFocus={() => school.length >= 2 && searchResults.length > 0 && setShowDropdown(true)}
+                    required
+                    autoComplete="off"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    {isSearching ? (
+                      <Loader2 className="w-5 h-5 text-duo-green animate-spin" />
+                    ) : (
+                      <Search className="w-5 h-5 text-duo-swan" />
+                    )}
+                  </div>
+                </div>
+
+                {/* 자동완성 드롭다운 */}
+                <AnimatePresence>
+                  {showDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute z-50 left-0 right-0 mt-2 bg-white border-2 border-duo-snow rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto"
+                    >
+                      {searchResults.map((s, idx) => (
+                        <button
+                          key={`${s.code}-${idx}`}
+                          type="button"
+                          onClick={() => selectSchool(s)}
+                          className="w-full text-left px-5 py-3 hover:bg-duo-snow transition-colors border-b last:border-0 border-duo-snow group"
+                        >
+                          <div className="font-black text-duo-eel group-hover:text-duo-green transition-colors">{s.name}</div>
+                          <div className="flex items-center gap-1 text-[10px] text-duo-wolf mt-1">
+                            <MapPin className="w-3 h-3" />
+                            <span>[{s.region}] {s.address}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="relative">
@@ -90,7 +163,7 @@ export default function RequiredInfoModal({ isOpen, onComplete }: RequiredInfoMo
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isSearching}
                 className="w-full py-5 bg-duo-green text-white font-black text-xl rounded-2xl border-b-4 border-green-700 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-2 mt-6 shadow-sm disabled:opacity-50"
               >
                 {isLoading ? "저장 중..." : <><Send className="w-6 h-6" /> 정보 저장하고 시작하기</>}
