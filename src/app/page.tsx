@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Trophy, Map as MapIcon, Info, UserPlus } from "lucide-react";
+import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, updateProfile, logLearning } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
-import InviteModal from "@/components/InviteModal";
 import QuestMap from "@/components/QuestMap";
 import LearningMindMap from "@/components/LearningMindMap";
 import { AnimatePresence, motion } from "framer-motion";
@@ -42,6 +41,7 @@ interface PeriodStats {
 
 interface StatsData {
   today: PeriodStats;
+  missionProgress: number;
   weekly: PeriodStats;
   monthly: PeriodStats;
   total: PeriodStats;
@@ -52,23 +52,24 @@ export default function HomePage() {
   const [word, setWord] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [analyzedHanja, setAnalyzedHanja] = useState<HanjaData[]>([]);
-  const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
-  const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
   const [recapData, setRecapData] = useState<StatsData | null>(null);
   const [currentSearchedWord, setCurrentSearchedWord] = useState<string | null>(null);
   const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
+  const [streakCount, setStreakCount] = useState(0);
+  const [coupons, setCoupons] = useState(0);
+  const [missionProgress, setMissionProgress] = useState(0);
   const [hasAwardedTrophy, setHasAwardedTrophy] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
   const [currentStage, setCurrentStage] = useState<number>(8);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [showRequiredInfoModal, setShowRequiredInfoModal] = useState(false);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, originalSound?: string, isReview?: boolean} | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
   const [practicedChars, setPracticedChars] = useState<Set<string>>(new Set());
+  const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
+  const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
 
   const supabase = createClient();
   const trophyGoal = 5;
@@ -112,6 +113,7 @@ export default function HomePage() {
 
       if (result.stats) {
         setRecapData(result.stats as unknown as StatsData);
+        setMissionProgress(result.stats.missionProgress || 0);
       }
 
       if (uniqueLogs.length >= trophyGoal && !hasAwardedTrophy) {
@@ -125,11 +127,11 @@ export default function HomePage() {
     const { profile } = await getMyProfile();
     if (profile) {
       setNickname(profile.nickname);
+      setStreakCount(profile.streak_count || 0);
+      setCoupons(profile.coupons || 0);
       setCurrentStage(profile.current_stage || 8);
-      setIsAdmin(!!profile.is_admin);
       setTotalScore(profile.total_score || 0);
       
-      // [추가] 학교나 학년 정보가 없으면 필수 정보 입력 모달 띄우기
       if (!profile.school || !profile.grade) {
         setShowRequiredInfoModal(true);
       }
@@ -142,11 +144,13 @@ export default function HomePage() {
       fetchDailyHistory();
     } else {
       setNickname(null);
-      setCurrentStage(8);
       setDailyHistory([]);
       setRecapData(null);
+      setStreakCount(0);
+      setCoupons(0);
+      setMissionProgress(0);
+      setCurrentStage(8);
       setTotalScore(0);
-      setIsAdmin(false);
       setHasAwardedTrophy(false);
       setShowTrophyCelebration(false);
     }
@@ -171,23 +175,9 @@ export default function HomePage() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  const handleUpdateNickname = async () => {
-    const newName = prompt("멋진 탐험가 이름을 정해볼까요?", nickname || "");
-    if (newName && newName.trim()) {
-      const result = await updateProfile({ nickname: newName.trim() });
-      if (result.success) {
-        setNickname(newName.trim());
-        alert("와우! 이제부터 " + newName + " 탐험가님이라고 부를게요!");
-      } else if (result.error) {
-        alert("앗! 닉네임을 바꾸지 못했어요: " + result.error);
-      }
-    }
-  };
-
-
   const handleAnalyze = async (searchWord: string, isFromExpansion = false, autoOpenFirst = false) => {
     setIsLoading(true);
-    setAnalyzedHanja([]); // 기존 데이터 초기화
+    setAnalyzedHanja([]);
 
     if ((recapData?.today?.count || 0) >= 5 && !isFromExpansion) {
       alert("오늘의 신규 한자 학습량(5개)을 모두 채웠어요! 여의주를 더 모으려면 복습을 해보세요. ✨");
@@ -250,38 +240,7 @@ export default function HomePage() {
     }
   };
 
-  const handleReview = async (reviewWord: string) => {
-    // 복습 모드: 해당 단어로 바로 검색을 수행하되, 포인트는 쓰기 완료 후에 지급
-    setIsLoading(true);
-    try {
-      const result = await analyzeWord(reviewWord);
-      if (!result.error && !result.isAmbiguous && result.hanjaList.length > 0) {
-        setWord(reviewWord);
-        setAnalyzedHanja(result.hanjaList);
-        setCurrentSearchedWord(reviewWord);
-        setActiveTab('search');
-        
-        // "다시 한 번 써보자!" 안내 후 쓰기 모달 오픈
-        alert("다시 한 번 써보자! ✍️\n쓰기를 완료하면 보너스 점수를 받을 수 있어요.");
-        
-        const firstHanja = result.hanjaList[0];
-        setSelectedHanjaForWriting({
-          char: firstHanja.char,
-          meaning: firstHanja.meaning,
-          sound: firstHanja.sound,
-          originalSound: firstHanja.originalSound,
-          isReview: true // 복습 여부 플래그
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      setWord("");
-      setActiveTab("search");
-      alert("잠시만 기다려 주세요. 메인 화면으로 이동합니다.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,57 +265,64 @@ export default function HomePage() {
     }
   };
 
-  const getGradeName = (stage: number) => {
-    if (stage <= 1) return "천하통일 한자지존";
-    if (stage <= 3) return "명불허전 한자고수";
-    if (stage <= 5) return "승승장구 한자박사";
-    if (stage <= 7) return "일취월장 한자우등생";
-    return "의욕충만 초보탐험가";
-  };
 
   return (
-    <div className="min-h-screen bg-white text-duo-eel flex flex-col font-sans pb-24">
-      {/* Fixed Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-2 border-duo-snow">
-        <div className="max-w-5xl mx-auto px-6 h-24 flex items-center justify-between">
-          <div className="flex flex-col justify-center">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-normal text-duo-eel mb-1 flex items-baseline justify-between w-full px-2">
-              <span className="text-4xl text-duo-macaw">꼬</span>리에 
-              <span className="text-4xl text-duo-macaw">꼬</span>리를 
-              <span className="text-4xl text-duo-macaw">무</span>는 漢字
-            </h1>
-            <div className="flex items-center gap-2 text-xs font-bold text-duo-wolf">
-              <button 
-                onClick={handleUpdateNickname}
-                className="bg-duo-snow px-2 py-0.5 rounded-lg border border-duo-swan hover:bg-duo-swan transition-all"
-              >
-                탐험가 : {nickname || "익명"}
-              </button>
-              <span className="bg-duo-macaw/10 text-duo-macaw px-2 py-0.5 rounded-lg border border-duo-macaw/20">탐험가 등급 : {getGradeName(currentStage)}</span>
+    <main className="min-h-screen bg-white text-duo-eel font-sans pb-24 overflow-x-hidden">
+      <header className="sticky top-0 z-[40] bg-white/90 backdrop-blur-xl border-b-2 border-duo-snow px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-5">
+          <div className="relative group">
+            <motion.div 
+              animate={{ 
+                scale: streakCount > 0 ? [1, 1.1, 1] : 1,
+                filter: streakCount > 0 ? "drop-shadow(0 0 15px rgba(255, 184, 0, 0.6))" : "none"
+              }}
+              transition={{ repeat: Infinity, duration: 3 }}
+              className={cn(
+                "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-700 relative",
+                streakCount > 0 
+                  ? "bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 border-2 border-white" 
+                  : "bg-duo-snow border-2 border-duo-swan opacity-50 grayscale"
+              )}
+            >
+              <Sparkles className={cn("w-6 h-6", streakCount > 0 ? "text-white" : "text-duo-swan")} />
+              {streakCount > 0 && (
+                <div className="absolute -top-1 -right-1 bg-duo-eel text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white ring-2 ring-amber-400/20">
+                  {streakCount}
+                </div>
+              )}
+            </motion.div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap bg-duo-eel text-white text-[10px] font-bold px-2 py-1 rounded-lg">
+              {streakCount}일 연속 탐험 중!
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {!user ? (
-              <button 
-                onClick={() => setIsAuthModalOpen(true)}
-                className="bg-duo-snow text-duo-eel px-3 py-1.5 rounded-xl font-black text-xs border-b-2 border-duo-swan active:border-b-0 active:translate-y-1 transition-all"
-              >
-                로그인
-              </button>
-            ) : (
-              <button 
-                onClick={() => supabase.auth.signOut()}
-                className="text-[10px] font-black text-duo-swan hover:text-duo-eel bg-duo-snow/50 px-2 py-1 rounded-lg border border-duo-snow transition-all"
-              >
-                로그아웃
-              </button>
-            )}
+          <div className="flex flex-col">
+            <h1 className="text-xl font-black tracking-tight text-duo-eel">한자 테일</h1>
+            <p className="text-[10px] font-black text-duo-macaw uppercase tracking-widest">{nickname || "탐험가"}님 반가워요!</p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="flex items-center gap-2 bg-duo-snow/50 px-3 py-2 rounded-2xl border-2 border-duo-snow"
+          >
+            <div className="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center shadow-inner">
+              <Gift className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[8px] font-black text-duo-wolf uppercase tracking-tighter">쿠폰함</span>
+              <span className="text-xs font-black text-duo-eel leading-none">{coupons}개</span>
+            </div>
+          </motion.div>
+
+          <button onClick={() => setIsAuthModalOpen(true)} className="w-10 h-10 bg-duo-snow rounded-full flex items-center justify-center border-2 border-duo-swan hover:bg-duo-macaw hover:text-white transition-all group">
+            {user ? <User className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
+          </button>
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-6">
+      <div className="max-w-xl mx-auto px-6 pt-8">
         <AnimatePresence mode="wait">
           {activeTab === 'search' && (
             <motion.div 
@@ -364,60 +330,52 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="py-8"
+              className="space-y-8"
             >
-              {/* 1. Character & Level Section */}
-              <div className="w-full flex flex-col items-center mb-10">
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[32px] p-6 text-white shadow-xl relative overflow-hidden group"
+              >
+                <div className="relative z-10 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Trophy className="w-4 h-4 text-amber-300" />
+                      <span className="text-xs font-black uppercase tracking-widest opacity-80">오늘의 탐험 미션</span>
+                    </div>
+                    <h3 className="text-2xl font-black mb-3">연관 단어 3개 정복</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="flex -space-x-2">
+                        {[1, 2, 3].map((s) => (
+                          <div 
+                            key={s} 
+                            className={cn(
+                              "w-8 h-8 rounded-full border-2 border-white flex items-center justify-center transition-all",
+                              s <= missionProgress ? "bg-amber-400" : "bg-white/20 backdrop-blur-md"
+                            )}
+                          >
+                            <Star className={cn("w-4 h-4", s <= missionProgress ? "fill-white text-white" : "text-white/40")} />
+                          </div>
+                        ))}
+                      </div>
+                      <span className="text-sm font-black opacity-90">{missionProgress}/3 단어 완료</span>
+                    </div>
+                  </div>
+                  <div className="text-center bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-white/20">
+                    <div className="text-[10px] font-black opacity-80 uppercase mb-1">완료 보상</div>
+                    <Gift className="w-8 h-8 text-amber-300 mx-auto mb-1 animate-bounce" />
+                    <div className="text-xs font-black">비밀 쿠폰</div>
+                  </div>
+                </div>
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-20 translate-x-10 group-hover:bg-white/20 transition-colors" />
+              </motion.div>
+
+              <div className="flex flex-col items-center">
                 <CharacterView score={totalScore} level={currentStage} />
-                <div className="mt-6 text-center">
-                  <h2 className="text-2xl font-black text-duo-eel mb-2">용치와 함께 여의주를 모아보자! 🐉</h2>
-                  <p className="text-duo-wolf font-bold">한자 공부를 할수록 용치의 꼬리가 빛나요!</p>
-                </div>
               </div>
 
-              {/* 2. Instructions Section */}
-              <div className="w-full max-w-sm mx-auto mb-10 bg-blue-50 border-2 border-blue-100 rounded-3xl p-6 shadow-sm">
-                <h3 className="text-lg font-black text-duo-macaw mb-4 flex items-center gap-2">
-                  <Info className="w-5 h-5" /> 여의주를 모으는 방법
-                </h3>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3 text-sm font-bold text-duo-eel">
-                    <span className="flex-shrink-0 w-6 h-6 bg-duo-macaw text-white rounded-full flex items-center justify-center text-xs">1</span>
-                    <span>새로운 단어를 검색해서 공부하기 (하루 최대 5개!)</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-sm font-bold text-duo-eel">
-                    <span className="flex-shrink-0 w-6 h-6 bg-duo-macaw text-white rounded-full flex items-center justify-center text-xs">2</span>
-                    <span>공부했던 한자를 다시 쓰며 복습하기</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* 3. Daily Mission Progress */}
-              <div className="w-full max-w-sm mb-12 mx-auto">
-                <div className="bg-white border-3 border-duo-snow rounded-[32px] p-6 shadow-sm">
-                  <div className="flex justify-between items-end mb-4">
-                    <span className="text-lg font-black text-duo-eel flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-amber-500" /> 오늘 배운 한자
-                    </span>
-                    <span className="text-sm font-black text-duo-wolf">
-                      {recapData?.today?.count || 0} / 5
-                    </span>
-                  </div>
-                  <div className="h-5 w-full bg-duo-snow rounded-full overflow-hidden border-2 border-duo-snow shadow-inner">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(((recapData?.today?.count || 0) / 5) * 100, 100)}%` }}
-                      className="h-full bg-gradient-to-r from-duo-macaw to-blue-400 relative"
-                    >
-                      <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:20px_20px] animate-[progress-stripe_2s_linear_infinite]" />
-                    </motion.div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Search Form */}
-              <div className="w-full max-w-2xl mx-auto mb-16">
-                <form onSubmit={handleSubmit} className="relative group">
+              <div className="bg-white p-8 rounded-[40px] border-4 border-duo-snow shadow-xl relative group">
+                <form onSubmit={handleSubmit} className="relative">
                   <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
                     <Search className="w-7 h-7 text-duo-wolf group-focus-within:text-duo-macaw transition-colors" />
                   </div>
@@ -426,160 +384,133 @@ export default function HomePage() {
                     value={word}
                     onChange={(e) => setWord(e.target.value)}
                     placeholder="단어를 검색해봐!"
-                    className="w-full h-20 pl-20 pr-36 bg-white border-3 border-duo-snow rounded-[32px] text-2xl font-black text-duo-eel focus:outline-none focus:border-duo-macaw focus:ring-8 focus:ring-duo-macaw/5 shadow-[0_6px_0_0_#e5e5e5] transition-all"
-                    disabled={isLoading}
+                    className="w-full h-16 pl-16 pr-32 bg-duo-snow/50 rounded-2xl text-lg font-black focus:outline-none focus:ring-4 focus:ring-duo-macaw/20 transition-all"
                   />
                   <motion.button
                     type="submit"
                     whileTap={{ scale: 0.95 }}
                     disabled={isLoading || !word.trim()}
-                    className="absolute right-3 top-3 bottom-3 px-8 bg-duo-macaw text-white rounded-2xl font-black text-xl shadow-[0_4px_0_0_#1899d6] hover:brightness-110 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2 min-w-[120px]"
+                    className="absolute right-3 top-3 bottom-3 px-8 bg-duo-macaw text-white rounded-2xl font-black text-xl shadow-[0_4px_0_0_#1899d6] hover:brightness-110 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {isLoading ? (
-                      <>
-                        <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span className="text-sm">분석 중...</span>
-                      </>
-                    ) : (
-                      "찾기!"
-                    )}
+                    {isLoading ? "분석 중..." : "찾기!"}
                   </motion.button>
                 </form>
               </div>
 
-              {/* 5. Search Results / Cards */}
-              {(analyzedHanja?.length || 0) > 0 && (
-                <div className="w-full flex flex-col gap-8 animate-fade-in mb-16">
-                  <h3 className="text-xl font-black text-duo-eel px-4">찾아낸 한자 카드</h3>
-                  <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                    {analyzedHanja?.map((hanja, idx) => (
-                      <HanjaCard 
-                        key={`${currentSearchedWord}-${idx}`} 
-                        data={hanja} 
-                        word={currentSearchedWord || undefined}
-                        delay={idx * 0.1}
-                        onQuiz={(h) => handleRequestQuiz(h)}
-                        onWrite={(char, meaning, sound, originalSound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, originalSound, isReview })}
-                        onProgressUpdate={() => fetchDailyHistory()}
-                        isReviewed={practicedChars.has(hanja.char) || (dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* Word Completion Progress Info */}
-                  <div className="bg-blue-50 border-2 border-blue-100 rounded-3xl p-6 text-center">
-                    <p className="text-sm font-black text-duo-macaw mb-2">
-                      {analyzedHanja.every((h: HanjaData) => practicedChars.has(h.char))
-                        ? "✨ 와우! 단어의 모든 한자를 써봤어요! 점수를 획득했습니다." 
-                        : `✍️ 단어 완성까지 ${analyzedHanja.filter((h: HanjaData) => !practicedChars.has(h.char)).length}글자 남았어요!`}
-                    </p>
-                    <div className="flex justify-center gap-2">
-                      {analyzedHanja.map((h, i) => (
-                        <div 
-                          key={i} 
-                          className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all",
-                            practicedChars.has(h.char) ? "bg-duo-green border-duo-green text-white" : "bg-white border-duo-snow text-duo-swan"
-                          )}
-                        >
-                          {h.char}
-                        </div>
+              <AnimatePresence>
+                {(analyzedHanja?.length || 0) > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-full flex flex-col gap-8 mb-16"
+                  >
+                    <h3 className="text-xl font-black text-duo-eel px-4">찾아낸 한자 카드</h3>
+                    <div className="grid grid-cols-1 gap-6">
+                      {analyzedHanja.map((hanja, idx) => (
+                        <HanjaCard 
+                          key={hanja.char} 
+                          data={hanja} 
+                          word={currentSearchedWord || undefined}
+                          delay={idx * 0.1}
+                          onQuiz={(h) => handleRequestQuiz(h)}
+                          onWrite={(char, meaning, sound, originalSound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, originalSound, isReview })}
+                          onProgressUpdate={() => fetchDailyHistory()}
+                          isReviewed={practicedChars.has(hanja.char) || (dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}
+                        />
                       ))}
                     </div>
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* Mind Map / History */}
-              {(dailyHistory?.length || 0) > 0 && (analyzedHanja?.length || 0) === 0 && (
-                <div className="mt-12 w-full">
-                  <h3 className="text-2xl font-black text-duo-eel mb-6 px-4">오늘의 한자 꼬리</h3>
-                  <div className="bg-white border-3 border-duo-snow rounded-[40px] p-8 shadow-sm overflow-hidden">
-                    <LearningMindMap logs={dailyHistory} onReview={handleReview} disabled={isLoading} />
+              <div className="mt-16">
+                <div className="flex items-center justify-between mb-8 px-4">
+                  <h3 className="text-2xl font-black text-duo-eel">오늘의 한자 꼬리</h3>
+                  <div className="bg-duo-snow px-4 py-2 rounded-2xl text-xs font-black text-duo-wolf">
+                    여의주 {dailyHistory.length}개 획득
                   </div>
                 </div>
-              )}
+                <LearningMindMap 
+                  logs={dailyHistory} 
+                  onReview={(w) => handleAnalyze(w, true)}
+                />
+              </div>
             </motion.div>
           )}
 
           {activeTab === 'quest' && (
             <motion.div 
               key="quest"
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 100 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              exit={{ opacity: 0, x: -100 }}
             >
-              <QuestMap onNodeClick={(hanja) => {
-                if (isLoading) return;
-                setWord(hanja);
-                handleAnalyze(hanja);
-                setActiveTab('search');
-              }} />
+              <QuestMap onNodeClick={(h) => handleAnalyze(h, true)} />
             </motion.div>
           )}
 
-          {activeTab === 'stats' && (
+          {activeTab === 'stats' && recapData && (
             <motion.div 
               key="stats"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="py-10"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
             >
-              {activeTab === 'stats' && recapData && (
-                    <StatsView 
-                      stats={recapData} 
-                      logs={dailyHistory}
-                      onClose={() => setActiveTab('search')} 
-                      onReview={handleReview}
-                      isAdmin={isAdmin}
-                      disabled={isLoading}
-                    />
-                  )}
+              <StatsView 
+                stats={recapData} 
+                logs={dailyHistory} 
+                onClose={() => setActiveTab('search')}
+                onReview={(w) => handleAnalyze(w, true)}
+                disabled={isLoading}
+              />
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
+      </div>
 
-      {/* Global Loading Overlay */}
-      <AnimatePresence>
-        {isLoading && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[1000] bg-white/20 backdrop-blur-[1px] flex items-center justify-center cursor-wait"
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t-4 border-duo-snow pb-safe">
+        <div className="max-w-xl mx-auto flex justify-around items-center h-20 px-4">
+          <button 
+            onClick={() => setActiveTab('search')}
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all",
+              activeTab === 'search' ? "text-duo-macaw scale-110" : "text-duo-swan hover:text-duo-eel"
+            )}
           >
-            {/* No spinner needed to keep it clean, but interaction is blocked */}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className={cn("p-2 rounded-2xl", activeTab === 'search' && "bg-duo-macaw/10")}>
+              <Search className="w-8 h-8" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest">탐험</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('quest')}
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all",
+              activeTab === 'quest' ? "text-duo-macaw scale-110" : "text-duo-swan hover:text-duo-eel"
+            )}
+          >
+            <div className={cn("p-2 rounded-2xl", activeTab === 'quest' && "bg-duo-macaw/10")}>
+              <MapIcon className="w-8 h-8" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest">지도</span>
+          </button>
 
-      {/* Persistent Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t-2 border-duo-snow pb-safe">
-        <div className="max-w-md mx-auto h-20 flex items-center justify-around px-4">
-          <NavButton 
-            icon={<Search className="w-7 h-7" />} 
-            label="검색" 
-            active={activeTab === 'search'} 
-            onClick={() => setActiveTab('search')} 
-          />
-          <NavButton 
-            icon={<MapIcon className="w-7 h-7" />} 
-            label="지도" 
-            active={activeTab === 'quest'} 
-            onClick={() => setActiveTab('quest')} 
-          />
-          <NavButton 
-            icon={<Trophy className="w-7 h-7" />} 
-            label="기록" 
-            active={activeTab === 'stats'} 
-            onClick={() => setActiveTab('stats')} 
-          />
+          <button 
+            onClick={() => setActiveTab('stats')}
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all",
+              activeTab === 'stats' ? "text-duo-macaw scale-110" : "text-duo-swan hover:text-duo-eel"
+            )}
+          >
+            <div className={cn("p-2 rounded-2xl", activeTab === 'stats' && "bg-duo-macaw/10")}>
+              <Trophy className="w-8 h-8" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest">기록</span>
+          </button>
         </div>
       </nav>
 
-      {/* Overlays */}
       <AnimatePresence>
         {selectedHanjaForQuiz && currentQuiz && (
           <QuizSection
@@ -587,7 +518,7 @@ export default function HomePage() {
             quiz={currentQuiz}
             onSuccess={(solvedWord) => {
               setWord(solvedWord);
-              handleAnalyze(solvedWord, true, true); // 세 번째 인자 autoOpenFirst=true
+              handleAnalyze(solvedWord, true, true);
               setTimeout(() => { setSelectedHanjaForQuiz(null); setCurrentQuiz(null); }, 1500);
             }}
             onClose={() => { setSelectedHanjaForQuiz(null); setCurrentQuiz(null); }}
@@ -595,11 +526,25 @@ export default function HomePage() {
         )}
         
         {showTrophyCelebration && (
-          <TrophyCelebration 
-            onClose={() => setShowTrophyCelebration(false)} 
-            onInvite={() => { setShowTrophyCelebration(false); setIsInviteModalOpen(true); }}
-            onStats={() => { setShowTrophyCelebration(false); setActiveTab('stats'); }}
-          />
+          <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
+            <motion.div 
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              className="bg-white/95 backdrop-blur-xl p-12 rounded-[60px] border-8 border-amber-400 shadow-[0_20px_50px_rgba(251,191,36,0.3)] text-center relative pointer-events-auto"
+            >
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute inset-0 opacity-10 pointer-events-none">
+                <div className="w-full h-full bg-[radial-gradient(circle,rgba(251,191,36,1)_0%,transparent_70%)]" />
+              </motion.div>
+              <Trophy className="w-40 h-40 text-amber-500 mx-auto mb-8 drop-shadow-lg" />
+              <h2 className="text-4xl font-black text-duo-eel mb-4">대단해요! 오늘의 트로피 획득!</h2>
+              <p className="text-xl font-bold text-duo-wolf mb-8">매일매일 꾸준히 모험하는 당신은 진정한 한자 박사! 🐉</p>
+              <div className="flex gap-4 justify-center">
+                <button onClick={() => { setShowTrophyCelebration(false); }} className="px-8 py-4 bg-duo-macaw text-white rounded-2xl font-black shadow-[0_4px_0_0_#1899d6]">모험 계속하기</button>
+                <button onClick={() => { setShowTrophyCelebration(false); setActiveTab('stats'); }} className="px-8 py-4 bg-duo-snow text-duo-eel rounded-2xl font-black border-b-4 border-duo-swan">기록 확인하기</button>
+              </div>
+            </motion.div>
+          </div>
         )}
         
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
@@ -607,10 +552,9 @@ export default function HomePage() {
           isOpen={showRequiredInfoModal}
           onComplete={() => {
             setShowRequiredInfoModal(false);
-            fetchProfile(); // 프로필 다시 불러오기
+            fetchProfile();
           }}
         />
-        <InviteModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} />
         <WritingModal
           char={selectedHanjaForWriting?.char || ""}
           meaning={selectedHanjaForWriting?.meaning || ""}
@@ -627,8 +571,6 @@ export default function HomePage() {
             setPracticedChars(newPracticed);
 
             if (currentSearchedWord) {
-              // 모든 글자를 다 썼을 때만 DB에 완료 기록 및 포인트 지급
-              // 현재 단어의 모든 한자를 다 썼는지 확인 (누적 데이터 기준)
               const isWordComplete = analyzedHanja.every((h: HanjaData) => newPracticed.has(h.char));
 
               if (isWordComplete) {
@@ -647,58 +589,7 @@ export default function HomePage() {
           }}
         />
       </AnimatePresence>
-    </div>
-  );
-}
-
-function NavButton({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center justify-center gap-1 w-20 h-full transition-all",
-        active ? "text-duo-macaw scale-110" : "text-duo-swan hover:text-duo-wolf"
-      )}
-    >
-      <div className={cn(
-        "p-2 rounded-2xl transition-all",
-        active && "bg-duo-macaw/10"
-      )}>
-        {icon}
-      </div>
-      <span className="text-[10px] font-black uppercase tracking-tighter">{label}</span>
-    </button>
-  );
-}
-
-function TrophyCelebration({ onClose, onInvite, onStats }: { onClose: () => void, onInvite: () => void, onStats: () => void }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
-      onClick={onClose}
-    >
-      <motion.div 
-        initial={{ scale: 0.5, y: 50 }} animate={{ scale: 1, y: 0 }}
-        className="bg-white rounded-[40px] p-10 flex flex-col items-center text-center shadow-2xl max-w-sm w-full border-4 border-white"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="w-28 h-28 bg-duo-bee rounded-full flex items-center justify-center mb-8 shadow-[0_10px_0_0_#e5a500] animate-bounce">
-          <Trophy className="w-16 h-16 text-white" />
-        </div>
-        <h2 className="text-4xl font-black text-duo-eel mb-3">축하해요!</h2>
-        <p className="text-duo-wolf font-bold text-lg mb-10 leading-relaxed">오늘의 미션 완료!<br/>트로피를 획득했습니다.</p>
-        <button onClick={onInvite} className="w-full py-5 bg-amber-100 text-amber-700 rounded-3xl font-black text-xl border-2 border-amber-200 hover:bg-amber-200 transition-all flex items-center justify-center gap-2 mb-3">
-          <UserPlus className="w-6 h-6" /> 친구 초대하기 🎖️
-        </button>
-        <button onClick={onStats} className="w-full py-4 bg-duo-snow text-duo-eel rounded-2xl font-black text-lg hover:bg-duo-swan transition-all mb-3">
-          나의 기록 보기 📊
-        </button>
-        <button onClick={onClose} className="w-full bg-duo-green text-white py-5 rounded-3xl font-black text-xl shadow-[0_6px_0_0_#46a302] active:translate-y-1 transition-all">
-          계속 탐험하기 🚀
-        </button>
-      </motion.div>
-    </motion.div>
+    </main>
   );
 }
 

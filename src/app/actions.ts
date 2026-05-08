@@ -401,7 +401,14 @@ export async function logLearning(word: string, isCorrect: boolean, parentWord?:
       await supabase.from("profiles").update({ bonus_points: currentPoints + pointsToAdd }).eq("id", userId);
     }
 
-    return { success: true, pointsAwarded: pointsToAdd };
+    await checkAndUpdateStreak(userId);
+    const missionResult = await checkDailyMission(userId);
+
+    return { 
+      success: true, 
+      pointsAwarded: pointsToAdd,
+      missionComplete: missionResult?.missionComplete || false
+    };
   } catch (error) {
     console.error("Log Learning Error:", error);
     return { error: "학습 기록 저장 중 오류가 발생했습니다." };
@@ -540,6 +547,10 @@ export async function getLearningRecap() {
       logs: allLogsWithMeta,
       stats: {
         today: processLogs(allLogs, undefined, true),
+        missionProgress: new Set(allLogs.filter(l => {
+          const logDate = new Date(l.learned_at);
+          return kstFormatter.format(logDate) === todayKstStr && l.parent_word && l.practiced_writing;
+        }).map(l => l.word)).size,
         weekly: processLogs(allLogs, startOfWeek),
         monthly: processLogs(allLogs, startOfMonth),
         total: {
@@ -604,6 +615,9 @@ export async function updateProfile(data: {
   grade?: number; 
   city?: string;
   marketing_agree?: boolean;
+  streak_count?: number;
+  last_streak_at?: string;
+  coupons?: number;
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -622,6 +636,73 @@ export async function updateProfile(data: {
     return { error: `DB 저장 실패: ${error.message}` };
   }
   return { success: true };
+}
+
+/**
+ * 연속 학습 스트릭을 확인하고 업데이트합니다.
+ */
+async function checkAndUpdateStreak(userId: string) {
+  const supabase = createClient();
+  const { data: profile } = await supabase.from('profiles').select('streak_count, last_streak_at').eq('id', userId).maybeSingle();
+  
+  if (!profile) return;
+
+  const kstFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const todayStr = kstFormatter.format(new Date());
+  
+  if (profile.last_streak_at === todayStr) return; // 이미 오늘 출석함
+
+  let newStreak = 1;
+  if (profile.last_streak_at) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = kstFormatter.format(yesterday);
+    
+    if (profile.last_streak_at === yesterdayStr) {
+      newStreak = (profile.streak_count || 0) + 1;
+    }
+  }
+
+  await supabase.from('profiles').update({ 
+    streak_count: newStreak, 
+    last_streak_at: todayStr 
+  }).eq('id', userId);
+}
+
+/**
+ * 하루 미션 완료 여부를 확인하고 보상(쿠폰)을 지급합니다.
+ * 미션: 연관 꼬리 물기 단어 3개 학습 (퀴즈 + 써보기 완료 기준)
+ */
+async function checkDailyMission(userId: string) {
+  const supabase = createClient();
+  const kstFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const todayStr = kstFormatter.format(new Date());
+
+  // 오늘 학습 기록 중 'tail-biting' (parent_word가 있는) 기록 확인
+  const { data: logs } = await supabase
+    .from('learning_logs')
+    .select('word, parent_word, practiced_writing')
+    .eq('user_id', userId)
+    .gte('learned_at', todayStr + 'T00:00:00Z');
+
+  if (!logs) return;
+
+  // 꼬리 물기 단어들 중 '써보기'까지 완료된 유니크한 단어 수 (부모 단어 제외하고 연결된 것들)
+  const relatedWords = new Set(logs.filter(l => l.parent_word && l.practiced_writing).map(l => l.word));
+  
+  if (relatedWords.size >= 3) {
+    // 오늘 이미 쿠폰을 받았는지 체크 (중복 지급 방지 로직은 실제론 profiles에 mission_last_completed_at 같은 필드 필요)
+    // 여기서는 간단히 coupons를 +1 해주는 식으로 처리 (실제 운영시에는 로그 테이블 필요)
+    const { data: profile } = await supabase.from('profiles').select('coupons, last_mission_at').eq('id', userId).single();
+    if (profile && profile.last_mission_at !== todayStr) {
+      await supabase.from('profiles').update({
+        coupons: (profile.coupons || 0) + 1,
+        last_mission_at: todayStr
+      }).eq('id', userId);
+      return { missionComplete: true };
+    }
+  }
+  return { missionComplete: false };
 }
 
 export async function getMyProfile() {
