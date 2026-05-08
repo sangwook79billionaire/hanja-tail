@@ -46,7 +46,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     if (!isSignUp) return;
 
     const timer = setTimeout(async () => {
-      if (school.trim().length >= 2 && !searchResults.some(s => s.name === school)) {
+      if (school.trim().length >= 2) {
         setIsSearching(true);
         const results = await searchSchools(school);
         setSearchResults(results);
@@ -59,7 +59,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [school, isSignUp, searchResults]);
+  }, [school]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

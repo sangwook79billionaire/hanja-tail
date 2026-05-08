@@ -28,7 +28,7 @@ export default function RequiredInfoModal({ isOpen, onComplete }: RequiredInfoMo
   // 학교 검색 핸들러
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (school.trim().length >= 2 && !searchResults.some(s => s.name === school)) {
+      if (school.trim().length >= 2) {
         setIsSearching(true);
         const results = await searchSchools(school);
         setSearchResults(results);
@@ -41,7 +41,7 @@ export default function RequiredInfoModal({ isOpen, onComplete }: RequiredInfoMo
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [school, searchResults]);
+  }, [school]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -963,26 +963,37 @@ export async function searchSchools(keyword: string) {
   if (!keyword || keyword.trim().length < 2) return [];
 
   const API_KEY = process.env.NEIS_API_KEY;
-  const url = `https://open.neis.go.kr/hub/schoolInfo?KEY=${API_KEY || ""}&Type=json&pIndex=1&pSize=20&SCHUL_NM=${encodeURIComponent(keyword)}&SCHUL_KND_SC_NM=${encodeURIComponent("초등학교")}`;
+  const encodedKeyword = encodeURIComponent(keyword.trim());
+  const url = `https://open.neis.go.kr/hub/schoolInfo?KEY=${API_KEY || ""}&Type=json&pIndex=1&pSize=20&SCHUL_NM=${encodedKeyword}&SCHUL_KND_SC_NM=${encodeURIComponent("초등학교")}`;
+
+  console.log(`[School Search] Searching for: "${keyword}" (Encoded: ${encodedKeyword})`);
+  console.log(`[School Search] URL: ${url.replace(API_KEY || "", "HIDDEN_KEY")}`);
 
   try {
     const response = await fetch(url);
     const data = await response.json();
 
+    console.log(`[School Search] Response Data:`, JSON.stringify(data).substring(0, 500));
+
+    if (data.RESULT && data.RESULT.CODE === "INFO-200") {
+      console.log(`[School Search] No results found (INFO-200)`);
+      return [];
+    }
+
     if (data.schoolInfo) {
       const schools = data.schoolInfo[1].row.map((item: NEISSchoolRow) => ({
         name: item.SCHUL_NM,
-        address: item.ORG_RDNMA || item.ORG_LNMADR || "",
+        address: item.ORG_RDNMA || item.ORG_LNMADR || "주소 정보 없음",
         code: item.SD_SCHUL_CODE,
         region: item.ATPT_OFCDC_SC_NM
       }));
+      console.log(`[School Search] Found ${schools.length} schools`);
       return schools;
     }
     
-    // API 키가 없어도 샘플 데이터(5건)는 나옴
     return [];
   } catch (error) {
-    console.error("School Search API Error:", error);
+    console.error("[School Search] API Error:", error);
     return [];
   }
 }
