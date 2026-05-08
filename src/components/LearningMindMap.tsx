@@ -17,7 +17,7 @@ interface LearningLog {
   hanjaDetails?: {
     char: string;
     meaning: string;
-    appliedSound: string;
+    sound: string;
   }[];
 }
 
@@ -105,7 +105,7 @@ export default function LearningMindMap({
               id: nodeId,
               char,
               meaning: detail?.meaning || "",
-              sound: detail?.appliedSound || "",
+              sound: detail?.sound || "",
               x: clusterXOffset + charIdx * 120 + (wordInClusterIdx * 40),
               y: clusterYOffset + (wordInClusterIdx % 2 === 0 ? 60 : -60),
               isHub: false,
@@ -123,7 +123,7 @@ export default function LearningMindMap({
             if (wordObj.practiced_writing) existing.practiced = true;
             if (detail) {
               existing.meaning = detail.meaning;
-              existing.sound = detail.appliedSound;
+              existing.sound = detail.sound;
             }
             // 허브 노드의 난이도는 포함된 단어 중 최고 난이도로 설정
             existing.difficulty = Math.max(existing.difficulty, wordObj.difficulty || 1);

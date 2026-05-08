@@ -523,7 +523,7 @@ export async function getLearningRecap() {
     startOfMonth.setHours(0, 0, 0, 0);
 
     interface AnalysisResult {
-      hanjaList?: { char: string; meaning: string }[];
+      hanjaList?: { char: string; meaning: string; sound: string }[];
       difficultyLevel?: number;
     }
 
