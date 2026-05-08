@@ -951,6 +951,14 @@ export async function runBatchGeneration(limit = 5) {
     return { error: "일괄 생성 중 오류가 발생했습니다." };
   }
 }
+interface NEISSchoolRow {
+  SCHUL_NM: string;
+  ORG_RDNMA?: string;
+  ORG_LNMADR?: string;
+  SD_SCHUL_CODE: string;
+  ATPT_OFCDC_SC_NM: string;
+}
+
 export async function searchSchools(keyword: string) {
   if (!keyword || keyword.trim().length < 2) return [];
 
@@ -962,9 +970,9 @@ export async function searchSchools(keyword: string) {
     const data = await response.json();
 
     if (data.schoolInfo) {
-      const schools = data.schoolInfo[1].row.map((item: any) => ({
+      const schools = data.schoolInfo[1].row.map((item: NEISSchoolRow) => ({
         name: item.SCHUL_NM,
-        address: item.ORG_RDNMA || item.ORG_LNMADR,
+        address: item.ORG_RDNMA || item.ORG_LNMADR || "",
         code: item.SD_SCHUL_CODE,
         region: item.ATPT_OFCDC_SC_NM
       }));

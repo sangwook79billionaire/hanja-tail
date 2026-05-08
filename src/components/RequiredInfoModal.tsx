@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { School, GraduationCap, Sparkles, Send, Search, Loader2, MapPin } from "lucide-react";
 import { updateProfile, searchSchools } from "@/app/actions";
-import { cn } from "@/lib/utils";
 
 interface RequiredInfoModalProps {
   isOpen: boolean;
@@ -42,7 +41,7 @@ export default function RequiredInfoModal({ isOpen, onComplete }: RequiredInfoMo
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [school]);
+  }, [school, searchResults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
