@@ -29,6 +29,7 @@ interface HanjaData {
   char: string;
   meaning: string;
   sound: string;
+  originalSound?: string;
   level: string;
   examples?: { word: string; hanja: string }[];
 }
