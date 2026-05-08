@@ -297,7 +297,7 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-col">
-            <h1 className="text-xl font-black tracking-tight text-duo-eel">한자 테일</h1>
+            <h1 className="text-xl font-black tracking-tight text-duo-eel">꼬리에 꼬리를 무는 한자</h1>
             <p className="text-[10px] font-black text-duo-macaw uppercase tracking-widest">{nickname || "탐험가"}님 반가워요!</p>
           </div>
         </div>
