@@ -539,7 +539,8 @@ export async function getLearningRecap() {
         ...log,
         hanja: log.hanja || (analysis?.hanjaList ? analysis.hanjaList.map(h => h.char).join('') : undefined),
         meaning: analysis?.hanjaList ? analysis.hanjaList.map(h => h.meaning).join(', ') : undefined,
-        difficulty: analysis?.difficultyLevel || 1
+        difficulty: analysis?.difficultyLevel || 1,
+        hanjaDetails: analysis?.hanjaList || []
       };
     }));
 

@@ -14,11 +14,18 @@ interface LearningLog {
   practiced_writing?: boolean;
   parent_word?: string;
   difficulty?: number;
+  hanjaDetails?: {
+    char: string;
+    meaning: string;
+    appliedSound: string;
+  }[];
 }
 
 interface Node {
   id: string;
   char: string;
+  meaning: string;
+  sound: string;
   x: number;
   y: number;
   isHub: boolean;
@@ -91,10 +98,14 @@ export default function LearningMindMap({
           const nodeId = char; 
           let existing = nodesMap.get(nodeId);
           
+          const detail = wordObj.hanjaDetails?.find(d => d.char === char);
+
           if (!existing) {
             const node: Node = {
               id: nodeId,
               char,
+              meaning: detail?.meaning || "",
+              sound: detail?.appliedSound || "",
               x: clusterXOffset + charIdx * 120 + (wordInClusterIdx * 40),
               y: clusterYOffset + (wordInClusterIdx % 2 === 0 ? 60 : -60),
               isHub: false,
@@ -110,6 +121,10 @@ export default function LearningMindMap({
               existing.words.push(wordObj.word);
             }
             if (wordObj.practiced_writing) existing.practiced = true;
+            if (detail) {
+              existing.meaning = detail.meaning;
+              existing.sound = detail.appliedSound;
+            }
             // 허브 노드의 난이도는 포함된 단어 중 최고 난이도로 설정
             existing.difficulty = Math.max(existing.difficulty, wordObj.difficulty || 1);
           }
@@ -256,7 +271,7 @@ export default function LearningMindMap({
               {/* Character Text */}
               <text
                 x={node.x} y={node.y}
-                dy="0.35em"
+                dy="-0.1em"
                 textAnchor="middle"
                 className={cn(
                   "text-4xl font-black font-myeongjo select-none",
@@ -264,6 +279,19 @@ export default function LearningMindMap({
                 )}
               >
                 {node.char}
+              </text>
+
+              {/* Meaning & Sound Text */}
+              <text
+                x={node.x} y={node.y}
+                dy="2.4em"
+                textAnchor="middle"
+                className={cn(
+                  "text-[10px] font-black select-none opacity-90",
+                  node.isHub || node.practiced ? "fill-white" : "fill-duo-macaw"
+                )}
+              >
+                {node.meaning} {node.sound}
               </text>
 
               {/* Status Icon */}
