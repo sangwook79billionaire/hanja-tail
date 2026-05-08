@@ -59,7 +59,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [school]);
+  }, [school, isSignUp]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
