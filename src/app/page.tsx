@@ -571,20 +571,32 @@ export default function HomePage() {
             setPracticedChars(newPracticed);
 
             if (currentSearchedWord) {
-              const isWordComplete = analyzedHanja.every((h: HanjaData) => newPracticed.has(h.char));
+              // 다음 써볼 글자 찾기 (현재 글자 이후부터 찾고, 없으면 처음부터 미완료된 글자 찾기)
+              const currentIndex = analyzedHanja.findIndex(h => h.char === char);
+              const nextHanja = analyzedHanja.slice(currentIndex + 1).find(h => !newPracticed.has(h.char)) 
+                             || analyzedHanja.find(h => !newPracticed.has(h.char));
 
-              if (isWordComplete) {
+              if (nextHanja) {
+                // 다음 글자로 부드럽게 이동
+                setSelectedHanjaForWriting({
+                  char: nextHanja.char,
+                  meaning: nextHanja.meaning,
+                  sound: nextHanja.sound,
+                  originalSound: nextHanja.originalSound,
+                  isReview: false
+                });
+              } else {
+                // 모든 글자 완료 시
                 const logRes = await logLearning(currentSearchedWord, true, undefined, true);
                 if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
-                  alert(`✨ 참 잘했어요! '${currentSearchedWord}'의 모든 글자를 써봤네요! 보너스 점수 ${logRes.pointsAwarded}점을 받았어요!`);
+                  alert(`✨ 완벽해요! '${currentSearchedWord}'의 모든 글자를 정복했습니다!\n보너스 ${logRes.pointsAwarded}점을 획득했어요!`);
                 }
+                setSelectedHanjaForWriting(null); // 모달 닫기
                 fetchDailyHistory();
-                fetchProfile(); // 포인트 갱신을 위해 프로필 다시 불러오기
-              } else {
-                // 아직 남은 글자가 있는 경우
-                const remaining = analyzedHanja.filter((h: HanjaData) => !newPracticed.has(h.char)).length;
-                alert(`참 잘했어요! ✨\n이제 '${currentSearchedWord}' 단어 완성을 위해 남은 ${remaining}글자도 더 써볼까?`);
+                fetchProfile();
               }
+            } else {
+              setSelectedHanjaForWriting(null);
             }
           }}
         />

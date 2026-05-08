@@ -67,7 +67,8 @@ export default function HanjaCard({
 
   const handleWriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onWrite?.(data.char, data.meaning, data.sound, data.originalSound, true); // true for isReview
+    setIsExpanded(false); // 쓰기 모달이 열릴 때 카드 확장 닫기
+    onWrite?.(data.char, data.meaning, data.sound, data.originalSound, false); // isReview를 false로 변경 (신규 학습/검색 시)
   };
 
   return (

@@ -85,11 +85,10 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
                         // 5단계: 최종 완료 메시지
                         setIsReviewFinished(true);
                         
-                        // 6단계: 자동 종료
+                        // 6단계: 부모 컴포넌트에 완료 알림 (다음 글자 이동 또는 종료 결정)
                         setTimeout(() => {
                           if (active) {
                             onComplete?.();
-                            onClose();
                           }
                         }, 1500);
                       }
