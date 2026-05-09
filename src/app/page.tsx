@@ -574,7 +574,10 @@ export default function HomePage() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="w-full flex flex-col gap-8 mb-16"
                   >
-                    <h3 className="text-xl font-black text-duo-eel px-4">찾아낸 한자 카드</h3>
+                    <div className="px-4 space-y-1">
+                      <h3 className="text-xl font-black text-duo-eel">찾아낸 한자 카드</h3>
+                      <p className="text-sm font-bold text-duo-wolf">한자를 같이 써보고, 카드를 뒤집어서 획순도 확인해보자! ✍️🔄</p>
+                    </div>
                     <div className={cn(
                       "grid gap-6 px-2",
                       analyzedHanja.length === 1 && "grid-cols-1",

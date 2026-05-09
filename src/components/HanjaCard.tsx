@@ -80,7 +80,7 @@ export default function HanjaCard({
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay }}
         onClick={() => setIsExpanded(true)}
-        className="relative bg-white border-3 border-duo-snow rounded-[32px] p-4 shadow-sm hover:border-duo-macaw transition-all cursor-pointer group flex flex-col items-center justify-between aspect-[4/5] w-full overflow-hidden"
+        className="relative bg-white border-4 border-duo-snow rounded-[32px] p-4 shadow-md hover:border-duo-macaw transition-all cursor-pointer group flex flex-col items-center justify-between aspect-[4/5] w-full overflow-hidden"
       >
         {/* Status Badge */}
         {isReviewed && (
