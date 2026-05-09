@@ -42,10 +42,12 @@ interface Link {
 export default function LearningMindMap({ 
   logs, 
   onReview,
+  onRandomQuiz,
   disabled = false
 }: { 
   logs: LearningLog[]; 
   onReview: (hanja: string) => void;
+  onRandomQuiz?: () => void;
   disabled?: boolean;
 }) {
   // 그래프 생성 로직
@@ -313,10 +315,15 @@ export default function LearningMindMap({
         </svg>
 
         {/* Floating Instruction */}
-        <div className="absolute bottom-6 right-6 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border-2 border-duo-snow shadow-sm pointer-events-none">
+        <motion.div 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => !disabled && onRandomQuiz?.()}
+          className="absolute bottom-6 right-6 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border-2 border-duo-snow shadow-sm cursor-pointer hover:bg-white transition-colors z-10"
+        >
           <Sparkles className="w-4 h-4 text-amber-500" />
           <span className="text-[10px] font-black text-duo-wolf">오늘 배운 글자의 연관 단어를 탐험해보자!</span>
-        </div>
+        </motion.div>
       </div>
 
       {/* Legend & Hint */}

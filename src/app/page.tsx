@@ -29,6 +29,11 @@ interface LearningLog {
   learned_at: string;
   viewed_stroke?: boolean;
   practiced_writing?: boolean;
+  hanjaDetails?: {
+    char: string;
+    meaning: string;
+    sound: string;
+  }[];
 }
 
 interface HanjaData {
@@ -639,6 +644,14 @@ export default function HomePage() {
                 <LearningMindMap 
                   logs={dailyHistory} 
                   onReview={(h) => handleRequestQuiz(h)}
+                  onRandomQuiz={() => {
+                    const allChars = dailyHistory.flatMap(log => log.hanjaDetails?.map(d => d.char) || []);
+                    const uniqueChars = Array.from(new Set(allChars));
+                    if (uniqueChars.length > 0) {
+                      const randomChar = uniqueChars[Math.floor(Math.random() * uniqueChars.length)];
+                      handleRequestQuiz(randomChar);
+                    }
+                  }}
                 />
               </div>
             </motion.div>
