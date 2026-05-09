@@ -193,6 +193,8 @@ export default function HomePage() {
   const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
   const [previewHanja, setPreviewHanja] = useState<HanjaData | null>(null);
+  const [showBeadPopup, setShowBeadPopup] = useState(false);
+  const [showGiftPopup, setShowGiftPopup] = useState(false);
 
   const supabase = createClient();
   const trophyGoal = 5;
@@ -411,7 +413,7 @@ export default function HomePage() {
 
           <div className="flex items-center gap-5">
             {/* Yeouiju (Streak) */}
-            <div className="relative group">
+            <div className="relative group cursor-pointer" onClick={() => setShowBeadPopup(true)}>
               <motion.div 
                 animate={{ 
                   scale: streakCount > 0 ? [1, 1.1, 1] : 1,
@@ -435,7 +437,7 @@ export default function HomePage() {
             </div>
 
             {/* Coupons */}
-            <div className="relative group">
+            <div className="relative group cursor-pointer" onClick={() => setShowGiftPopup(true)}>
               <motion.div 
                 whileHover={{ scale: 1.05 }}
                 className={cn(
@@ -901,6 +903,69 @@ export default function HomePage() {
                 <X className="w-6 h-6" /> 닫기
               </button>
             </div>
+          </div>
+        )}
+        {showBeadPopup && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowBeadPopup(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="relative w-full max-w-xs bg-white rounded-[40px] p-8 shadow-2xl border-4 border-amber-100 flex flex-col items-center text-center"
+            >
+              <div className="w-20 h-20 bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 rounded-full flex items-center justify-center mb-6 shadow-lg ring-4 ring-amber-50">
+                <Sparkles className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-black text-duo-eel mb-4">여의주란 무엇인가요?</h3>
+              <p className="text-duo-wolf font-bold leading-relaxed mb-8">
+                여의주는 <span className="text-amber-600 font-black">연속 학습일 수</span>를 나타내요!<br/>
+                매일매일 꾸준히 탐험해서 더 빛나는 여의주를 만들어보세요. 🐉✨
+              </p>
+              <button 
+                onClick={() => setShowBeadPopup(false)}
+                className="w-full py-4 bg-duo-macaw text-white rounded-2xl font-black text-base shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all"
+              >
+                확인했어요!
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {showGiftPopup && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowGiftPopup(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="relative w-full max-w-xs bg-white rounded-[40px] p-8 shadow-2xl border-4 border-duo-snow flex flex-col items-center text-center"
+            >
+              <div className="w-20 h-20 bg-amber-400 rounded-full flex items-center justify-center mb-6 shadow-lg ring-4 ring-amber-50">
+                <Gift className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-black text-duo-eel mb-4">선물상자는 무엇인가요?</h3>
+              <p className="text-duo-wolf font-bold leading-relaxed mb-8">
+                한자 쓰기, 복습, 퀴즈 정답 등을 통해<br/>
+                <span className="text-duo-macaw font-black">포인트를 적립</span>하면 선물상자를 받을 수 있어요! 🎁✨
+              </p>
+              <button 
+                onClick={() => setShowGiftPopup(false)}
+                className="w-full py-4 bg-duo-macaw text-white rounded-2xl font-black text-base shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all"
+              >
+                확인했어요!
+              </button>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
