@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User, Play } from "lucide-react";
+import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User, Play, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning } from "./actions";
@@ -192,6 +192,7 @@ export default function HomePage() {
   const [practicedChars, setPracticedChars] = useState<Set<string>>(new Set());
   const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
+  const [previewHanja, setPreviewHanja] = useState<HanjaData | null>(null);
 
   const supabase = createClient();
   const trophyGoal = 5;
@@ -647,7 +648,18 @@ export default function HomePage() {
                 </div>
                 <LearningMindMap 
                   logs={dailyHistory} 
-                  onReview={(h) => handleRequestQuiz(h)}
+                  onReview={(h) => {
+                    const allDetails = dailyHistory.flatMap(l => l.hanjaDetails || []);
+                    const detail = allDetails.find(d => d.char === h);
+                    if (detail) {
+                      setPreviewHanja({
+                        char: detail.char,
+                        meaning: detail.meaning,
+                        sound: detail.sound,
+                        level: "학습됨"
+                      });
+                    }
+                  }}
                   onRandomQuiz={() => {
                     const allChars = dailyHistory.flatMap(log => log.hanjaDetails?.map(d => d.char) || []);
                     const uniqueChars = Array.from(new Set(allChars));
@@ -856,6 +868,34 @@ export default function HomePage() {
             }}
             onClose={() => setSelectedExpansionForQuiz(null)}
           />
+        )}
+
+        {previewHanja && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+             <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPreviewHanja(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <div className="w-full max-w-sm relative z-10">
+              <HanjaCard 
+                data={previewHanja}
+                onQuiz={(h) => {
+                  setPreviewHanja(null);
+                  handleRequestQuiz(h);
+                }}
+                hideWriting={true}
+              />
+              <button 
+                onClick={() => setPreviewHanja(null)}
+                className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors flex items-center gap-2 font-black"
+              >
+                <X className="w-6 h-6" /> 닫기
+              </button>
+            </div>
+          </div>
         )}
       </AnimatePresence>
     </main>

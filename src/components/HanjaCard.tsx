@@ -20,15 +20,19 @@ export default function HanjaCard({
   word,
   delay = 0,
   onWrite,
+  onQuiz,
   onProgressUpdate,
-  isReviewed = false
+  isReviewed = false,
+  hideWriting = false
 }: { 
   data: HanjaData; 
   word?: string;
   delay?: number;
   onWrite?: (char: string, meaning: string, sound: string, originalSound: string | undefined, isReview: boolean) => void;
+  onQuiz?: (char: string) => void;
   onProgressUpdate?: () => void;
   isReviewed?: boolean;
+  hideWriting?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -156,6 +160,16 @@ export default function HanjaCard({
                     카드를 눌러서 뒤집어봐! 🔄
                   </p>
 
+                   {onQuiz && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setIsExpanded(false); onQuiz(data.char); }}
+                      className="w-full mt-2 py-4 bg-duo-eel text-white rounded-2xl font-black text-base shadow-[0_4px_0_0_#1a1a1a] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 group"
+                    >
+                      <Sparkles className="w-5 h-5 text-amber-300 group-hover:rotate-12 transition-transform" />
+                      연관 단어 퀴즈 풀기
+                    </button>
+                  )}
+
                   <div className="mt-4 px-4 py-1.5 bg-duo-snow/50 rounded-xl text-xs font-bold text-duo-wolf">
                     {data.level}급 한자
                   </div>
@@ -212,6 +226,7 @@ export default function HanjaCard({
                   </div>
 
                   <div className="flex flex-col gap-3 w-full mt-auto">
+                   {!hideWriting && (
                     <button 
                       onClick={handleWriteClick}
                       className="w-full flex items-center justify-between bg-duo-macaw text-white h-14 px-4 rounded-2xl shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all group"
@@ -221,6 +236,7 @@ export default function HanjaCard({
                       </div>
                       <div className="bg-white/20 px-2 py-0.5 rounded-lg text-[9px] font-black shrink-0">+0.5 POINT</div>
                     </button>
+                  )}
                     
                   </div>
                 </div>
