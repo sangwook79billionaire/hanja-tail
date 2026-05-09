@@ -295,11 +295,11 @@ export default function LearningMindMap({
                 dy="-0.05em"
                 textAnchor="middle"
                 className={cn(
-                  "text-5xl font-black font-myeongjo select-none",
+                  "text-5xl font-black select-none",
                   node.isHub || node.practiced ? "fill-white" : "fill-duo-eel"
                 )}
               >
-                {node.char}
+                {node.sound}
               </text>
 
               {/* Meaning & Sound Text */}
@@ -308,11 +308,11 @@ export default function LearningMindMap({
                 dy="2.2em"
                 textAnchor="middle"
                 className={cn(
-                  "text-[14px] font-black select-none opacity-100",
+                  "text-[16px] font-black select-none opacity-100",
                   node.isHub || node.practiced ? "fill-white" : "fill-duo-macaw"
                 )}
               >
-                {node.meaning}{node.sound}
+                {node.meaning}
               </text>
 
               {/* Status Icon */}
