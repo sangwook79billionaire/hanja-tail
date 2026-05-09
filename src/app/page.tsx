@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User, LogIn } from "lucide-react";
+import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning } from "./actions";
@@ -269,57 +269,96 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-white text-duo-eel font-sans pb-24 overflow-x-hidden">
-      <header className="sticky top-0 z-[40] bg-white/90 backdrop-blur-xl border-b-2 border-duo-snow px-6 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-5">
-          <div className="relative group">
-            <motion.div 
-              animate={{ 
-                scale: streakCount > 0 ? [1, 1.1, 1] : 1,
-                filter: streakCount > 0 ? "drop-shadow(0 0 15px rgba(255, 184, 0, 0.6))" : "none"
-              }}
-              transition={{ repeat: Infinity, duration: 3 }}
-              className={cn(
-                "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-700 relative",
-                streakCount > 0 
-                  ? "bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 border-2 border-white" 
-                  : "bg-duo-snow border-2 border-duo-swan opacity-50 grayscale"
-              )}
-            >
-              <Sparkles className={cn("w-6 h-6", streakCount > 0 ? "text-white" : "text-duo-swan")} />
-              {streakCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-duo-eel text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white ring-2 ring-amber-400/20">
-                  {streakCount}
-                </div>
-              )}
-            </motion.div>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap bg-duo-eel text-white text-[10px] font-bold px-2 py-1 rounded-lg">
-              {streakCount}일 연속 탐험 중!
-            </div>
+      <header className="sticky top-0 z-[40] bg-white/90 backdrop-blur-xl border-b-2 border-duo-snow px-6 py-5 flex flex-col gap-4 shadow-sm">
+        {/* Top Row: Brand & Status Items */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-black tracking-tighter text-duo-eel flex items-baseline gap-0.5">
+              <span className="text-3xl text-indigo-600 mr-0.5">꼬</span>리에 
+              <span className="text-3xl text-purple-600 mx-0.5">꼬</span>리를 
+              <span className="text-3xl text-emerald-600 mx-0.5">무</span>는 
+              <span className="font-myeongjo ml-1 tracking-normal">漢字</span>
+            </h1>
           </div>
 
-          <div className="flex flex-col">
-            <h1 className="text-xl font-black tracking-tight text-duo-eel">꼬리에 꼬리를 무는 한자</h1>
-            <p className="text-[10px] font-black text-duo-macaw uppercase tracking-widest">{nickname || "탐험가"}님 반가워요!</p>
+          <div className="flex items-center gap-4">
+            {/* Yeouiju (Streak) */}
+            <div className="relative group">
+              <motion.div 
+                animate={{ 
+                  scale: streakCount > 0 ? [1, 1.1, 1] : 1,
+                  filter: streakCount > 0 ? "drop-shadow(0 0 12px rgba(255, 184, 0, 0.4))" : "none"
+                }}
+                transition={{ repeat: Infinity, duration: 3 }}
+                className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-700 relative",
+                  streakCount > 0 
+                    ? "bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 border-2 border-white shadow-md" 
+                    : "bg-duo-snow border-2 border-duo-swan opacity-50 grayscale"
+                )}
+              >
+                <Sparkles className={cn("w-5 h-5", streakCount > 0 ? "text-white" : "text-duo-swan")} />
+                {streakCount > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-duo-eel text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white">
+                    {streakCount}
+                  </div>
+                )}
+              </motion.div>
+            </div>
+
+            {/* Coupons */}
+            <motion.div 
+              whileHover={{ scale: 1.05 }}
+              className="flex items-center gap-2 bg-duo-snow/50 px-2.5 py-1.5 rounded-2xl border-2 border-duo-snow"
+            >
+              <div className="w-7 h-7 bg-amber-400 rounded-lg flex items-center justify-center shadow-inner">
+                <Gift className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xs font-black text-duo-eel">{coupons}개</span>
+            </motion.div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <motion.div 
-            whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 bg-duo-snow/50 px-3 py-2 rounded-2xl border-2 border-duo-snow"
-          >
-            <div className="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center shadow-inner">
-              <Gift className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[8px] font-black text-duo-wolf uppercase tracking-tighter">쿠폰함</span>
-              <span className="text-xs font-black text-duo-eel leading-none">{coupons}개</span>
-            </div>
-          </motion.div>
+        {/* Bottom Row: User Greeting & Auth CTA */}
+        <div className="flex items-center justify-between">
+          <p className="text-xl font-black text-duo-eel">
+            {nickname ? (
+              <span className="flex items-center gap-2">
+                <span className="text-duo-macaw">{nickname}님</span> 반가워요! 👋
+              </span>
+            ) : (
+              "한자 탐험을 시작해볼까요? 🐉"
+            )}
+          </p>
 
-          <button onClick={() => setIsAuthModalOpen(true)} className="w-10 h-10 bg-duo-snow rounded-full flex items-center justify-center border-2 border-duo-swan hover:bg-duo-macaw hover:text-white transition-all group">
-            {user ? <User className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={async () => {
+                    const supabase = createClient();
+                    await supabase.auth.signOut();
+                    window.location.reload();
+                  }}
+                  className="px-4 py-2 text-xs font-black text-duo-wolf hover:text-duo-eel transition-colors"
+                >
+                  로그아웃
+                </button>
+                <div className="w-8 h-8 bg-duo-snow rounded-full flex items-center justify-center border-2 border-duo-swan">
+                  <User className="w-4 h-4 text-duo-wolf" />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="px-4 py-2 bg-duo-macaw text-white rounded-xl font-black text-xs shadow-[0_3px_0_0_#1899d6] active:translate-y-0.5 active:shadow-none transition-all"
+                >
+                  로그인 / 회원가입
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
