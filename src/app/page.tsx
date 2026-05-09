@@ -783,23 +783,27 @@ export default function HomePage() {
                              || analyzedHanja.find(h => !newPracticed.has(h.char));
 
               if (nextHanja) {
-                setSelectedHanjaForWriting({
-                  char: nextHanja.char,
-                  meaning: nextHanja.meaning,
-                  sound: nextHanja.sound,
-                  originalSound: nextHanja.originalSound,
-                  isReview: false
-                });
+                // 다음 글자로 넘어가기 전에 약간의 여유를 줌 (모달이 바로 바뀌는 것 방지)
+                setTimeout(() => {
+                  setSelectedHanjaForWriting({
+                    char: nextHanja.char,
+                    meaning: nextHanja.meaning,
+                    sound: nextHanja.sound,
+                    originalSound: nextHanja.originalSound,
+                    isReview: false
+                  });
+                }, 1500);
               } else {
                 // 모든 글자 완료 시: 여의주 애니메이션 트리거
                 setShowBeadAnimation(true);
                 await logLearning(currentSearchedWord, true, undefined, true);
                 
+                // 여의주가 충분히 날아갈 시간을 확보 (3초)
                 setTimeout(() => {
                   setSelectedHanjaForWriting(null);
                   fetchDailyHistory();
                   fetchProfile();
-                }, 1500);
+                }, 3000);
               }
             } else {
               setSelectedHanjaForWriting(null);
