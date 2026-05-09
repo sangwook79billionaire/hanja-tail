@@ -25,12 +25,14 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
   const [isReviewFinished, setIsReviewFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [narrativeMessage, setNarrativeMessage] = useState("");
+  const lastInitializedChar = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
     let writerInstance: HanziWriter | null = null;
 
-    if (isOpen && targetRef.current) {
+    if (isOpen && targetRef.current && lastInitializedChar.current !== char) {
+      lastInitializedChar.current = char;
       setIsLoading(true);
       setIsComplete(false);
       setIsDemoMode(false);
@@ -96,7 +98,7 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
                         }, 1200);
                       }
                     });
-                  }, 1500);
+                  }, 2000);
                 }
               });
             }
@@ -115,6 +117,7 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
           currentTarget.innerHTML = "";
         }
         setWriter(null);
+        lastInitializedChar.current = null;
       };
     }
   }, [isOpen, char, onComplete]);

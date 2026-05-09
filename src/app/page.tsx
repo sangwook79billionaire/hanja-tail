@@ -373,7 +373,11 @@ export default function HomePage() {
   const handleRequestQuiz = async (hanja: string) => {
     setIsLoading(true);
     try {
-      const result = await generateQuiz(hanja, currentSearchedWord || undefined);
+      const learnedWords = dailyHistory.map(log => log.word);
+      const excluded = [currentSearchedWord || "", ...learnedWords].filter(Boolean);
+      const uniqueExcluded = Array.from(new Set(excluded));
+
+      const result = await generateQuiz(hanja, uniqueExcluded);
       if (result.error) {
         alert(result.error);
       } else {
@@ -814,6 +818,7 @@ export default function HomePage() {
                 // 여의주가 충분히 날아갈 시간을 확보 (3초)
                 setTimeout(() => {
                   setSelectedHanjaForWriting(null);
+                  setShowBeadAnimation(false); // 애니메이션 종료 후 리셋
                   fetchDailyHistory();
                   fetchProfile();
                 }, 3000);

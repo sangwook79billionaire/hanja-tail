@@ -227,19 +227,24 @@ export async function analyzeWord(word: string) {
   }
 }
 
-export async function generateQuiz(hanja: string, excludedWord?: string) {
+export async function generateQuiz(hanja: string, excludedWords?: string[]) {
   if (!hanja) return { error: "한자를 선택해주세요." };
 
   const supabase = createClient();
 
   try {
     // 1. DB에서 먼저 확인: 해당 한자가 포함된 기존 단어들을 찾습니다.
-    const { data: existingQuizzes } = await supabase
+    let query = supabase
       .from("quiz_bank")
       .select("*")
       .ilike("hanja_combination", `%${hanja}%`)
-      .not("word", "eq", excludedWord || "") // 현재 단어는 제외
-      .limit(10); // 최대 10개까지 후보를 가져옵니다.
+      .limit(20); // 후보를 더 많이 가져옵니다.
+
+    if (excludedWords && excludedWords.length > 0) {
+      query = query.not("word", "in", `(${excludedWords.join(',')})`);
+    }
+
+    const { data: existingQuizzes } = await query;
 
     if (existingQuizzes && existingQuizzes.length > 0) {
       // 후보들 중에서 랜덤하게 하나를 선택하여 루프를 방지합니다.
