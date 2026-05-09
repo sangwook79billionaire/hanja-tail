@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import HanziWriter from "hanzi-writer";
 import { Edit3, Sparkles, X, CheckCircle2 } from "lucide-react";
 import { updateLearningProgress } from "../app/actions";
+import { cn } from "@/lib/utils";
 
 interface HanjaData {
   char: string;
@@ -105,15 +106,32 @@ export default function HanjaCard({
         </div>
 
         {/* Review CTA Button */}
-        {onWrite && (
-          <button
-            onClick={handleWriteClick}
-            className="w-full mt-4 py-3 bg-duo-macaw text-white rounded-2xl font-black text-sm shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase tracking-wider"
-          >
-            <Edit3 className="w-4 h-4" />
-            한자공부하기
-          </button>
-        )}
+        <div className="w-full mt-4 flex gap-2">
+          {onWrite && (
+            <button
+              onClick={handleWriteClick}
+              className={cn(
+                "py-3 bg-duo-macaw text-white rounded-2xl font-black text-[10px] shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase",
+                onQuiz ? "flex-1" : "w-full"
+              )}
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              써보기
+            </button>
+          )}
+          {onQuiz && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsExpanded(false); onQuiz(data.char); }}
+              className={cn(
+                "py-3 bg-duo-eel text-white rounded-2xl font-black text-[10px] shadow-[0_4px_0_0_#1a1a1a] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase",
+                onWrite ? "flex-1" : "w-full"
+              )}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              탐험하기
+            </button>
+          )}
+        </div>
       </motion.div>
 
       {/* Expanded Detailed View (Modal) */}
@@ -162,25 +180,33 @@ export default function HanjaCard({
                     카드를 눌러서 뒤집어봐! 🔄
                   </p>
 
-                  <div className="w-full mt-4 flex gap-3">
-                    {onWrite && (
-                      <button 
-                        onClick={handleWriteClick}
-                        className="flex-1 py-4 bg-duo-macaw text-white rounded-2xl font-black text-xs shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 group"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                        다시 써보기
-                      </button>
-                    )}
-                    {onQuiz && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setIsExpanded(false); onQuiz(data.char); }}
-                        className="flex-1 py-4 bg-duo-eel text-white rounded-2xl font-black text-xs shadow-[0_4px_0_0_#1a1a1a] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 group"
-                      >
-                        <Sparkles className="w-4 h-4 text-amber-300" />
-                        퀴즈 풀기
-                      </button>
-                    )}
+                  <div className="w-full mt-4 flex flex-col gap-3">
+                    <div className="flex gap-3">
+                      {onWrite && (
+                        <button 
+                          onClick={handleWriteClick}
+                          className="flex-1 py-4 bg-duo-macaw text-white rounded-2xl font-black text-xs shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex flex-col items-center justify-center gap-1 group"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Edit3 className="w-4 h-4" />
+                            써보기
+                          </div>
+                          <span className="text-[9px] opacity-80">(0.5 point)</span>
+                        </button>
+                      )}
+                      {onQuiz && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setIsExpanded(false); onQuiz(data.char); }}
+                          className="flex-1 py-4 bg-duo-eel text-white rounded-2xl font-black text-xs shadow-[0_4px_0_0_#1a1a1a] active:translate-y-1 active:shadow-none transition-all flex flex-col items-center justify-center gap-1 group"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-amber-300" />
+                            연관 단어 탐험
+                          </div>
+                          <span className="text-[9px] opacity-80">(0.5 point)</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-4 px-4 py-1.5 bg-duo-snow/50 rounded-xl text-xs font-bold text-duo-wolf">
