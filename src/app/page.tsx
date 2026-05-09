@@ -273,15 +273,15 @@ export default function HomePage() {
         {/* Top Row: Brand & Status Items */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-black tracking-tighter text-duo-eel flex items-baseline gap-0.5">
+            <h1 className="text-xl font-black tracking-tighter text-duo-eel flex items-baseline gap-0.5">
               <span className="text-3xl text-indigo-600 mr-0.5">꼬</span>리에 
               <span className="text-3xl text-purple-600 mx-0.5">꼬</span>리를 
               <span className="text-3xl text-emerald-600 mx-0.5">무</span>는 
-              <span className="font-myeongjo ml-1 tracking-normal">漢字</span>
+              <span className="font-myeongjo text-3xl ml-1 tracking-normal">漢字</span>
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
             {/* Yeouiju (Streak) */}
             <div className="relative group">
               <motion.div 
@@ -291,15 +291,15 @@ export default function HomePage() {
                 }}
                 transition={{ repeat: Infinity, duration: 3 }}
                 className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-700 relative",
+                  "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-700 relative",
                   streakCount > 0 
                     ? "bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 border-2 border-white shadow-md" 
                     : "bg-duo-snow border-2 border-duo-swan opacity-50 grayscale"
                 )}
               >
-                <Sparkles className={cn("w-5 h-5", streakCount > 0 ? "text-white" : "text-duo-swan")} />
+                <Sparkles className={cn("w-6 h-6", streakCount > 0 ? "text-white" : "text-duo-swan")} />
                 {streakCount > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-duo-eel text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white">
+                  <div className="absolute -top-1.5 -right-1.5 bg-duo-eel text-white text-[11px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                     {streakCount}
                   </div>
                 )}
@@ -307,15 +307,24 @@ export default function HomePage() {
             </div>
 
             {/* Coupons */}
-            <motion.div 
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center gap-2 bg-duo-snow/50 px-2.5 py-1.5 rounded-2xl border-2 border-duo-snow"
-            >
-              <div className="w-7 h-7 bg-amber-400 rounded-lg flex items-center justify-center shadow-inner">
-                <Gift className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xs font-black text-duo-eel">{coupons}개</span>
-            </motion.div>
+            <div className="relative group">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                className={cn(
+                  "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 relative",
+                  coupons > 0 
+                    ? "bg-amber-400 border-2 border-white shadow-md" 
+                    : "bg-duo-snow border-2 border-duo-swan opacity-50 grayscale"
+                )}
+              >
+                <Gift className={cn("w-5 h-5", coupons > 0 ? "text-white" : "text-duo-swan")} />
+                {coupons > 0 && (
+                  <div className="absolute -top-1.5 -right-1.5 bg-duo-macaw text-white text-[11px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                    {coupons}
+                  </div>
+                )}
+              </motion.div>
+            </div>
           </div>
         </div>
 
