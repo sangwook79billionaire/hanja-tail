@@ -271,10 +271,10 @@ export default function LearningMindMap({
               {/* Character Text */}
               <text
                 x={node.x} y={node.y}
-                dy="-0.1em"
+                dy="-0.05em"
                 textAnchor="middle"
                 className={cn(
-                  "text-4xl font-black font-myeongjo select-none",
+                  "text-5xl font-black font-myeongjo select-none",
                   node.isHub || node.practiced ? "fill-white" : "fill-duo-eel"
                 )}
               >
@@ -284,14 +284,14 @@ export default function LearningMindMap({
               {/* Meaning & Sound Text */}
               <text
                 x={node.x} y={node.y}
-                dy="2.4em"
+                dy="2.2em"
                 textAnchor="middle"
                 className={cn(
-                  "text-[10px] font-black select-none opacity-90",
+                  "text-[14px] font-black select-none opacity-100",
                   node.isHub || node.practiced ? "fill-white" : "fill-duo-macaw"
                 )}
               >
-                {node.meaning} {node.sound}
+                {node.meaning}{node.sound}
               </text>
 
               {/* Status Icon */}
