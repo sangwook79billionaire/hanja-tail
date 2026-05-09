@@ -909,7 +909,97 @@ export async function getMonitoringLogs() {
     .limit(50);
 
   if (error) return { error: error.message };
-  return { logs: data || [] };
+  return { data };
+}
+
+/**
+ * AI를 사용하여 시스템 오류를 자동으로 분석하고 진단합니다.
+ */
+export async function getAIDiagnosis(errorMessage: string, stackTrace?: string) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return { error: "API Key missing" };
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+  const prompt = `
+    You are a senior full-stack developer and system reliability engineer.
+    Analyze the following error from the 'Hanja Tail' (한자 꼬리) application:
+    
+    Error Message: "${errorMessage}"
+    Stack Trace: "${stackTrace || 'No stack trace provided'}"
+    
+    Context:
+    - Technology: Next.js 14, Supabase, TailwindCSS, Gemini AI.
+    - Application: A Hanja learning platform for children.
+    
+    Tasks:
+    1. Identify the most likely root cause.
+    2. Provide a specific, actionable code fix or configuration change.
+    3. Suggest how to prevent this in the future.
+    
+    Return the response in a structured JSON format:
+    {
+      "rootCause": "string",
+      "proposedFix": "string (markdown code block if possible)",
+      "prevention": "string",
+      "severity": "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+    }
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    return JSON.parse(result.response.text());
+  } catch (e) {
+    console.error("AI Diagnosis Error:", e);
+    return { error: "진단 중 오류가 발생했습니다." };
+  }
+}
+
+/**
+ * 최근 발생한 오류들을 취합하여 AI에게 리포트를 요청합니다.
+ */
+export async function analyzeRecentErrors() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  // 관리자 권한 체크
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) return { error: "Forbidden" };
+
+  const { data: logs } = await supabase
+    .from('monitoring_log')
+    .select('*')
+    .eq('level', 'ERROR')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (!logs || logs.length === 0) return { message: "최근 발생한 오류가 없습니다. 시스템이 건강합니다! ✨" };
+
+  const errorSummary = logs.map(l => `- [${l.created_at}] ${l.message}`).join('\n');
+  
+  const apiKey = process.env.GEMINI_API_KEY;
+  const genAI = new GoogleGenerativeAI(apiKey!);
+  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+  const prompt = `
+    Analyze these recent system errors from 'Hanja Tail':
+    ${errorSummary}
+    
+    Provide a high-level summary and prioritize which one needs immediate attention.
+    Suggest any patterns you see (e.g., API timeouts, database constraint violations).
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    return { 
+      summary: result.response.text(),
+      logs: logs 
+    };
+  } catch {
+    return { error: "분석 실패" };
+  }
 }
 
 export async function bulkVerifyWords(words: string[]) {

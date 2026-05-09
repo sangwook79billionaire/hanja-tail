@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Star, Target, ChevronLeft, Settings } from "lucide-react";
+import { Calendar, Star, Target, ChevronLeft, Settings, Brain, AlertCircle, RefreshCw, ChevronRight, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { analyzeRecentErrors, getAIDiagnosis } from "@/app/actions";
 import Link from "next/link";
 
 interface PeriodStats {
@@ -34,6 +35,20 @@ interface LearningLog {
   difficulty?: number;
 }
 
+interface MonitoringLog {
+  id: string;
+  message: string;
+  created_at: string;
+  level: string;
+}
+
+interface DiagnosisResponse {
+  rootCause: string;
+  proposedFix: string;
+  prevention: string;
+  severity: string;
+}
+
 export default function StatsView({ 
   stats, 
   logs,
@@ -50,6 +65,39 @@ export default function StatsView({
   disabled?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<TabType>("today");
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
+  const [diagnosisResult, setDiagnosisResult] = useState<{ summary: string; logs: MonitoringLog[] } | null>(null);
+  const [detailedDiagnosis, setDetailedDiagnosis] = useState<Record<string, DiagnosisResponse>>({});
+  const [loadingErrorId, setLoadingErrorId] = useState<string | null>(null);
+
+  const handleRunDiagnosis = async () => {
+    setIsDiagnosing(true);
+    try {
+      const result = await analyzeRecentErrors();
+      if ("error" in result) {
+        alert(result.error);
+      } else {
+        setDiagnosisResult(result as { summary: string; logs: MonitoringLog[] });
+      }
+    } catch {
+      alert("진단 중 오류가 발생했습니다.");
+    } finally {
+      setIsDiagnosing(false);
+    }
+  };
+
+  const handleGetDetailedDiagnosis = async (logId: string, message: string) => {
+    setLoadingErrorId(logId);
+    try {
+      const result = await getAIDiagnosis(message);
+      if ("error" in result) throw new Error();
+      setDetailedDiagnosis(prev => ({ ...prev, [logId]: result as DiagnosisResponse }));
+    } catch {
+      alert("상세 진단 실패");
+    } finally {
+      setLoadingErrorId(null);
+    }
+  };
 
   if (!stats || !stats.total) {
     return (
@@ -206,6 +254,104 @@ export default function StatsView({
                 </p>
               </div>
             </div>
+
+            {/* Admin AI Diagnosis Section */}
+            {isAdmin && (
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100 rounded-[32px] p-8 shadow-sm mt-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-black text-indigo-900 flex items-center gap-2">
+                      <Brain className="w-6 h-6 text-indigo-500" /> AI 시스템 진단 센터
+                    </h3>
+                    <p className="text-sm font-bold text-indigo-600/70 mt-1">
+                      최근 발생한 오류를 AI가 자동으로 분석합니다.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={handleRunDiagnosis}
+                    disabled={isDiagnosing}
+                    className="p-3 bg-white text-indigo-500 rounded-2xl shadow-sm border-2 border-indigo-100 hover:bg-indigo-50 transition-all disabled:opacity-50"
+                  >
+                    <RefreshCw className={cn("w-6 h-6", isDiagnosing && "animate-spin")} />
+                  </button>
+                </div>
+
+                {!diagnosisResult ? (
+                  <div className="flex flex-col items-center justify-center py-12 bg-white/50 rounded-3xl border-2 border-dashed border-indigo-200">
+                    <Activity className="w-12 h-12 text-indigo-200 mb-4" />
+                    <button 
+                      onClick={handleRunDiagnosis}
+                      disabled={isDiagnosing}
+                      className="px-8 py-4 bg-indigo-500 text-white rounded-2xl font-black text-lg shadow-lg hover:bg-indigo-600 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {isDiagnosing ? "AI 분석 중..." : "시스템 정밀 진단 시작"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-3xl border-2 border-indigo-100 shadow-sm">
+                      <h4 className="font-black text-indigo-900 mb-3 flex items-center gap-2">
+                        <Star className="w-4 h-4 text-amber-400" /> AI 종합 진단 리포트
+                      </h4>
+                      <div className="text-sm font-bold text-indigo-800/80 leading-relaxed whitespace-pre-wrap">
+                        {diagnosisResult.summary}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="font-black text-indigo-900 flex items-center gap-2 px-2">
+                        <AlertCircle className="w-4 h-4 text-rose-500" /> 감지된 주요 이슈 ({diagnosisResult.logs.length})
+                      </h4>
+                      {diagnosisResult.logs.map((log: MonitoringLog) => (
+                        <div key={log.id} className="bg-white rounded-3xl border-2 border-indigo-50 overflow-hidden">
+                          <div className="p-5 flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-black bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full">ERROR</span>
+                                <span className="text-[10px] font-bold text-indigo-300">{new Date(log.created_at).toLocaleString()}</span>
+                              </div>
+                              <p className="text-sm font-black text-indigo-950 line-clamp-2">{log.message}</p>
+                            </div>
+                            <button 
+                              onClick={() => handleGetDetailedDiagnosis(log.id, log.message)}
+                              disabled={loadingErrorId === log.id}
+                              className="p-2 bg-indigo-50 text-indigo-500 rounded-xl hover:bg-indigo-100 transition-all disabled:opacity-50"
+                            >
+                              {loadingErrorId === log.id ? <RefreshCw className="w-5 h-5 animate-spin" /> : <ChevronRight className="w-5 h-5" />}
+                            </button>
+                          </div>
+
+                          {detailedDiagnosis[log.id] && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              className="px-5 pb-5 border-t border-indigo-50 bg-indigo-50/30"
+                            >
+                              <div className="pt-4 space-y-4">
+                                <div>
+                                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-wider">Root Cause</span>
+                                  <p className="text-sm font-bold text-indigo-900 mt-1">{detailedDiagnosis[log.id].rootCause}</p>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-wider">Proposed Fix</span>
+                                  <div className="mt-2 p-4 bg-slate-900 rounded-2xl text-[11px] font-mono text-slate-100 overflow-x-auto border-4 border-slate-800">
+                                    <pre className="whitespace-pre-wrap">{detailedDiagnosis[log.id].proposedFix}</pre>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 pt-2">
+                                  <span className="text-[10px] font-black px-2 py-1 bg-amber-400 text-white rounded-full">Severity: {detailedDiagnosis[log.id].severity}</span>
+                                  <p className="text-[10px] font-bold text-indigo-500">Prevention: {detailedDiagnosis[log.id].prevention}</p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <>
