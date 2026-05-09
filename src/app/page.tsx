@@ -9,6 +9,7 @@ import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
 import QuestMap from "@/components/QuestMap";
+import MyPageModal from "@/components/MyPageModal";
 import LearningMindMap from "@/components/LearningMindMap";
 import { AnimatePresence, motion } from "framer-motion";
 import AuthModal from "@/components/AuthModal";
@@ -184,9 +185,12 @@ export default function HomePage() {
   const [hasAwardedTrophy, setHasAwardedTrophy] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
+  const [school, setSchool] = useState<string | null>(null);
+  const [grade, setGrade] = useState<number | null>(null);
   const [currentStage, setCurrentStage] = useState<number>(8);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [showRequiredInfoModal, setShowRequiredInfoModal] = useState(false);
+  const [showMyPageModal, setShowMyPageModal] = useState(false);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, originalSound?: string, isReview?: boolean} | null>(null);
   const [totalScore, setTotalScore] = useState(0);
   const [practicedChars, setPracticedChars] = useState<Set<string>>(new Set());
@@ -252,6 +256,8 @@ export default function HomePage() {
     const { profile } = await getMyProfile();
     if (profile) {
       setNickname(profile.nickname);
+      setSchool(profile.school);
+      setGrade(profile.grade);
       setStreakCount(profile.streak_count || 0);
       setCoupons(profile.coupons || 0);
       setCurrentStage(profile.current_stage || 8);
@@ -483,9 +489,12 @@ export default function HomePage() {
                 >
                   로그아웃
                 </button>
-                <div className="w-8 h-8 bg-duo-snow rounded-full flex items-center justify-center border-2 border-duo-swan">
-                  <User className="w-4 h-4 text-duo-wolf" />
-                </div>
+                <button 
+                  onClick={() => setShowMyPageModal(true)}
+                  className="w-10 h-10 bg-white rounded-full flex items-center justify-center border-2 border-duo-snow shadow-sm hover:border-indigo-400 transition-all group"
+                >
+                  <User className="w-5 h-5 text-duo-wolf group-hover:text-indigo-500 transition-colors" />
+                </button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -791,6 +800,12 @@ export default function HomePage() {
             setShowRequiredInfoModal(false);
             fetchProfile();
           }}
+        />
+        <MyPageModal
+          isOpen={showMyPageModal}
+          onClose={() => setShowMyPageModal(false)}
+          initialData={{ nickname, school, grade }}
+          onUpdate={fetchProfile}
         />
         <WritingModal
           char={selectedHanjaForWriting?.char || ""}

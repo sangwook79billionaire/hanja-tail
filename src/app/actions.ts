@@ -737,8 +737,7 @@ export async function getMyProfile() {
   
   const { data: todayLogs } = await supabase
     .from("learning_logs")
-    .select("is_review")
-    .eq("user_id", user.id)
+    .select("*")
     .gte("learned_at", `${today}T00:00:00Z`);
 
   const newWordCount = (todayLogs || []).filter(l => !l.is_review).length;
@@ -748,9 +747,54 @@ export async function getMyProfile() {
     profile,
     dailyStats: {
       newWords: newWordCount,
-      reviews: reviewCount,
-      totalToday: (newWordCount * 1) + (reviewCount * 0.5)
+      reviews: reviewCount
     }
+  };
+}
+
+export async function getRankings() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("total_score, school, grade")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) return { error: "프로필을 찾을 수 없습니다." };
+
+  // 또래 순위 (같은 학년)
+  const { count: peerTotal } = await supabase
+    .from("profiles")
+    .select("*", { count: 'exact', head: true })
+    .eq("grade", profile.grade);
+
+  const { count: peerRank } = await supabase
+    .from("profiles")
+    .select("*", { count: 'exact', head: true })
+    .eq("grade", profile.grade)
+    .gt("total_score", profile.total_score);
+
+  // 학교 순위 (같은 학교)
+  const { count: schoolTotal } = await supabase
+    .from("profiles")
+    .select("*", { count: 'exact', head: true })
+    .eq("school", profile.school);
+
+  const { count: schoolRank } = await supabase
+    .from("profiles")
+    .select("*", { count: 'exact', head: true })
+    .eq("school", profile.school)
+    .gt("total_score", profile.total_score);
+
+  return {
+    peerRank: (peerRank || 0) + 1,
+    peerTotal: peerTotal || 0,
+    schoolRank: (schoolRank || 0) + 1,
+    schoolTotal: schoolTotal || 0
   };
 }
 
