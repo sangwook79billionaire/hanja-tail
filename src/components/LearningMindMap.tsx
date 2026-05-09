@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useMemo } from "react";
+import { useMemo, useState, useRef } from "react";
 import Image from "next/image";
 
 interface LearningLog {
@@ -50,6 +50,10 @@ export default function LearningMindMap({
   onRandomQuiz?: () => void;
   disabled?: boolean;
 }) {
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragStart = useRef({ x: 0, y: 0 });
   // 그래프 생성 로직
   const { nodes, links, viewbox } = useMemo(() => {
     const nodesMap = new Map<string, Node>();
@@ -198,12 +202,42 @@ export default function LearningMindMap({
 
   return (
     <div className="flex flex-col items-center w-full">
-      <div className="relative w-full aspect-square md:aspect-video bg-duo-snow/30 rounded-[40px] border-4 border-duo-snow shadow-inner overflow-hidden">
+      <div 
+        ref={containerRef}
+        className="relative w-full aspect-square md:aspect-video bg-duo-snow/30 rounded-[40px] border-4 border-duo-snow shadow-inner overflow-hidden"
+        onWheel={(e) => {
+          if (disabled) return;
+          const delta = e.deltaY > 0 ? 0.9 : 1.1;
+          setTransform(prev => ({
+            ...prev,
+            scale: Math.min(Math.max(prev.scale * delta, 0.5), 3)
+          }));
+        }}
+        onMouseDown={(e) => {
+          if (disabled) return;
+          setIsDragging(true);
+          dragStart.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+        }}
+        onMouseMove={(e) => {
+          if (!isDragging || disabled) return;
+          setTransform(prev => ({
+            ...prev,
+            x: e.clientX - dragStart.current.x,
+            y: e.clientY - dragStart.current.y
+          }));
+        }}
+        onMouseUp={() => setIsDragging(false)}
+        onMouseLeave={() => setIsDragging(false)}
+      >
         <svg 
           viewBox={viewbox} 
-          className="w-full h-full cursor-grab active:cursor-grabbing"
+          className={cn(
+            "w-full h-full transition-transform duration-75",
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          )}
           preserveAspectRatio="xMidYMid meet"
         >
+          <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
           {/* Links */}
           {links.map((link, idx) => {
             const s = nodes.find(n => n.id === link.source)!;
@@ -297,6 +331,7 @@ export default function LearningMindMap({
               )}
             </motion.g>
           ))}
+          </g>
         </svg>
 
         {/* Floating Instruction */}
@@ -309,27 +344,6 @@ export default function LearningMindMap({
           <Sparkles className="w-4 h-4 text-amber-500" />
           <span className="text-[10px] font-black text-duo-wolf">오늘 배운 글자의 연관 단어를 탐험해보자!</span>
         </motion.div>
-      </div>
-
-      {/* Legend & Hint */}
-      <div className="mt-8 w-full">
-        <div className="bg-white p-6 rounded-[32px] border-2 border-duo-snow flex flex-col gap-4">
-          <p className="text-xs font-black text-duo-swan uppercase tracking-widest">마인드맵 길잡이</p>
-          <div className="flex flex-wrap gap-10 items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-amber-400 border-4 border-white rounded-full shadow-sm ring-4 ring-amber-100" />
-              <span className="text-sm font-black text-duo-eel">공통 한자 (허브)</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-duo-green border-4 border-white rounded-full shadow-sm" />
-              <span className="text-sm font-black text-duo-eel">학습한 한자</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white border-4 border-duo-snow rounded-full shadow-sm" />
-              <span className="text-sm font-black text-duo-eel">아직 안 쓴 한자</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
