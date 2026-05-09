@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning } from "./actions";
+import { analyzeWord, getLearningRecap, getMyProfile, logLearning } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
@@ -365,23 +365,6 @@ export default function HomePage() {
     handleAnalyze(word);
   };
 
-  const handleRequestQuiz = async (hanja: string) => {
-    setIsLoading(true);
-    try {
-      const result = await generateQuiz(hanja, currentSearchedWord || undefined);
-      if (result.error) {
-        alert(result.error);
-      } else {
-        setSelectedHanjaForQuiz(hanja);
-        setCurrentQuiz(result.quiz);
-      }
-    } catch (e) {
-      console.error(e);
-      alert("퀴즈 생성 실패!");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
 
   return (
@@ -591,7 +574,6 @@ export default function HomePage() {
                           data={hanja} 
                           word={currentSearchedWord || undefined}
                           delay={idx * 0.1}
-                          onQuiz={(h) => handleRequestQuiz(h)}
                           onWrite={(char, meaning, sound, originalSound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, originalSound, isReview })}
                           onProgressUpdate={() => fetchDailyHistory()}
                           isReviewed={practicedChars.has(hanja.char) || (dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}

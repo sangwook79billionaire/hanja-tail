@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import HanziWriter from "hanzi-writer";
-import { Trophy, Edit3, Sparkles, X, CheckCircle2 } from "lucide-react";
+import { Edit3, Sparkles, X, CheckCircle2 } from "lucide-react";
 import { updateLearningProgress } from "../app/actions";
 
 interface HanjaData {
@@ -19,7 +19,6 @@ export default function HanjaCard({
   data, 
   word,
   delay = 0,
-  onQuiz,
   onWrite,
   onProgressUpdate,
   isReviewed = false
@@ -27,7 +26,6 @@ export default function HanjaCard({
   data: HanjaData; 
   word?: string;
   delay?: number;
-  onQuiz?: (hanja: string) => void;
   onWrite?: (char: string, meaning: string, sound: string, originalSound: string | undefined, isReview: boolean) => void;
   onProgressUpdate?: () => void;
   isReviewed?: boolean;
@@ -224,19 +222,6 @@ export default function HanjaCard({
                       <div className="bg-white/20 px-2 py-0.5 rounded-lg text-[9px] font-black shrink-0">+0.5 POINT</div>
                     </button>
                     
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsExpanded(false); // 퀴즈 시작 전 모달 닫기
-                        onQuiz?.(data.char);
-                      }}
-                      className="w-full flex items-center justify-between bg-duo-bee text-white h-14 px-4 rounded-2xl shadow-[0_4px_0_0_#e5a500] active:translate-y-1 active:shadow-none transition-all"
-                    >
-                      <div className="flex items-center gap-2 font-black text-base whitespace-nowrap">
-                        <Trophy className="w-5 h-5" /> 연관 단어 퀴즈
-                      </div>
-                      <div className="bg-white/20 px-2 py-0.5 rounded-lg text-[9px] font-black shrink-0">+1.0 POINT</div>
-                    </button>
                   </div>
                 </div>
               </motion.div>
