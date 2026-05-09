@@ -12,6 +12,7 @@ interface WritingModalProps {
   sound: string;
   originalSound?: string;
   isOpen: boolean;
+  isReview?: boolean;
   onClose: () => void;
   onComplete?: () => void;
 }
@@ -23,7 +24,7 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isReviewFinished, setIsReviewFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasPlayedDemo, setHasPlayedDemo] = useState(false);
+  const [narrativeMessage, setNarrativeMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -34,6 +35,7 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
       setIsComplete(false);
       setIsDemoMode(false);
       setIsReviewFinished(false);
+      setNarrativeMessage("어떻게 쓰는지 먼저 한 번 보자~");
 
       const timer = setTimeout(() => {
         if (!active || !targetRef.current) return;
@@ -55,42 +57,43 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
           setWriter(writerInstance);
           setIsLoading(false);
 
-          // 1단계: 먼저 획순 데모 보여주기
+          // 1단계: 획순 보기 (데모)
           setIsDemoMode(true);
           writerInstance.animateCharacter({
             onComplete: () => {
               if (!active || !writerInstance) return;
+              
+              // 2단계: 직접 써보기 제안
+              setNarrativeMessage("이번엔 한 번 써볼까?");
               setIsDemoMode(false);
-              setHasPlayedDemo(true);
 
-              // 2단계: 직접 써보기 시작
               writerInstance.quiz({
                 onComplete: () => {
                   if (!active || !writerInstance) return;
 
-                  // 3단계: 성공 메시지 표시
+                  // 3단계: 써보기 완료 및 칭찬
+                  setNarrativeMessage("잘 했어! 정말 멋지다! ✨");
                   setIsComplete(true);
                   
-                  // 4단계: 마무리 데모 보여주기
+                  // 4단계: 획순 다시 보기 (마무리 데모)
                   setTimeout(() => {
                     if (!active || !writerInstance) return;
                     setIsComplete(false);
+                    setNarrativeMessage("다시 한 번 보자! 🧐");
                     setIsDemoMode(true);
                     
                     writerInstance.animateCharacter({
                       onComplete: () => {
                         if (!active) return;
                         setIsDemoMode(false);
-                        
-                        // 5단계: 최종 완료 메시지
                         setIsReviewFinished(true);
+                        setNarrativeMessage("학습 완료! 다른 한자도 같이 써보자!");
                         
-                        // 6단계: 부모 컴포넌트에 완료 알림 (다음 글자 이동 또는 종료 결정)
                         setTimeout(() => {
                           if (active) {
                             onComplete?.();
                           }
-                        }, 1500);
+                        }, 1200);
                       }
                     });
                   }, 1500);
@@ -114,7 +117,7 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
         setWriter(null);
       };
     }
-  }, [isOpen, char, onClose, onComplete]);
+  }, [isOpen, char, onComplete]);
 
   const handleReset = () => {
     if (writer) {
@@ -179,6 +182,20 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
                 </button>
               )}
             </div>
+            
+            <div className="w-full h-12 flex items-center justify-center mb-2">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={narrativeMessage}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="text-lg font-black text-duo-macaw text-center"
+                >
+                  {narrativeMessage}
+                </motion.p>
+              </AnimatePresence>
+            </div>
 
             <div className="relative bg-duo-snow rounded-2xl p-4 mb-6 border-2 border-duo-swan group flex items-center justify-center min-h-[282px] min-w-[282px]">
               {isLoading && (
@@ -209,7 +226,7 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
 
                 {isDemoMode && (
                   <div className="absolute top-4 left-4 bg-duo-macaw text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse z-10">
-                    {hasPlayedDemo ? "획순 다시보기 중..." : "획순 보기 중..."}
+                    {narrativeMessage.includes("다시") ? "획순 다시보기 중..." : "획순 보기 중..."}
                   </div>
                 )}
 
@@ -241,7 +258,7 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
                 className="flex items-center justify-center gap-2 py-3 px-4 bg-white border-2 border-duo-swan rounded-2xl font-black text-duo-eel hover:bg-duo-snow transition-all disabled:opacity-50"
               >
                 <Play className="w-5 h-5 fill-current" />
-                {hasPlayedDemo ? "획순 다시보기" : "획순 보기"}
+                획순 다시보기
               </button>
               <button
                 onClick={handleReset}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User } from "lucide-react";
+import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning } from "./actions";
@@ -16,6 +16,12 @@ import RequiredInfoModal from "@/components/RequiredInfoModal";
 import { createClient } from "@/lib/supabase/client";
 import CharacterView from "@/components/CharacterView";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+
+interface Expansion {
+  word: string;
+  hanja: string;
+  description: string;
+}
 
 interface LearningLog {
   word: string;
@@ -48,6 +54,113 @@ interface StatsData {
   total: PeriodStats;
 }
 
+const getInitialConsonant = (text: string) => {
+  const CHO = [
+    'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+  ];
+  return text.split('').map(char => {
+    const code = char.charCodeAt(0) - 44032;
+    if (code > -1 && code < 11172) return CHO[Math.floor(code / 588)];
+    return char;
+  }).join('');
+};
+
+function ExpansionQuizModal({ expansion, onStart, onClose }: { expansion: Expansion, onStart: () => void, onClose: () => void }) {
+  const [answer, setAnswer] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [showOneCharHint, setShowOneCharHint] = useState(false);
+
+  const initials = getInitialConsonant(expansion.word);
+  const oneCharHint = expansion.word[0] + "_".repeat(expansion.word.length - 1);
+
+  const checkAnswer = () => {
+    if (answer.trim() === expansion.word) {
+      setIsSuccess(true);
+    } else {
+      alert("다시 한번 생각해볼까? 🦉");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="relative bg-white rounded-[40px] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-duo-snow"
+      >
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white rounded-full p-4 border-4 border-amber-400 shadow-xl">
+          <Sparkles className="w-12 h-12 text-amber-400" />
+        </div>
+        
+        <h3 className="text-2xl font-black text-duo-eel mt-4 mb-4">연관 단어 퀴즈!</h3>
+        <p className="text-lg font-bold text-duo-wolf mb-8 leading-relaxed">
+          &quot;{expansion.description}&quot;
+        </p>
+        
+        <div className="bg-duo-snow p-6 rounded-3xl mb-6 relative">
+          <div className="text-4xl font-black text-duo-eel tracking-widest mb-2">{initials}</div>
+          <div className="text-xs font-bold text-duo-wolf opacity-60">초성 힌트</div>
+          {showOneCharHint && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 pt-4 border-t-2 border-white text-xl font-black text-amber-500"
+            >
+              글자 힌트: {oneCharHint}
+            </motion.div>
+          )}
+        </div>
+
+        {!isSuccess ? (
+          <div className="space-y-4">
+            <input 
+              type="text"
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="정답을 입력해줘"
+              className="w-full h-16 bg-duo-snow border-2 border-duo-swan rounded-2xl px-6 text-center text-2xl font-black focus:outline-none focus:border-duo-macaw transition-all placeholder:text-duo-swan"
+              onKeyDown={(e) => e.key === 'Enter' && checkAnswer()}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowOneCharHint(true)}
+                className="flex-1 py-4 text-sm font-black text-duo-wolf hover:text-duo-eel transition-colors"
+              >
+                글자 힌트 보기
+              </button>
+              <button 
+                onClick={checkAnswer}
+                className="flex-[2] py-4 bg-duo-macaw text-white rounded-2xl font-black shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all text-lg"
+              >
+                정답 확인!
+              </button>
+            </div>
+          </div>
+        ) : (
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-6">
+            <div className="text-3xl font-black text-indigo-600">정답이에요! 🎊</div>
+            <p className="text-lg font-bold text-duo-wolf leading-snug">
+              잘 했어! 정말 멋지다!<br />
+              새로운 글자도 써보기를 같이 하면<br />
+              <span className="text-amber-500 underline decoration-2 underline-offset-4">여의주</span>를 지급해줄게!
+            </p>
+            <button 
+              onClick={onStart}
+              className="w-full py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-3xl font-black text-xl shadow-[0_5px_0_0_#4338ca] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
+            >
+              <span>탐험 시작하기!</span>
+              <Play className="w-5 h-5 fill-current" />
+            </button>
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'search' | 'quest' | 'stats'>('search');
   const [word, setWord] = useState("");
@@ -59,6 +172,9 @@ export default function HomePage() {
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
   const [streakCount, setStreakCount] = useState(0);
   const [coupons, setCoupons] = useState(0);
+  const [expansionWords, setExpansionWords] = useState<Expansion[]>([]);
+  const [selectedExpansionForQuiz, setSelectedExpansionForQuiz] = useState<Expansion | null>(null);
+  const [showBeadAnimation, setShowBeadAnimation] = useState(false);
   const [missionProgress, setMissionProgress] = useState(0);
   const [hasAwardedTrophy, setHasAwardedTrophy] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -205,6 +321,7 @@ export default function HomePage() {
       } else {
         setAnalyzedHanja(result.hanjaList);
         setCurrentSearchedWord(searchWord.trim());
+        setExpansionWords(result.expansions || []);
         
         // [추가] autoOpenFirst가 true면 첫 번째 한자 쓰기 모달 바로 열기
         if (autoOpenFirst && result.hanjaList.length > 0) {
@@ -478,6 +595,33 @@ export default function HomePage() {
                         />
                       ))}
                     </div>
+
+                    {expansionWords.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-8 px-4"
+                      >
+                        <h4 className="text-lg font-black text-duo-eel mb-4 flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-amber-400" />
+                          다른 연관 단어도 공부해볼래?
+                        </h4>
+                        <div className="flex flex-wrap gap-3">
+                          {expansionWords.map((exp) => (
+                            <button
+                              key={exp.word}
+                              onClick={() => setSelectedExpansionForQuiz(exp)}
+                              className="px-5 py-3 bg-white border-2 border-duo-snow rounded-2xl font-black text-duo-eel hover:border-duo-macaw hover:text-duo-macaw transition-all shadow-sm flex items-center gap-2 group"
+                            >
+                              <span>{exp.word}</span>
+                              <div className="w-6 h-6 bg-duo-snow rounded-lg flex items-center justify-center group-hover:bg-duo-macaw/10">
+                                <Search className="w-3.5 h-3.5 text-duo-wolf group-hover:text-duo-macaw" />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -620,6 +764,7 @@ export default function HomePage() {
           sound={selectedHanjaForWriting?.sound || ""}
           originalSound={selectedHanjaForWriting?.originalSound}
           isOpen={!!selectedHanjaForWriting}
+          isReview={selectedHanjaForWriting?.isReview}
           onClose={() => setSelectedHanjaForWriting(null)}
           onComplete={async () => {
             if (!selectedHanjaForWriting) return;
@@ -630,13 +775,11 @@ export default function HomePage() {
             setPracticedChars(newPracticed);
 
             if (currentSearchedWord) {
-              // 다음 써볼 글자 찾기 (현재 글자 이후부터 찾고, 없으면 처음부터 미완료된 글자 찾기)
               const currentIndex = analyzedHanja.findIndex(h => h.char === char);
               const nextHanja = analyzedHanja.slice(currentIndex + 1).find(h => !newPracticed.has(h.char)) 
                              || analyzedHanja.find(h => !newPracticed.has(h.char));
 
               if (nextHanja) {
-                // 다음 글자로 부드럽게 이동
                 setSelectedHanjaForWriting({
                   char: nextHanja.char,
                   meaning: nextHanja.meaning,
@@ -645,20 +788,50 @@ export default function HomePage() {
                   isReview: false
                 });
               } else {
-                // 모든 글자 완료 시
-                const logRes = await logLearning(currentSearchedWord, true, undefined, true);
-                if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
-                  alert(`✨ 완벽해요! '${currentSearchedWord}'의 모든 글자를 정복했습니다!\n보너스 ${logRes.pointsAwarded}점을 획득했어요!`);
-                }
-                setSelectedHanjaForWriting(null); // 모달 닫기
-                fetchDailyHistory();
-                fetchProfile();
+                // 모든 글자 완료 시: 여의주 애니메이션 트리거
+                setShowBeadAnimation(true);
+                await logLearning(currentSearchedWord, true, undefined, true);
+                
+                setTimeout(() => {
+                  setSelectedHanjaForWriting(null);
+                  fetchDailyHistory();
+                  fetchProfile();
+                }, 1500);
               }
             } else {
               setSelectedHanjaForWriting(null);
             }
           }}
         />
+        
+        {showBeadAnimation && (
+          <motion.div
+            initial={{ left: "50%", top: "50%", x: "-50%", y: "-50%", scale: 0, opacity: 0 }}
+            animate={{ 
+              left: ["50%", "50%", "85%"], 
+              top: ["50%", "30%", "45px"], 
+              scale: [0, 2, 0.5],
+              opacity: [0, 1, 0] 
+            }}
+            transition={{ duration: 1.5, ease: "anticipate" }}
+            onAnimationComplete={() => setShowBeadAnimation(false)}
+            className="fixed z-[500] w-14 h-14 bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 rounded-full shadow-[0_0_30px_rgba(251,191,36,0.8)] border-4 border-white flex items-center justify-center pointer-events-none"
+          >
+            <Sparkles className="w-8 h-8 text-white animate-pulse" />
+          </motion.div>
+        )}
+        {selectedExpansionForQuiz && (
+          <ExpansionQuizModal
+            expansion={selectedExpansionForQuiz}
+            onStart={() => {
+              const wordToExplore = selectedExpansionForQuiz.word;
+              setSelectedExpansionForQuiz(null);
+              setWord(wordToExplore);
+              handleAnalyze(wordToExplore, true, true);
+            }}
+            onClose={() => setSelectedExpansionForQuiz(null)}
+          />
+        )}
       </AnimatePresence>
     </main>
   );
