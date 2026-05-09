@@ -827,7 +827,7 @@ export default function HomePage() {
                 <div className="w-full h-full bg-[radial-gradient(circle,rgba(251,191,36,1)_0%,transparent_70%)]" />
               </motion.div>
               <Trophy className="w-40 h-40 text-amber-500 mx-auto mb-8 drop-shadow-lg" />
-              <h2 className="text-4xl font-black text-duo-eel mb-4">대단해요! 오늘의 트로피 획득!</h2>
+              <h2 className="text-4xl font-black text-duo-eel mb-4 break-keep">대단해요! 오늘의 트로피 획득!</h2>
               <p className="text-xl font-bold text-duo-wolf mb-8">매일매일 꾸준히 모험하는 당신은 진정한 한자 박사! 🐉</p>
               <div className="flex gap-4 justify-center">
                 <button onClick={() => { setShowTrophyCelebration(false); }} className="px-8 py-4 bg-duo-macaw text-white rounded-2xl font-black shadow-[0_4px_0_0_#1899d6]">모험 계속하기</button>
