@@ -277,7 +277,7 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
       {
         "word": "정답 단어 (한글 - 반드시 한글만!)",
         "hanja_combination": "정답 단어 (한자 - 반드시 '${hanja}' 포함)",
-        "description": "아이들이 좋아할 만한 친절하고 재미있는 힌트",
+        "description": "아이들이 좋아할 만한 친절하고 재미있는 힌트. (절대 단어 이름을 직접 언급하거나 'OO의 의미' 같은 표현을 쓰지 마세요!)",
         "difficulty_level": number (1: Basic/1-2 Grade, 2: Intermediate/3-4 Grade, 3: Advanced/5-6 Grade+),
         "hanja_list": [
           { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
@@ -298,6 +298,17 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
         const isHangulOnly = /^[가-힣]+$/.test(quizData.word);
         if (!isHangulOnly) throw new Error("Word must be Hangul only.");
         if (!quizData.hanja_combination.includes(hanja)) throw new Error("Missing target Hanja.");
+
+        // 퀄리티 체크 (Self-Correction)
+        const desc = quizData.description || "";
+        const isTooShort = desc.length < 10;
+        const containsWord = desc.includes(quizData.word);
+        const isGeneric = desc.includes("의미") || desc.includes("뜻하는");
+
+        if (isTooShort || containsWord || isGeneric) {
+          console.warn(`[Quiz Quality Check] Failed: "${desc}". Retrying...`);
+          throw new Error("Poor quality description.");
+        }
 
         // 선제적 캐싱
         await supabase.from("word_analysis_cache").upsert({
@@ -1136,4 +1147,38 @@ export async function searchSchools(keyword: string) {
     console.error("[School Search] API Error:", error);
     return [];
   }
+}
+/**
+ * 퀄리티가 낮은 퀴즈 데이터를 찾아냅니다. (관리자용)
+ */
+export async function getLowQualityQuizzes() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  // 관리자 권한 체크
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) return { error: "Forbidden" };
+
+  const { data: quizzes, error } = await supabase
+    .from('quiz_bank')
+    .select('*')
+    .or('description.ilike.%의미%,description.ilike.%뜻하는%,description.ilike.%말합니다%')
+    .limit(50);
+
+  if (error) return { error: error.message };
+  return { quizzes };
+}
+
+/**
+ * 퀴즈 데이터를 일괄 삭제하거나 수정할 수 있는 기능을 제공합니다.
+ */
+export async function deleteQuiz(id: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { error } = await supabase.from('quiz_bank').delete().eq('id', id);
+  if (error) return { error: error.message };
+  return { success: true };
 }
