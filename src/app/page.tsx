@@ -377,37 +377,36 @@ export default function HomePage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[32px] p-6 text-white shadow-xl relative overflow-hidden group"
               >
-                <div className="relative z-10 flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Trophy className="w-4 h-4 text-amber-300" />
-                      <span className="text-xs font-black uppercase tracking-widest opacity-80">오늘의 탐험 미션</span>
-                    </div>
-                    <h3 className="text-2xl font-black mb-3">연관 단어 3개 정복</h3>
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-2">
-                        {[1, 2, 3].map((s) => (
-                          <div 
-                            key={s} 
-                            className={cn(
-                              "w-8 h-8 rounded-full border-2 border-white flex items-center justify-center transition-all",
-                              s <= missionProgress ? "bg-amber-400" : "bg-white/20 backdrop-blur-md"
-                            )}
-                          >
-                            <Star className={cn("w-4 h-4", s <= missionProgress ? "fill-white text-white" : "text-white/40")} />
-                          </div>
-                        ))}
-                      </div>
-                      <span className="text-sm font-black opacity-90">{missionProgress}/3 단어 완료</span>
-                    </div>
+                <div className="relative z-10 flex flex-col items-center text-center">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Trophy className="w-5 h-5 text-amber-300" />
+                    <span className="text-sm font-black uppercase tracking-widest opacity-90">오늘의 탐험 미션</span>
                   </div>
-                  <div className="text-center bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-white/20">
-                    <div className="text-[10px] font-black opacity-80 uppercase mb-1">완료 보상</div>
-                    <Gift className="w-8 h-8 text-amber-300 mx-auto mb-1 animate-bounce" />
-                    <div className="text-xs font-black">비밀 쿠폰</div>
+                  <h3 className="text-3xl font-black mb-6">새로운 단어 3개 탐험</h3>
+                  
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="flex -space-x-3">
+                      {[1, 2, 3].map((s) => (
+                        <motion.div 
+                          key={s} 
+                          initial={false}
+                          animate={{ 
+                            scale: s <= missionProgress ? 1.1 : 1,
+                            rotate: s <= missionProgress ? [0, 10, -10, 0] : 0
+                          }}
+                          className={cn(
+                            "w-12 h-12 rounded-full border-4 border-white flex items-center justify-center transition-all shadow-lg",
+                            s <= missionProgress ? "bg-amber-400 z-10" : "bg-white/20 backdrop-blur-md"
+                          )}
+                        >
+                          <Star className={cn("w-6 h-6", s <= missionProgress ? "fill-white text-white" : "text-white/40")} />
+                        </motion.div>
+                      ))}
+                    </div>
+                    <span className="text-lg font-black opacity-90">{missionProgress}/3 단어 완료</span>
                   </div>
                 </div>
-                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-20 translate-x-10 group-hover:bg-white/20 transition-colors" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-32 translate-x-32 group-hover:bg-white/20 transition-colors" />
               </motion.div>
 
               <div className="flex flex-col items-center gap-8">
