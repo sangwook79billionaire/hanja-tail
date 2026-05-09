@@ -827,15 +827,18 @@ export default function HomePage() {
               } else {
                 // 모든 글자 완료 시: 여의주 애니메이션 트리거
                 setShowBeadAnimation(true);
-                await logLearning(currentSearchedWord, true, undefined, false, true);
                 
-                // 여의주가 충분히 날아갈 시간을 확보 (3초)
+                // 애니메이션이 진행되는 동안 백그라운드에서 학습 기록
+                logLearning(currentSearchedWord, true, undefined, false, true).then(() => {
+                  fetchDailyHistory();
+                  fetchProfile();
+                });
+                
+                // 여의주가 충분히 날아갈 시간을 확보 (4초)
                 setTimeout(() => {
                   setSelectedHanjaForWriting(null);
                   setShowBeadAnimation(false); // 애니메이션 종료 후 리셋
-                  fetchDailyHistory();
-                  fetchProfile();
-                }, 3000);
+                }, 4000);
               }
             } else {
               setSelectedHanjaForWriting(null);
@@ -849,14 +852,17 @@ export default function HomePage() {
             animate={{ 
               left: ["50%", "50%", "85%"], 
               top: ["50%", "30%", "45px"], 
-              scale: [0, 2, 0.5],
-              opacity: [0, 1, 0] 
+              scale: [0, 2.5, 0.6],
+              opacity: [0, 1, 1, 0] 
             }}
-            transition={{ duration: 1.5, ease: "anticipate" }}
-            onAnimationComplete={() => setShowBeadAnimation(false)}
-            className="fixed z-[500] w-14 h-14 bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 rounded-full shadow-[0_0_30px_rgba(251,191,36,0.8)] border-4 border-white flex items-center justify-center pointer-events-none"
+            transition={{ 
+              duration: 2.5, 
+              ease: "easeInOut",
+              times: [0, 0.4, 0.8, 1]
+            }}
+            className="fixed z-[999] w-16 h-16 bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 rounded-full shadow-[0_0_50px_rgba(251,191,36,0.9)] border-4 border-white flex items-center justify-center pointer-events-none"
           >
-            <Sparkles className="w-8 h-8 text-white animate-pulse" />
+            <Sparkles className="w-10 h-10 text-white animate-pulse" />
           </motion.div>
         )}
         {selectedExpansionForQuiz && (
