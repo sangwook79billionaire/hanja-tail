@@ -882,11 +882,17 @@ export default function HomePage() {
             <div className="w-full max-w-sm relative z-10">
               <HanjaCard 
                 data={previewHanja}
+                onWrite={(char, meaning, sound, originalSound) => {
+                  setPreviewHanja(null);
+                  setSelectedHanjaForWriting({ 
+                    char, meaning, sound, originalSound, 
+                    isReview: true 
+                  });
+                }}
                 onQuiz={(h) => {
                   setPreviewHanja(null);
                   handleRequestQuiz(h);
                 }}
-                hideWriting={true}
               />
               <button 
                 onClick={() => setPreviewHanja(null)}
