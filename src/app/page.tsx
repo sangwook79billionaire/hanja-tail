@@ -813,7 +813,7 @@ export default function HomePage() {
               } else {
                 // 모든 글자 완료 시: 여의주 애니메이션 트리거
                 setShowBeadAnimation(true);
-                await logLearning(currentSearchedWord, true, undefined, true);
+                await logLearning(currentSearchedWord, true, undefined, false, true);
                 
                 // 여의주가 충분히 날아갈 시간을 확보 (3초)
                 setTimeout(() => {

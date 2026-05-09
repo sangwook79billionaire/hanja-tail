@@ -349,7 +349,7 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
   }
 }
 
-export async function logLearning(word: string, isCorrect: boolean, parentWord?: string, isReview: boolean = false) {
+export async function logLearning(word: string, isCorrect: boolean, parentWord?: string, isReview: boolean = false, practicedWriting: boolean = false) {
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;
@@ -394,7 +394,7 @@ export async function logLearning(word: string, isCorrect: boolean, parentWord?:
       is_correct: isCorrect,
       parent_word: parentWord || null,
       is_review: isReview,
-      practiced_writing: isReview // 복습 시 쓰기 연습을 완료한 것으로 간주
+      practiced_writing: practicedWriting || isReview 
     });
     
     if (logError) throw logError;
@@ -555,7 +555,7 @@ export async function getLearningRecap() {
         today: processLogs(allLogs, undefined, true),
         missionProgress: new Set(allLogs.filter(l => {
           const logDate = new Date(l.learned_at);
-          return kstFormatter.format(logDate) === todayKstStr && l.parent_word && l.practiced_writing;
+          return kstFormatter.format(logDate) === todayKstStr && l.practiced_writing;
         }).map(l => l.word)).size,
         weekly: processLogs(allLogs, startOfWeek),
         monthly: processLogs(allLogs, startOfMonth),
