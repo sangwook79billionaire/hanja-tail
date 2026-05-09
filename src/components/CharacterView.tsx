@@ -15,19 +15,29 @@ export default function CharacterView({ score, level }: CharacterViewProps) {
   const currentScore = typeof score === 'number' ? score : 0;
   const beadCount = Math.min(Math.floor(currentScore / 5), 5);
 
+  // 변태(Metamorphosis) 단계 정의
+  const getStageInfo = (lvl: number) => {
+    if (lvl < 3) return { name: "아기용", color: "bg-blue-400", glow: "from-blue-400 to-cyan-300" };
+    if (lvl < 6) return { name: "어린이 용", color: "bg-cyan-400", glow: "from-cyan-400 to-emerald-300" };
+    if (lvl < 10) return { name: "청소년 용", color: "bg-duo-macaw", glow: "from-duo-macaw to-indigo-300" };
+    if (lvl < 15) return { name: "어른 용", color: "bg-amber-400", glow: "from-amber-400 to-orange-300" };
+    return { name: "박사 용", color: "bg-purple-500", glow: "from-purple-500 to-fuchsia-300" };
+  };
+
+  const stage = getStageInfo(level);
+
   return (
     <div className="relative w-full aspect-square max-w-sm mx-auto flex items-center justify-center">
-      {/* Dynamic Power Glow based on beadCount */}
+      {/* Dynamic Power Glow based on stage */}
       <motion.div
         animate={{ 
-          scale: [1, 1.1 + (beadCount * 0.05), 1],
-          opacity: [0.2, 0.4 + (beadCount * 0.1), 0.2]
+          scale: [1, 1.1 + (level * 0.01), 1],
+          opacity: [0.2, 0.4 + (level * 0.02), 0.2]
         }}
         transition={{ duration: 4, repeat: Infinity }}
         className={cn(
           "absolute w-64 h-64 rounded-full blur-[80px] transition-colors duration-1000",
-          beadCount === 0 ? "bg-blue-400" : 
-          beadCount < 3 ? "bg-cyan-400" : "bg-amber-400"
+          stage.color
         )}
       />
 
@@ -35,7 +45,7 @@ export default function CharacterView({ score, level }: CharacterViewProps) {
       <div className="relative w-full h-full p-8">
         <AnimatePresence mode="wait">
           <motion.div
-            key={beadCount}
+            key={stage.name}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 1.1 }}
@@ -84,10 +94,10 @@ export default function CharacterView({ score, level }: CharacterViewProps) {
       {/* Level Info Badge */}
       <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md px-5 py-2.5 rounded-3xl border-2 border-duo-snow shadow-xl z-10">
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-2 h-2 bg-duo-macaw rounded-full animate-pulse" />
-          <p className="text-[10px] font-black text-duo-macaw uppercase tracking-widest">Lv.{level} 탐험가</p>
+          <div className={cn("w-2 h-2 rounded-full animate-pulse", stage.color)} />
+          <p className="text-[10px] font-black text-duo-eel opacity-60 uppercase tracking-widest">LV.{level} 탐험가</p>
         </div>
-        <p className="text-sm font-black text-duo-eel">용치의 여의주: {beadCount}개</p>
+        <p className="text-sm font-black text-duo-eel">{stage.name} 용치</p>
       </div>
     </div>
   );
