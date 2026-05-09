@@ -71,7 +71,7 @@ const getInitialConsonant = (text: string) => {
   }).join('');
 };
 
-function ExpansionQuizModal({ expansion, onStart, onClose }: { expansion: Expansion, onStart: () => void, onClose: () => void }) {
+function ExpansionQuizModal({ expansion, onStart, onClose }: { expansion: Expansion, onStart: (wordWithHanja: string) => void, onClose: () => void }) {
   const [answer, setAnswer] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [showOneCharHint, setShowOneCharHint] = useState(false);
@@ -133,35 +133,79 @@ function ExpansionQuizModal({ expansion, onStart, onClose }: { expansion: Expans
             <div className="flex gap-2">
               <button 
                 onClick={() => setShowOneCharHint(true)}
-                className="flex-1 py-4 text-sm font-black text-duo-wolf hover:text-duo-eel transition-colors"
+                className="flex-1 py-4 bg-white border-2 border-duo-snow text-duo-macaw rounded-2xl font-black text-sm hover:bg-duo-snow transition-all"
               >
                 글자 힌트 보기
               </button>
               <button 
                 onClick={checkAnswer}
-                className="flex-[2] py-4 bg-duo-macaw text-white rounded-2xl font-black shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all text-lg"
+                className="flex-1 py-4 bg-duo-macaw text-white rounded-2xl font-black text-sm shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all"
               >
                 정답 확인!
               </button>
             </div>
           </div>
         ) : (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-6">
-            <div className="text-3xl font-black text-indigo-600">정답이에요! 🎊</div>
-            <p className="text-lg font-bold text-duo-wolf leading-snug">
-              잘 했어! 정말 멋지다!<br />
-              새로운 글자도 써보기를 같이 하면<br />
-              <span className="text-amber-500 underline decoration-2 underline-offset-4">여의주</span>를 지급해줄게!
-            </p>
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="space-y-6"
+          >
+            <div className="p-6 bg-duo-green/10 rounded-3xl">
+              <p className="text-3xl font-black text-duo-green mb-2">정답이야! 🎉</p>
+              <p className="text-duo-wolf font-bold">이제 이 단어를 탐험해볼까?</p>
+            </div>
             <button 
-              onClick={onStart}
-              className="w-full py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-3xl font-black text-xl shadow-[0_5px_0_0_#4338ca] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
+              onClick={() => onStart(`${expansion.word}(${expansion.hanja})`)}
+              className="w-full py-5 bg-gradient-to-r from-duo-green to-emerald-500 text-white rounded-3xl font-black text-xl shadow-[0_5px_0_0_#46a302] active:translate-y-1 active:shadow-none transition-all"
             >
-              <span>탐험 시작하기!</span>
-              <Play className="w-5 h-5 fill-current" />
+              탐험 시작하기!
             </button>
           </motion.div>
         )}
+      </motion.div>
+    </div>
+  );
+}
+
+function AmbiguityModal({ candidates, onSelect, onClose }: { 
+  candidates: { word: string; hanja: string; description: string }[], 
+  onSelect: (hanja: string) => void, 
+  onClose: () => void 
+}) {
+  return (
+    <div className="fixed inset-0 z-[600] flex items-center justify-center p-6">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        className="relative bg-white rounded-[40px] p-8 max-w-md w-full shadow-2xl border-4 border-duo-snow"
+      >
+        <h3 className="text-2xl font-black text-duo-eel mb-2">어떤 단어를 찾으시나요?</h3>
+        <p className="text-duo-wolf font-bold mb-6">같은 소리지만 뜻이 다른 단어들이 있어요.</p>
+        
+        <div className="space-y-3">
+          {candidates.map((c, idx) => (
+            <button
+              key={idx}
+              onClick={() => onSelect(`${c.word}(${c.hanja})`)}
+              className="w-full p-5 bg-duo-snow hover:bg-duo-macaw/10 border-2 border-duo-swan hover:border-duo-macaw rounded-2xl text-left transition-all group"
+            >
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xl font-black text-duo-eel group-hover:text-duo-macaw">{c.word} ({c.hanja})</span>
+                <Play className="w-4 h-4 text-duo-swan group-hover:text-duo-macaw" />
+              </div>
+              <p className="text-sm font-bold text-duo-wolf">{c.description}</p>
+            </button>
+          ))}
+        </div>
+        
+        <button 
+          onClick={onClose}
+          className="w-full mt-6 py-4 text-duo-wolf font-black hover:text-duo-eel transition-colors"
+        >
+          닫기
+        </button>
       </motion.div>
     </div>
   );
@@ -199,6 +243,7 @@ export default function HomePage() {
   const [previewHanja, setPreviewHanja] = useState<HanjaData | null>(null);
   const [showBeadPopup, setShowBeadPopup] = useState(false);
   const [showGiftPopup, setShowGiftPopup] = useState(false);
+  const [ambiguityCandidates, setAmbiguityCandidates] = useState<{ word: string; hanja: string; description: string }[] | null>(null);
 
   const supabase = createClient();
   const trophyGoal = 5;
@@ -329,12 +374,14 @@ export default function HomePage() {
     const parent = isFromExpansion ? currentSearchedWord : null;
 
     try {
-      const result = await analyzeWord(searchWord.trim());
+      const result = await analyzeWord(trimmedWord);
       if (result.error) {
         alert(result.error);
+      } else if (result.isAmbiguous) {
+        setAmbiguityCandidates(result.candidates);
       } else {
         setAnalyzedHanja(result.hanjaList);
-        setCurrentSearchedWord(searchWord.trim());
+        setCurrentSearchedWord(trimmedWord);
         setExpansionWords(result.expansions || []);
         
         // [추가] autoOpenFirst가 true면 첫 번째 한자 쓰기 모달 바로 열기
@@ -350,15 +397,12 @@ export default function HomePage() {
         }
         
         // 겹쳐진 단어(이미 오늘 써본 한자)는 자동으로 완료 처리
-        // 현재 세션의 practicedChars가 누적되고 있으므로, 
-        // 이번 단어의 모든 한자가 이미 practicedChars에 있는지 확인
         const isAlreadyComplete = result.hanjaList.length > 0 && result.hanjaList.every((h: HanjaData) => practicedChars.has(h.char));
 
-        // 만약 모든 글자가 이미 다른 단어에서 써본 글자라면 즉시 포인트 지급 시도
         if (isAlreadyComplete) {
-          const logRes = await logLearning(searchWord.trim(), true, parent || undefined, true);
+          const logRes = await logLearning(trimmedWord, true, parent || undefined, true);
           if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
-            alert(`✨ 와우! '${searchWord.trim()}'에 포함된 한자들을 이미 모두 마스터했네요!\n꼬리 물기 성공 보너스 ${logRes.pointsAwarded}점을 바로 지급해드렸어요!`);
+            alert(`✨ 와우! '${trimmedWord}'에 포함된 한자들을 이미 모두 마스터했네요!\n꼬리 물기 성공 보너스 ${logRes.pointsAwarded}점을 바로 지급해드렸어요!`);
           }
         }
 
@@ -883,15 +927,27 @@ export default function HomePage() {
         {selectedExpansionForQuiz && (
           <ExpansionQuizModal
             expansion={selectedExpansionForQuiz}
-            onStart={() => {
-              const wordToExplore = selectedExpansionForQuiz.word;
+            onStart={(wordWithHanja) => {
               setSelectedExpansionForQuiz(null);
-              setWord(wordToExplore);
-              handleAnalyze(wordToExplore, true, true);
+              setWord(wordWithHanja);
+              handleAnalyze(wordWithHanja, true, true);
             }}
             onClose={() => setSelectedExpansionForQuiz(null)}
           />
         )}
+        <AnimatePresence>
+          {ambiguityCandidates && (
+            <AmbiguityModal
+              candidates={ambiguityCandidates}
+              onSelect={(hanjaWithBracket) => {
+                setAmbiguityCandidates(null);
+                setWord(hanjaWithBracket);
+                handleAnalyze(hanjaWithBracket, true, true);
+              }}
+              onClose={() => setAmbiguityCandidates(null)}
+            />
+          )}
+        </AnimatePresence>
 
         {previewHanja && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
