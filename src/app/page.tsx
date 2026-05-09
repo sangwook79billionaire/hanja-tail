@@ -458,7 +458,13 @@ export default function HomePage() {
                     className="w-full flex flex-col gap-8 mb-16"
                   >
                     <h3 className="text-xl font-black text-duo-eel px-4">찾아낸 한자 카드</h3>
-                    <div className="grid grid-cols-1 gap-6">
+                    <div className={cn(
+                      "grid gap-6 px-2",
+                      analyzedHanja.length === 1 && "grid-cols-1",
+                      analyzedHanja.length === 2 && "grid-cols-2",
+                      analyzedHanja.length === 3 && "grid-cols-3",
+                      analyzedHanja.length >= 4 && "grid-cols-2"
+                    )}>
                       {analyzedHanja.map((hanja, idx) => (
                         <HanjaCard 
                           key={hanja.char} 
