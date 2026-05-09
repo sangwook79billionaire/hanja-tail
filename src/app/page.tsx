@@ -410,29 +410,34 @@ export default function HomePage() {
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-20 translate-x-10 group-hover:bg-white/20 transition-colors" />
               </motion.div>
 
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center gap-8">
                 <CharacterView score={totalScore} level={currentStage} />
               </div>
 
-              <div className="bg-white p-8 rounded-[40px] border-4 border-duo-snow shadow-xl relative group">
+              <div className="bg-white p-8 rounded-[40px] border-4 border-duo-snow shadow-xl relative group flex flex-col gap-6">
+                <div className="text-center">
+                  <h2 className="text-xl font-black text-duo-eel leading-snug">오늘 새로 배운 단어나<br />뜻이 궁금한 단어를 찾아보자</h2>
+                </div>
+
                 <form onSubmit={handleSubmit} className="relative">
                   <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
-                    <Search className="w-7 h-7 text-duo-wolf group-focus-within:text-duo-macaw transition-colors" />
+                    <Search className="w-6 h-6 text-duo-wolf group-focus-within:text-duo-macaw transition-colors" />
                   </div>
                   <input
                     type="text"
                     value={word}
                     onChange={(e) => setWord(e.target.value)}
-                    placeholder="단어를 검색해봐!"
-                    className="w-full h-16 pl-16 pr-32 bg-duo-snow/50 rounded-2xl text-lg font-black focus:outline-none focus:ring-4 focus:ring-duo-macaw/20 transition-all"
+                    placeholder="여기에 입력"
+                    className="w-full h-16 pl-16 pr-28 bg-duo-snow/50 rounded-2xl text-lg font-black focus:outline-none focus:ring-4 focus:ring-duo-macaw/20 transition-all"
                   />
                   <motion.button
                     type="submit"
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    disabled={isLoading || !word.trim()}
-                    className="absolute right-3 top-3 bottom-3 px-8 bg-duo-macaw text-white rounded-2xl font-black text-xl shadow-[0_4px_0_0_#1899d6] hover:brightness-110 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    disabled={isLoading}
+                    className="absolute right-2.5 top-2.5 bottom-2.5 px-6 bg-duo-macaw text-white rounded-xl font-black text-xs shadow-[0_3px_0_0_#1899d6] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center disabled:opacity-50"
                   >
-                    {isLoading ? "분석 중..." : "찾기!"}
+                    {isLoading ? "탐험 중..." : "찾기!"}
                   </motion.button>
                 </form>
               </div>
