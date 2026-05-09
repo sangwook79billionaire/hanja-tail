@@ -45,7 +45,7 @@ export default function LearningMindMap({
   disabled = false
 }: { 
   logs: LearningLog[]; 
-  onReview: (word: string) => void;
+  onReview: (hanja: string) => void;
   disabled?: boolean;
 }) {
   // 그래프 생성 로직
@@ -228,7 +228,7 @@ export default function LearningMindMap({
               animate={{ scale: 1 }}
               whileHover={{ scale: 1.1 }}
               className="cursor-pointer"
-              onClick={() => !disabled && onReview(node.words[0])}
+              onClick={() => !disabled && onReview(node.char)}
             >
               {/* Difficulty Halo Ring */}
               <circle
@@ -315,7 +315,7 @@ export default function LearningMindMap({
         {/* Floating Instruction */}
         <div className="absolute bottom-6 right-6 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border-2 border-duo-snow shadow-sm pointer-events-none">
           <Sparkles className="w-4 h-4 text-amber-500" />
-          <span className="text-[10px] font-black text-duo-wolf">드래그해서 둘러보세요!</span>
+          <span className="text-[10px] font-black text-duo-wolf">오늘 배운 글자의 연관 단어를 탐험해보자!</span>
         </div>
       </div>
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, getLearningRecap, getMyProfile, logLearning } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
@@ -365,6 +365,24 @@ export default function HomePage() {
     handleAnalyze(word);
   };
 
+  const handleRequestQuiz = async (hanja: string) => {
+    setIsLoading(true);
+    try {
+      const result = await generateQuiz(hanja, currentSearchedWord || undefined);
+      if (result.error) {
+        alert(result.error);
+      } else {
+        setSelectedHanjaForQuiz(hanja);
+        setCurrentQuiz(result.quiz);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("퀴즈 생성 실패!");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
 
   return (
@@ -620,7 +638,7 @@ export default function HomePage() {
                 </div>
                 <LearningMindMap 
                   logs={dailyHistory} 
-                  onReview={(w) => handleAnalyze(w, true)}
+                  onReview={(h) => handleRequestQuiz(h)}
                 />
               </div>
             </motion.div>
