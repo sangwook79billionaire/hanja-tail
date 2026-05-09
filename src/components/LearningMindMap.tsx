@@ -232,27 +232,13 @@ export default function LearningMindMap({
               className="cursor-pointer"
               onClick={() => !disabled && onReview(node.char)}
             >
-              {/* Difficulty Halo Ring */}
-              <circle
-                cx={node.x} cy={node.y} r="60"
-                className={cn(
-                  "fill-none stroke-[4] opacity-40",
-                  node.difficulty === 1 ? "stroke-duo-green" :
-                  node.difficulty === 2 ? "stroke-duo-macaw" : "stroke-purple-500"
-                )}
-              />
-
               {/* Glow Effect for Hubs */}
               {node.isHub && (
                 <motion.circle
                   cx={node.x} cy={node.y} r="68"
                   animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
                   transition={{ repeat: Infinity, duration: 2 }}
-                  className={cn(
-                    "blur-md",
-                    node.difficulty === 1 ? "fill-duo-green" :
-                    node.difficulty === 2 ? "fill-duo-macaw" : "fill-purple-500"
-                  )}
+                  className="blur-md fill-amber-400"
                 />
               )}
 
@@ -262,8 +248,7 @@ export default function LearningMindMap({
                 className={cn(
                   "stroke-[6] transition-colors drop-shadow-md",
                   node.isHub 
-                    ? (node.difficulty === 1 ? "fill-duo-green stroke-white" : 
-                       node.difficulty === 2 ? "fill-duo-macaw stroke-white" : "fill-purple-500 stroke-white")
+                    ? "fill-amber-400 stroke-white"
                     : node.practiced 
                       ? "fill-duo-green stroke-[#46a302]" 
                       : "fill-white stroke-duo-snow"
@@ -327,35 +312,21 @@ export default function LearningMindMap({
       </div>
 
       {/* Legend & Hint */}
-      <div className="mt-8 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white p-6 rounded-[32px] border-2 border-duo-snow flex flex-col gap-4">
-          <p className="text-xs font-black text-duo-swan uppercase tracking-widest">탐험 등급 (난이도)</p>
-          <div className="flex flex-wrap gap-6 items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-duo-green rounded-full border-[3px] border-white shadow-sm" />
-              <span className="text-xs font-black text-duo-eel">초급 (1-2학년)</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-duo-macaw rounded-full border-[3px] border-white shadow-sm" />
-              <span className="text-xs font-black text-duo-eel">중급 (3-4학년)</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-purple-500 rounded-full border-[3px] border-white shadow-sm" />
-              <span className="text-xs font-black text-duo-eel">고급 (5학년 이상)</span>
-            </div>
-          </div>
-        </div>
-        
+      <div className="mt-8 w-full">
         <div className="bg-white p-6 rounded-[32px] border-2 border-duo-snow flex flex-col gap-4">
           <p className="text-xs font-black text-duo-swan uppercase tracking-widest">마인드맵 길잡이</p>
-          <div className="flex flex-wrap gap-6 items-center">
+          <div className="flex flex-wrap gap-10 items-center">
             <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-white border-4 border-amber-400 rounded-full animate-pulse" />
-              <span className="text-xs font-black text-duo-eel">공통 한자 (허브)</span>
+              <div className="w-8 h-8 bg-amber-400 border-4 border-white rounded-full shadow-sm ring-4 ring-amber-100" />
+              <span className="text-sm font-black text-duo-eel">공통 한자 (허브)</span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-duo-snow rounded-full" />
-              <span className="text-xs font-black text-duo-eel">일반 글자</span>
+              <div className="w-8 h-8 bg-duo-green border-4 border-white rounded-full shadow-sm" />
+              <span className="text-sm font-black text-duo-eel">학습한 한자</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-white border-4 border-duo-snow rounded-full shadow-sm" />
+              <span className="text-sm font-black text-duo-eel">아직 안 쓴 한자</span>
             </div>
           </div>
         </div>

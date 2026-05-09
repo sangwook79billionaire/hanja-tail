@@ -31,6 +31,7 @@ interface LearningLog {
   practiced_writing?: boolean;
   parent_word?: string;
   meaning?: string;
+  difficulty?: number;
 }
 
 export default function StatsView({ 
@@ -248,6 +249,68 @@ export default function StatsView({
                 <div className="text-xs font-bold text-duo-wolf uppercase tracking-wider">정답률</div>
               </motion.div>
             </div>
+
+            {/* Difficulty Distribution Section */}
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="bg-white border-2 border-duo-swan rounded-[32px] p-6 shadow-sm"
+            >
+              <h3 className="text-lg font-black text-duo-eel mb-6 flex items-center gap-2">
+                <Target className="w-5 h-5 text-indigo-500" /> 한자 난이도 분포
+              </h3>
+              
+              {(() => {
+                const filteredLogs = logs.filter(log => {
+                  if (activeTab === 'total') return true;
+                  const logDate = new Date(log.learned_at);
+                  const now = new Date();
+                  if (activeTab === 'weekly') {
+                    const weekAgo = new Date();
+                    weekAgo.setDate(now.getDate() - 7);
+                    return logDate >= weekAgo;
+                  }
+                  if (activeTab === 'monthly') {
+                    const monthAgo = new Date();
+                    monthAgo.setMonth(now.getMonth() - 1);
+                    return logDate >= monthAgo;
+                  }
+                  return true;
+                });
+
+                const dist = { 1: 0, 2: 0, 3: 0 };
+                filteredLogs.forEach(l => {
+                  const d = (l.difficulty || 1) as 1 | 2 | 3;
+                  if (dist[d] !== undefined) dist[d]++;
+                });
+                
+                const total = filteredLogs.length || 1;
+
+                return (
+                  <div className="space-y-6">
+                    {[
+                      { level: 1, label: "초급 (1-2학년)", color: "bg-duo-green", count: dist[1] },
+                      { level: 2, label: "중급 (3-4학년)", color: "bg-duo-macaw", count: dist[2] },
+                      { level: 3, label: "고급 (5학년 이상)", color: "bg-purple-500", count: dist[3] },
+                    ].map((item) => (
+                      <div key={item.level} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-black text-duo-eel">{item.label}</span>
+                          <span className="text-xs font-bold text-duo-wolf">{item.count}개</span>
+                        </div>
+                        <div className="h-4 bg-duo-snow rounded-full overflow-hidden border border-duo-snow">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(item.count / total) * 100}%` }}
+                            className={cn("h-full", item.color)}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </motion.div>
 
             {/* Detailed List Card */}
             <div className="bg-white border-2 border-duo-swan rounded-3xl p-6 shadow-sm">
