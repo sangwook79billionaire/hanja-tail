@@ -26,6 +26,11 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
   const [isLoading, setIsLoading] = useState(true);
   const [narrativeMessage, setNarrativeMessage] = useState("");
   const lastInitializedChar = useRef<string | null>(null);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     let active = true;
@@ -93,7 +98,7 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
                         
                         setTimeout(() => {
                           if (active) {
-                            onComplete?.();
+                            onCompleteRef.current?.();
                           }
                         }, 1200);
                       }
@@ -117,10 +122,9 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
           currentTarget.innerHTML = "";
         }
         setWriter(null);
-        lastInitializedChar.current = null;
       };
     }
-  }, [isOpen, char, onComplete]);
+  }, [isOpen, char]);
 
   const handleReset = () => {
     if (writer) {
