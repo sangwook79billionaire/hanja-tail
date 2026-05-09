@@ -73,37 +73,37 @@ export async function analyzeWord(word: string) {
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `
-      You are a helpful assistant for teaching Hanja to children.
+      You are a strict Korean lexicographer and educator teaching Hanja to children.
       Analyze the following word (Hangul or Hanja): "${searchWord}"
       
-      1. Check if this Hangul word has multiple common Hanja meanings (homonyms).
-         This is EXTREMELY CRITICAL for educational accuracy. Many Korean words share the same Hangul but have different Hanja meanings.
-         If there is ANY other common Hanja combination for this Hangul word, you MUST set "isAmbiguous" to true.
-         DO NOT guess the user's intent. Even if one meaning is much more common than others, you MUST provide options in "candidates".
-         Example: "사과" can be "謝過"(apology) or "沙果"(apple). "배" can be "梨"(pear), "舟"(boat), or "腹"(belly).
-      2. If "isAmbiguous" is true, list ALL common Hanja combinations in "candidates" with child-friendly descriptions.
-      3. If the user provided a specific Hanja (e.g., "지도(地圖)") or there is only one clear meaning, "isAmbiguous" should be false.
-      4. CRITICAL: Check if "${searchWord}" is a REAL, standard Korean dictionary word (사전에 등재된 명사).
-         If it is a fake word created by simply combining Hanja (like "신술어" when it doesn't exist in standard dictionaries), 
-         or if it's not a common Hanja-based word, set "isValid" to false.
-
+      CRITICAL RULES:
+      1. REAL WORD VERIFICATION: Check if "${searchWord}" is a REAL, standard noun found in standard Korean dictionaries (e.g., Standard Korean Language Dictionary).
+         - REJECT arbitrary combinations of Hanja that may seem to make sense but are not actually used as standard nouns.
+         - REJECT "made-up" words or extremely rare academic terms that children would never encounter.
+         - If it's a fake or non-standard word, you MUST set "isValid" to false.
+      2. HOMONYM CHECK: Check if this Hangul word has multiple common Hanja meanings.
+         - This is EXTREMELY CRITICAL. If there is ANY other common Hanja combination for this Hangul word, you MUST set "isAmbiguous" to true.
+         - DO NOT guess. Even if one is common, you MUST provide options in "candidates".
+      3. EXPANSION QUALITY: Every word in "expansions" MUST also be a verified, common standard Korean word.
+         - DO NOT hallucinate related words by simply attaching the same Hanja to other random Hangul characters.
+      
       Return ONLY a JSON object in this format:
       {
         "isSafe": boolean,
         "isValid": boolean,
-        "invalidReason": "string (why it is invalid)",
+        "invalidReason": "Detailed reason why it's not a standard word",
         "isAmbiguous": boolean,
         "candidates": [
           { "word": "한글단어", "hanja": "한자조합", "description": "아이들이 이해하기 쉬운 짧은 뜻풀이" }
         ],
-        "correctedWord": "string",
-        "difficultyLevel": number (1: Basic/1-2 Grade, 2: Intermediate/3-4 Grade, 3: Advanced/5-6 Grade or Middle),
+        "correctedWord": "string (standardized form if user made a typo)",
+        "difficultyLevel": number (1-3),
         "hanjaList": [
           { 
             "char": "한자", 
             "meaning": "뜻", 
-            "originalSound": "본음 (예: 녀)", 
-            "appliedSound": "두음법칙 적용음 (예: 여)", 
+            "originalSound": "본음", 
+            "appliedSound": "두음법칙 적용음", 
             "level": "급수" 
           }
         ],
@@ -112,7 +112,7 @@ export async function analyzeWord(word: string) {
             "word": "유의어/반의어", 
             "hanja": "한자조합", 
             "type": "synonym|antonym|related", 
-            "description": "설명",
+            "description": "반드시 실존하는 표준어여야 함",
             "difficultyLevel": number
           }
         ]
