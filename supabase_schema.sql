@@ -70,3 +70,20 @@ CREATE POLICY "Users can manage their own logs" ON public.learning_logs FOR ALL 
 
 ALTER TABLE public.quiz_bank ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view verified quizzes" ON public.quiz_bank FOR SELECT USING (is_verified = true OR auth.uid() IS NOT NULL);
+
+-- 6. monitoring_log: 시스템 오류 및 상태 모니터링 로그
+CREATE TABLE IF NOT EXISTS public.monitoring_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_type VARCHAR(50) NOT NULL,    -- 'invalid_word', 'api_error', 'system_error' 등
+    level VARCHAR(20) DEFAULT 'INFO',   -- 'INFO', 'WARNING', 'ERROR'
+    message TEXT,                       -- 로그 메시지
+    word VARCHAR(100),                  -- 관련 단어 (있을 경우)
+    details JSONB,                      -- 상세 JSON 데이터
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 관리자만 로그를 볼 수 있도록 설정
+ALTER TABLE public.monitoring_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins can view logs" ON public.monitoring_log FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+);

@@ -930,7 +930,7 @@ export default function HomePage() {
             onStart={(wordWithHanja) => {
               setSelectedExpansionForQuiz(null);
               setWord(wordWithHanja);
-              handleAnalyze(wordWithHanja, true, true);
+              handleAnalyze(wordWithHanja, true, false);
             }}
             onClose={() => setSelectedExpansionForQuiz(null)}
           />

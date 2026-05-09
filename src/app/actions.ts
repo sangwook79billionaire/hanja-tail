@@ -50,15 +50,18 @@ export async function analyzeWord(word: string) {
       }
     }
 
+    // 1. 단어 정규화 (괄호와 한자 제거: '의료(醫療)' -> '의료')
+    const normalizedWord = searchWord.replace(/\(.*\)/, "").trim();
+
     // 2. DB 캐시 확인
     const { data: cachedData } = await supabase
       .from("word_analysis_cache")
       .select("analysis_json")
-      .eq("word", searchWord)
+      .eq("word", normalizedWord)
       .maybeSingle();
 
     if (cachedData) {
-      console.log("Using cached analysis for:", searchWord);
+      console.log("Using cached analysis for:", normalizedWord);
       return cachedData.analysis_json;
     }
 
@@ -212,7 +215,7 @@ export async function analyzeWord(word: string) {
     };
 
     await supabase.from("word_analysis_cache").upsert({
-      word: searchWord,
+      word: normalizedWord,
       analysis_json: resultData
     });
     
@@ -320,6 +323,7 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
             difficultyLevel: quizData.difficulty_level || 1
           }
         });
+
 
         // quiz_bank에도 저장
         const { data: newQuiz } = await supabase

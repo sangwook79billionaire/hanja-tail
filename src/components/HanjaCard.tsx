@@ -93,11 +93,11 @@ export default function HanjaCard({
         )}
 
         <div className="flex-1 flex flex-col items-center justify-center pt-2">
-          <div className="text-7xl font-black text-duo-eel group-hover:scale-110 transition-transform font-myeongjo">{data.char}</div>
-          <div className="text-center leading-tight mt-4 flex flex-col items-center">
-            <span className="text-2xl font-black text-amber-600 font-myeongjo">{data.meaning}</span>
+          <div className="text-6xl font-black text-duo-eel group-hover:scale-110 transition-transform font-myeongjo">{data.char}</div>
+          <div className="text-center leading-tight mt-3 flex flex-col items-center">
+            <span className="text-xl font-black text-amber-600 font-myeongjo break-keep">{data.meaning}</span>
             <div className="flex flex-col items-center">
-              <span className="text-3xl font-black text-duo-macaw font-myeongjo">{data.sound}</span>
+              <span className="text-2xl font-black text-duo-macaw font-myeongjo">{data.sound}</span>
               {data.originalSound && data.originalSound !== data.sound && (
                 <span className="text-xs font-bold text-duo-wolf opacity-60 font-myeongjo">(본: {data.originalSound})</span>
               )}
