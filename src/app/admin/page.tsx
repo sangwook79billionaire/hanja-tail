@@ -11,7 +11,8 @@ import {
   bulkVerifyWords, 
   bulkDeleteWords,
   updateWord,
-  runBatchGeneration
+  runBatchGeneration,
+  screenWords
 } from "../actions";
 import { 
   Users, 
@@ -75,6 +76,11 @@ export default function AdminDashboard() {
   const [batchResults, setBatchResults] = useState<string[]>([]);
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
 
+  // AI Screening states
+  const [screeningResults, setScreeningResults] = useState<Record<string, { status: 'VALID' | 'SUSPICIOUS' | 'INVALID', type: string, reason: string }>>({});
+  const [isScreening, setIsScreening] = useState(false);
+  const [filterMode, setFilterMode] = useState<'all' | 'valid' | 'invalid'>('all');
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -106,12 +112,66 @@ export default function AdminDashboard() {
     setSelectedWords(next);
   };
 
+  const getFilteredWords = () => {
+    return unverifiedWords.filter(w => {
+      if (filterMode === 'all') return true;
+      const res = screeningResults[w.word];
+      if (!res) return true; // Show un-screened words in all modes
+      if (filterMode === 'valid') return res.status === 'VALID';
+      if (filterMode === 'invalid') return res.status === 'SUSPICIOUS' || res.status === 'INVALID';
+      return true;
+    });
+  };
+
   const toggleSelectAll = () => {
-    if (selectedWords.size === unverifiedWords.length) {
+    const currentList = getFilteredWords();
+    if (selectedWords.size === currentList.length && currentList.length > 0) {
       setSelectedWords(new Set());
     } else {
-      setSelectedWords(new Set(unverifiedWords.map(w => w.word)));
+      setSelectedWords(new Set(currentList.map(w => w.word)));
     }
+  };
+
+  const handleScreening = async () => {
+    if (unverifiedWords.length === 0) return;
+    setIsScreening(true);
+    try {
+      const wordsToScreen = unverifiedWords.map(w => w.word);
+      const res = await screenWords(wordsToScreen);
+      if (res.success && res.results) {
+        const resultsMap: Record<string, { status: 'VALID' | 'SUSPICIOUS' | 'INVALID', type: string, reason: string }> = {};
+        res.results.forEach((item: { word: string, status: 'VALID' | 'SUSPICIOUS' | 'INVALID', type: string, reason: string }) => {
+          resultsMap[item.word] = {
+            status: item.status,
+            type: item.type,
+            reason: item.reason
+          };
+        });
+        setScreeningResults(resultsMap);
+        alert("모든 단어 스크리닝이 완료되었습니다!");
+      } else {
+        alert("스크리닝 오류: " + res.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("스크리닝 실행 중 오류가 발생했습니다.");
+    } finally {
+      setIsScreening(false);
+    }
+  };
+
+  const selectValidWords = () => {
+    const valid = unverifiedWords
+      .filter(w => screeningResults[w.word]?.status === 'VALID')
+      .map(w => w.word);
+    setSelectedWords(new Set(valid));
+  };
+
+  const selectSuspiciousWords = () => {
+    const suspicious = unverifiedWords
+      .filter(w => screeningResults[w.word]?.status === 'SUSPICIOUS' || screeningResults[w.word]?.status === 'INVALID')
+      .map(w => w.word);
+    setSelectedWords(new Set(suspicious));
   };
 
   const handleVerify = async (word: string) => {
@@ -332,7 +392,7 @@ export default function AdminDashboard() {
 
         {activeTab === 'queue' ? (
           <div className="bg-white border-3 border-duo-snow rounded-[40px] shadow-sm overflow-hidden">
-            <div className="p-8 border-b-2 border-duo-snow flex items-center justify-between bg-white">
+            <div className="p-8 border-b-2 border-duo-snow flex flex-col sm:flex-row sm:items-center justify-between bg-white gap-4">
               <div>
                 <h2 className="text-2xl font-black text-duo-eel">AI 신규 발견 단어</h2>
                 <p className="text-sm font-bold text-duo-wolf mt-1">
@@ -340,28 +400,97 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                {selectedWords.size > 0 ? (
+                <button
+                  onClick={handleScreening}
+                  disabled={isScreening || unverifiedWords.length === 0}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-black text-xs shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                >
+                  {isScreening ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      AI 스크리닝 중...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300 animate-pulse" />
+                      AI 단어 스크리닝 실행
+                    </>
+                  )}
+                </button>
+
+                {selectedWords.size > 0 && (
                   <div className="flex items-center gap-2 animate-in slide-in-from-right">
                     <button 
                       onClick={handleBulkVerify}
-                      className="flex items-center gap-2 px-4 py-2 bg-duo-green text-white rounded-xl font-black text-xs shadow-[0_4px_0_0_#46a302]"
+                      className="flex items-center gap-2 px-4 py-2.5 bg-duo-green text-white rounded-xl font-black text-xs shadow-[0_4px_0_0_#46a302]"
                     >
                       <Check className="w-4 h-4" /> 선택 승인
                     </button>
                     <button 
                       onClick={handleBulkDelete}
-                      className="flex items-center gap-2 px-4 py-2 bg-duo-cardinal text-white rounded-xl font-black text-xs shadow-[0_4px_0_0_#c02e3b]"
+                      className="flex items-center gap-2 px-4 py-2.5 bg-duo-cardinal text-white rounded-xl font-black text-xs shadow-[0_4px_0_0_#c02e3b]"
                     >
                       <Trash2 className="w-4 h-4" /> 선택 삭제
                     </button>
                   </div>
-                ) : (
-                  <span className="text-[10px] font-black text-duo-macaw uppercase tracking-tighter bg-duo-macaw/10 px-3 py-1.5 rounded-lg">
-                    Validation Queue
-                  </span>
                 )}
               </div>
             </div>
+
+            {/* Screening Filters */}
+            {unverifiedWords.length > 0 && Object.keys(screeningResults).length > 0 && (
+              <div className="px-8 py-4 bg-duo-snow/20 border-b-2 border-duo-snow flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setFilterMode('all')}
+                    className={cn(
+                      "px-3.5 py-1.5 rounded-xl text-xs font-black transition-all",
+                      filterMode === 'all' 
+                        ? "bg-duo-eel text-white shadow-sm" 
+                        : "bg-white text-duo-wolf border-2 border-duo-snow hover:bg-duo-snow/50"
+                    )}
+                  >
+                    전체 ({unverifiedWords.length}개)
+                  </button>
+                  <button
+                    onClick={() => setFilterMode('valid')}
+                    className={cn(
+                      "px-3.5 py-1.5 rounded-xl text-xs font-black transition-all",
+                      filterMode === 'valid' 
+                        ? "bg-emerald-600 text-white shadow-sm" 
+                        : "bg-white text-duo-wolf border-2 border-duo-snow hover:bg-duo-snow/50"
+                    )}
+                  >
+                    일반 명사 ({unverifiedWords.filter(w => screeningResults[w.word]?.status === 'VALID').length}개)
+                  </button>
+                  <button
+                    onClick={() => setFilterMode('invalid')}
+                    className={cn(
+                      "px-3.5 py-1.5 rounded-xl text-xs font-black transition-all",
+                      filterMode === 'invalid' 
+                        ? "bg-rose-600 text-white shadow-sm" 
+                        : "bg-white text-duo-wolf border-2 border-duo-snow hover:bg-duo-snow/50"
+                    )}
+                  >
+                    어색한 조어/의심 ({unverifiedWords.filter(w => screeningResults[w.word]?.status === 'SUSPICIOUS' || screeningResults[w.word]?.status === 'INVALID').length}개)
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={selectValidWords}
+                    className="text-xs font-black text-emerald-700 bg-emerald-50 border-2 border-emerald-200/50 px-3.5 py-1.5 rounded-xl hover:bg-emerald-100/50 transition-colors"
+                  >
+                    일반 명사 모두 선택
+                  </button>
+                  <button
+                    onClick={selectSuspiciousWords}
+                    className="text-xs font-black text-rose-700 bg-rose-50 border-2 border-rose-200/50 px-3.5 py-1.5 rounded-xl hover:bg-rose-100/50 transition-colors"
+                  >
+                    의심/조어 모두 선택
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -370,26 +499,27 @@ export default function AdminDashboard() {
                     <th className="px-6 py-4 w-12">
                       <input 
                         type="checkbox" 
-                        checked={selectedWords.size === unverifiedWords.length && unverifiedWords.length > 0}
+                        checked={selectedWords.size === getFilteredWords().length && getFilteredWords().length > 0}
                         onChange={toggleSelectAll}
                         className="w-5 h-5 rounded border-2 border-duo-snow text-duo-macaw focus:ring-duo-macaw"
                       />
                     </th>
                     <th className="px-6 py-4">단어</th>
                     <th className="px-6 py-4">한자 구성</th>
+                    <th className="px-6 py-4">AI 판별 결과</th>
                     <th className="px-6 py-4">발견일</th>
                     <th className="px-6 py-4 text-right">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-duo-snow">
-                  {unverifiedWords.length === 0 ? (
+                  {getFilteredWords().length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-8 py-20 text-center text-duo-wolf font-bold">
-                        검토할 신규 단어가 없습니다. 🎉
+                      <td colSpan={6} className="px-8 py-20 text-center text-duo-wolf font-bold">
+                        조건에 맞는 신규 단어가 없습니다. 🎉
                       </td>
                     </tr>
                   ) : (
-                    unverifiedWords.map((w, idx) => (
+                    getFilteredWords().map((w, idx) => (
                       <tr key={idx} className={cn("hover:bg-duo-snow/20 transition-colors group", selectedWords.has(w.word) && "bg-duo-macaw/5")}>
                         <td className="px-6 py-6">
                           <input 
@@ -410,6 +540,27 @@ export default function AdminDashboard() {
                               </span>
                             ))}
                           </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          {screeningResults[w.word] ? (
+                            <div className="flex flex-col gap-1 max-w-sm">
+                              <div className="flex items-center gap-1.5">
+                                <span className={cn(
+                                  "px-2 py-0.5 rounded-lg text-[10px] font-black border uppercase tracking-wider",
+                                  screeningResults[w.word].status === 'VALID' && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                                  screeningResults[w.word].status === 'SUSPICIOUS' && "bg-amber-50 text-amber-700 border-amber-200",
+                                  screeningResults[w.word].status === 'INVALID' && "bg-rose-50 text-rose-700 border-rose-200"
+                                )}>
+                                  {screeningResults[w.word].type}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-duo-wolf leading-relaxed">
+                                {screeningResults[w.word].reason}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-duo-swan italic">스크리닝 미실행</span>
+                          )}
                         </td>
                         <td className="px-6 py-6">
                           <span className="text-sm font-bold text-duo-swan">{new Date(w.created_at).toLocaleDateString()}</span>

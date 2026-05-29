@@ -1186,3 +1186,56 @@ export async function deleteQuiz(id: string) {
   if (error) return { error: error.message };
   return { success: true };
 }
+
+/**
+ * 신규 단어 후보군을 대상으로 AI 기반 스크리닝(일반 명사 vs 어색한 조어)을 수행합니다.
+ */
+export async function screenWords(words: string[]) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) return { error: "Forbidden" };
+
+  if (!words || words.length === 0) return { results: [] };
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return { error: "API Key missing" };
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+
+  const prompt = `
+    다음은 초등학생용 한자 학습 서비스인 '한자 꼬리'에 등록하려는 후보 단어 목록입니다.
+    이 단어들이 실제 한국어 사전(표준국어대사전 등)에 등재되어 널리 쓰이는 일반 명사인지, 아니면 AI 자가 증식 과정에서 어색하게 만들어진 조어(어색한 단어)인지를 정확하게 스크리닝하고 분류해줘.
+
+    [후보 단어 목록]
+    \${words.map((w, idx) => \`\${idx + 1}. \${w}\`).join("\\n")}
+
+    반드시 아래의 JSON 배열 형식으로만 응답해줘. 다른 텍스트는 포함하지 말아줘.
+    [
+      {
+        "word": "단어",
+        "status": "VALID" | "SUSPICIOUS" | "INVALID",
+        "type": "일반 명사" | "전문 용어/고유 명사" | "어색한 조어" | "사전 미등재",
+        "reason": "한국어 사전 기준 판단 근거 및 설명"
+      }
+    ]
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const jsonMatch = text.match(/\\[[\\s\\S]*\\]/);
+    if (jsonMatch) {
+      const parsedResults = JSON.parse(jsonMatch[0]);
+      return { success: true, results: parsedResults };
+    }
+    return { error: "JSON 응답 형식을 파싱하는 데 실패했습니다." };
+  } catch (error) {
+    console.error("Word Screening Error:", error);
+    return { error: "스크리닝 중 오류가 발생했습니다." };
+  }
+}
+
