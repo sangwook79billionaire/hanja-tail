@@ -698,6 +698,7 @@ export default function HomePage() {
                           onWrite={(char, meaning, sound, originalSound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, originalSound, isReview })}
                           onProgressUpdate={() => fetchDailyHistory()}
                           isReviewed={practicedChars.has(hanja.char) || (dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}
+                          isCompact={analyzedHanja.length >= 3}
                         />
                       ))}
                     </div>

@@ -24,7 +24,8 @@ export default function HanjaCard({
   onQuiz,
   onProgressUpdate,
   isReviewed = false,
-  hideWriting = false
+  hideWriting = false,
+  isCompact = false
 }: { 
   data: HanjaData; 
   word?: string;
@@ -34,6 +35,7 @@ export default function HanjaCard({
   onProgressUpdate?: () => void;
   isReviewed?: boolean;
   hideWriting?: boolean;
+  isCompact?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -83,7 +85,10 @@ export default function HanjaCard({
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay }}
         onClick={() => setIsExpanded(true)}
-        className="relative bg-white border-4 border-duo-snow rounded-[32px] p-4 shadow-md hover:border-duo-macaw transition-all cursor-pointer group flex flex-col items-center justify-between aspect-[4/5] w-full overflow-hidden"
+        className={cn(
+          "relative bg-white border-4 border-duo-snow rounded-[32px] shadow-md hover:border-duo-macaw transition-all cursor-pointer group flex flex-col items-center justify-between overflow-hidden w-full",
+          isCompact ? "min-h-[170px] p-3" : "aspect-[4/5] p-4"
+        )}
       >
         {/* Status Badge */}
         {isReviewed && (
@@ -93,11 +98,20 @@ export default function HanjaCard({
         )}
 
         <div className="flex-1 flex flex-col items-center justify-center pt-2">
-          <div className="text-6xl font-black text-duo-eel group-hover:scale-110 transition-transform font-myeongjo">{data.char}</div>
+          <div className={cn(
+            "font-black text-duo-eel group-hover:scale-110 transition-transform font-myeongjo",
+            isCompact ? "text-4xl" : "text-6xl"
+          )}>{data.char}</div>
           <div className="text-center leading-tight mt-3 flex flex-col items-center">
-            <span className="text-xl font-black text-amber-600 font-myeongjo break-keep">{data.meaning}</span>
+            <span className={cn(
+              "font-black text-amber-600 font-myeongjo break-keep",
+              isCompact ? "text-xs" : "text-xl"
+            )}>{data.meaning}</span>
             <div className="flex flex-col items-center">
-              <span className="text-2xl font-black text-duo-macaw font-myeongjo">{data.sound}</span>
+              <span className={cn(
+                "font-black text-duo-macaw font-myeongjo",
+                isCompact ? "text-sm" : "text-2xl"
+              )}>{data.sound}</span>
               {data.originalSound && data.originalSound !== data.sound && (
                 <span className="text-xs font-bold text-duo-wolf opacity-60 font-myeongjo">(본: {data.originalSound})</span>
               )}
@@ -106,16 +120,20 @@ export default function HanjaCard({
         </div>
 
         {/* Review CTA Button */}
-        <div className="w-full mt-4 flex gap-2">
+        <div className={cn(
+          "w-full flex gap-2",
+          isCompact ? "mt-2" : "mt-4"
+        )}>
           {onWrite && (
             <button
               onClick={handleWriteClick}
               className={cn(
-                "py-3.5 bg-duo-macaw text-white rounded-2xl font-black text-xs shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase",
-                onQuiz ? "flex-1" : "w-full"
+                "bg-duo-macaw text-white rounded-2xl font-black shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase",
+                onQuiz ? "flex-1" : "w-full",
+                isCompact ? "py-2 text-[10px]" : "py-3.5 text-xs"
               )}
             >
-              <Edit3 className="w-4 h-4" />
+              <Edit3 className={isCompact ? "w-3 h-3" : "w-4 h-4"} />
               써보기
             </button>
           )}
@@ -123,11 +141,12 @@ export default function HanjaCard({
             <button
               onClick={(e) => { e.stopPropagation(); setIsExpanded(false); onQuiz(data.char); }}
               className={cn(
-                "py-3.5 bg-duo-eel text-white rounded-2xl font-black text-xs shadow-[0_4px_0_0_#1a1a1a] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase",
-                onWrite ? "flex-1" : "w-full"
+                "bg-duo-eel text-white rounded-2xl font-black shadow-[0_4px_0_0_#1a1a1a] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1.5 uppercase",
+                onWrite ? "flex-1" : "w-full",
+                isCompact ? "py-2 text-[10px]" : "py-3.5 text-xs"
               )}
             >
-              <Sparkles className="w-4 h-4 text-amber-300" />
+              <Sparkles className={isCompact ? "w-3 h-3 text-amber-300" : "w-4 h-4 text-amber-300"} />
               탐험하기
             </button>
           )}
