@@ -33,10 +33,15 @@ export default function WritingModal({ char, meaning, sound, originalSound, isOp
   }, [onComplete]);
 
   useEffect(() => {
+    if (!isOpen) {
+      lastInitializedChar.current = null;
+      return;
+    }
+
     let active = true;
     let writerInstance: HanziWriter | null = null;
 
-    if (isOpen && targetRef.current && lastInitializedChar.current !== char) {
+    if (targetRef.current && lastInitializedChar.current !== char) {
       lastInitializedChar.current = char;
       setIsLoading(true);
       setIsComplete(false);

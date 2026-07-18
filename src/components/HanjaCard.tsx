@@ -65,6 +65,9 @@ export default function HanjaCard({
     }
     // 모달이 닫히면 인스턴스 초기화
     if (!isExpanded) {
+      if (writerRef.current) {
+        writerRef.current.innerHTML = "";
+      }
       setWriterInstance(null);
       setIsFlipped(false);
     }
