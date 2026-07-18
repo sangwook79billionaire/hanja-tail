@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Trophy, Sparkles, Gift, Star, User, Play, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, getRecommendedWord, getSchoolRank } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, getSchoolRank } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
@@ -222,7 +222,6 @@ export default function HomePage() {
   const [streakCount, setStreakCount] = useState(0);
   const [coupons, setCoupons] = useState(0);
   const [expansionWords, setExpansionWords] = useState<Expansion[]>([]);
-  const [recommendedWord, setRecommendedWord] = useState<{ word: string; hanja_combination: string; description: string; reason: string } | null>(null);
   const [selectedExpansionForQuiz, setSelectedExpansionForQuiz] = useState<Expansion | null>(null);
   const [showBeadAnimation, setShowBeadAnimation] = useState(false);
   const [missionProgress, setMissionProgress] = useState(0);
@@ -255,16 +254,6 @@ export default function HomePage() {
   const supabase = createClient();
   const trophyGoal = 5;
 
-  const fetchRecommendation = useCallback(async () => {
-    try {
-      const rec = await getRecommendedWord();
-      if (rec && 'word' in rec) {
-        setRecommendedWord(rec);
-      }
-    } catch (e) {
-      console.error("Failed to fetch recommendation", e);
-    }
-  }, []);
 
   const fetchDailyHistory = useCallback(async () => {
     const result = await getLearningRecap();
@@ -313,9 +302,8 @@ export default function HomePage() {
         setHasAwardedTrophy(true);
       }
     }
-    fetchRecommendation();
     getSchoolRank().then(rankInfo => setSchoolRank(rankInfo));
-  }, [hasAwardedTrophy, trophyGoal, fetchRecommendation]);
+  }, [hasAwardedTrophy, trophyGoal]);
 
   const fetchProfile = useCallback(async () => {
     const { profile } = await getMyProfile();
@@ -349,9 +337,8 @@ export default function HomePage() {
       setSchoolRank(null);
       setHasAwardedTrophy(false);
       setShowTrophyCelebration(false);
-      fetchRecommendation();
     }
-  }, [user, fetchProfile, fetchDailyHistory, fetchRecommendation]);
+  }, [user, fetchProfile, fetchDailyHistory]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -702,30 +689,6 @@ export default function HomePage() {
                   </motion.button>
                 </form>
 
-                {recommendedWord && (
-                  <div className="pt-4 border-t-2 border-duo-snow/70 flex flex-col gap-2 text-left">
-                    <div className="flex items-center gap-1.5 text-xs font-black text-duo-wolf">
-                      <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-                      <span>오늘의 추천 단어</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAnalyze(recommendedWord.word)}
-                      className="w-full p-4 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border-2 border-amber-200/60 rounded-2xl text-left transition-all flex justify-between items-center group/btn"
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-black text-duo-eel group-hover/btn:text-amber-700 transition-colors">{recommendedWord.word}</span>
-                          <span className="text-xs font-bold text-amber-600/80 font-myeongjo">{recommendedWord.hanja_combination}</span>
-                        </div>
-                        <p className="text-[11px] font-bold text-duo-wolf/80">{recommendedWord.reason}</p>
-                      </div>
-                      <div className="w-8 h-8 bg-white border border-amber-200 rounded-xl flex items-center justify-center group-hover/btn:scale-105 transition-transform shadow-sm">
-                        <Search className="w-4 h-4 text-amber-600" />
-                      </div>
-                    </button>
-                  </div>
-                )}
               </div>
 
               <AnimatePresence>
