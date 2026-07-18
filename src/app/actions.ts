@@ -89,6 +89,8 @@ export async function analyzeWord(word: string) {
       4. CRITICAL: Check if "${searchWord}" is a REAL, standard Korean dictionary word (사전에 등재된 명사).
          If it is a fake word created by simply combining Hanja (like "신술어" when it doesn't exist in standard dictionaries), 
          or if it's not a common Hanja-based word, set "isValid" to false.
+         Also, the word MUST be a PURE Hanja-based word (모든 글자가 한자로 표기 가능해야 함).
+         If the word is a hybrid of Hanja and native Hangul (like "우산꽂이" which is "雨傘" + native Korean "꽂이", or "책꽂이" which is "冊" + native "꽂이"), set "isValid" to false. We only study pure Hanja words.
 
       Return ONLY a JSON object in this format:
       {
@@ -147,6 +149,10 @@ export async function analyzeWord(word: string) {
       // AI가 새롭게 찾아낸 동음이의어 후보들을 DB에 저장 (자가 증식)
       if (data.candidates && data.candidates.length > 0) {
         for (const can of data.candidates) {
+          // 한자에 한글이 섞여 있는 혼종 단어는 저장 제외
+          if (/[\uac00-\ud7a3]/.test(can.hanja)) {
+            continue;
+          }
           supabase.from("quiz_bank").upsert({
             word: can.word,
             hanja_combination: can.hanja,
@@ -156,9 +162,19 @@ export async function analyzeWord(word: string) {
         }
       }
       
+      interface CandidateItem {
+        word: string;
+        hanja: string;
+        description: string;
+      }
+
+      const filteredCandidates = (data.candidates as CandidateItem[] || []).filter((can) => {
+        return !/[\uac00-\ud7a3]/.test(can.hanja);
+      });
+
       return {
         isAmbiguous: true,
-        candidates: data.candidates || []
+        candidates: filteredCandidates
       };
     }
 
@@ -194,6 +210,10 @@ export async function analyzeWord(word: string) {
     // [중요] 연관 단어들을 DB(quiz_bank)에 선제적으로 저장 (자가 증식)
     if (data.expansions && data.expansions.length > 0) {
       for (const exp of data.expansions) {
+        // 한자에 한글이 섞여 있는 혼종 단어는 저장 제외
+        if (/[\uac00-\ud7a3]/.test(exp.hanja)) {
+          continue;
+        }
         supabase.from("quiz_bank").upsert({
           word: exp.word,
           hanja_combination: exp.hanja,
@@ -204,13 +224,35 @@ export async function analyzeWord(word: string) {
       }
     }
     
+    interface ExpansionItem {
+      word: string;
+      hanja: string;
+      type: string;
+      description: string;
+      difficultyLevel?: number;
+    }
+
+    interface CandidateItem {
+      word: string;
+      hanja: string;
+      description: string;
+    }
+
+    const filteredExpansions = (data.expansions as ExpansionItem[] || []).filter((exp) => {
+      return !/[\uac00-\ud7a3]/.test(exp.hanja);
+    });
+
+    const filteredCandidates = (data.candidates as CandidateItem[] || []).filter((can) => {
+      return !/[\uac00-\ud7a3]/.test(can.hanja);
+    });
+
     const resultData = { 
       hanjaList: finalHanjaList,
       correctedWord: data.correctedWord || null,
       isLoanword: data.isLoanword || false,
-      expansions: data.expansions || [],
+      expansions: filteredExpansions,
       isAmbiguous: data.isAmbiguous || false,
-      candidates: data.candidates || [],
+      candidates: filteredCandidates,
       difficultyLevel: data.difficultyLevel || 1
     };
 
@@ -251,6 +293,7 @@ async function verifyWordWithGemini(word: string, hanjaCombination: string): Pro
     CRITICAL: 
     - If this word is an artificial, unnatural, or awkward Hanja combination that is not commonly used or recognized in Korea (a hallucinated word), set "isValid" to false.
     - If it is a real standard noun commonly understood in Korea, set "isValid" to true.
+    - The word MUST be a PURE Hanja-based word (모든 글자가 한자로 대응). If the word is a hybrid of Hanja and native Hangul (like "우산꽂이" which is "雨傘" + native Korean "꽂이", or "책꽂이" which is "冊" + native "꽂이"), you MUST set "isValid" to false.
 
     Response format:
     {
@@ -446,6 +489,10 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
         const isHangulOnly = /^[가-힣]+$/.test(quizData.word);
         if (!isHangulOnly) throw new Error("Word must be Hangul only.");
         if (!quizData.hanja_combination.includes(hanja)) throw new Error("Missing target Hanja.");
+
+        // 한자 조합에 한글이 섞여 있는지 검증 (순수 한자어만 허용, '우산꽂이(雨傘꽂이)' 같은 혼종 차단)
+        const hasHangulInHanja = /[\uac00-\ud7a3]/.test(quizData.hanja_combination);
+        if (hasHangulInHanja) throw new Error("Hanja combination must not contain Hangul.");
 
         // [정합성 핵심 검증] Gemini 교차 검증기 작동
         const isValidWord = await verifyWordWithGemini(quizData.word, quizData.hanja_combination);
