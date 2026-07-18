@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Trophy, Map as MapIcon, Sparkles, Gift, Star, User, Play, X } from "lucide-react";
+import { Search, Trophy, Sparkles, Gift, Star, User, Play, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
-import QuestMap from "@/components/QuestMap";
 import MyPageModal from "@/components/MyPageModal";
 import LearningMindMap from "@/components/LearningMindMap";
 import { AnimatePresence, motion } from "framer-motion";
@@ -212,7 +211,7 @@ function AmbiguityModal({ candidates, onSelect, onClose }: {
 }
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<'search' | 'quest' | 'stats'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'stats'>('search');
   const [word, setWord] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [analyzedHanja, setAnalyzedHanja] = useState<HanjaData[]>([]);
@@ -728,16 +727,7 @@ export default function HomePage() {
             </motion.div>
           )}
 
-          {activeTab === 'quest' && (
-            <motion.div 
-              key="quest"
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-            >
-              <QuestMap onNodeClick={(h) => handleAnalyze(h, true)} />
-            </motion.div>
-          )}
+
 
           {activeTab === 'stats' && recapData && (
             <motion.div 
@@ -773,18 +763,7 @@ export default function HomePage() {
             <span className="text-[10px] font-black uppercase tracking-widest">탐험</span>
           </button>
           
-          <button 
-            onClick={() => setActiveTab('quest')}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-all",
-              activeTab === 'quest' ? "text-duo-macaw scale-110" : "text-duo-swan hover:text-duo-eel"
-            )}
-          >
-            <div className={cn("p-2 rounded-2xl", activeTab === 'quest' && "bg-duo-macaw/10")}>
-              <MapIcon className="w-8 h-8" />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest">지도</span>
-          </button>
+
 
           <button 
             onClick={() => setActiveTab('stats')}
