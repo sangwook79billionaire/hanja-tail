@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Trophy, Sparkles, Gift, Star, User, Play, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
-import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, getRecommendedWord } from "./actions";
+import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, getRecommendedWord, getSchoolRank } from "./actions";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
@@ -231,16 +231,23 @@ export default function HomePage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [school, setSchool] = useState<string | null>(null);
   const [grade, setGrade] = useState<number | null>(null);
-  const [currentStage, setCurrentStage] = useState<number>(8);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [showRequiredInfoModal, setShowRequiredInfoModal] = useState(false);
   const [showMyPageModal, setShowMyPageModal] = useState(false);
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, originalSound?: string, isReview?: boolean} | null>(null);
-  const [totalScore, setTotalScore] = useState(0);
   const [practicedChars, setPracticedChars] = useState<Set<string>>(new Set());
   const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
   const [previewHanja, setPreviewHanja] = useState<HanjaData | null>(null);
+  interface SchoolRankData {
+    school: string | null;
+    grade: number | null;
+    rank: number | null;
+    totalStudents: number | null;
+    total_score: number;
+  }
+
+  const [schoolRank, setSchoolRank] = useState<SchoolRankData | null>(null);
   const [showBeadPopup, setShowBeadPopup] = useState(false);
   const [showGiftPopup, setShowGiftPopup] = useState(false);
   const [ambiguityCandidates, setAmbiguityCandidates] = useState<{ word: string; hanja: string; description: string }[] | null>(null);
@@ -307,6 +314,7 @@ export default function HomePage() {
       }
     }
     fetchRecommendation();
+    getSchoolRank().then(rankInfo => setSchoolRank(rankInfo));
   }, [hasAwardedTrophy, trophyGoal, fetchRecommendation]);
 
   const fetchProfile = useCallback(async () => {
@@ -317,12 +325,13 @@ export default function HomePage() {
       setGrade(profile.grade);
       setStreakCount(profile.streak_count || 0);
       setCoupons(profile.coupons || 0);
-      setCurrentStage(profile.current_stage || 8);
-      setTotalScore(profile.total_score || 0);
       
       if (!profile.school || !profile.grade) {
         setShowRequiredInfoModal(true);
       }
+      
+      const rankInfo = await getSchoolRank();
+      setSchoolRank(rankInfo);
     }
   }, []);
 
@@ -337,8 +346,7 @@ export default function HomePage() {
       setStreakCount(0);
       setCoupons(0);
       setMissionProgress(0);
-      setCurrentStage(8);
-      setTotalScore(0);
+      setSchoolRank(null);
       setHasAwardedTrophy(false);
       setShowTrophyCelebration(false);
       fetchRecommendation();
@@ -615,20 +623,56 @@ export default function HomePage() {
               </motion.div>
 
               <div className="flex flex-col items-center">
-                <div className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md">
-                  <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80">나의 한자 탐험 레벨</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black text-indigo-900">{currentStage}</span>
-                    <span className="text-sm font-black text-indigo-700">단계</span>
+                {!user ? (
+                  <div 
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md cursor-pointer hover:bg-indigo-100/30 transition-all"
+                  >
+                    <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80">나의 학교/학년 순위</span>
+                    <span className="text-base font-black text-indigo-900 mt-1">로그인하고 학교 순위를 확인해보자! 🏫</span>
+                    <span className="text-[10px] text-duo-wolf font-bold">친구들과 함께 즐겁게 경쟁해봐요!</span>
                   </div>
-                  <div className="w-full bg-indigo-100/50 h-2 rounded-full overflow-hidden mt-1.5">
-                    <div 
-                      className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" 
-                      style={{ width: `${Math.min(100, Math.max(0, (totalScore % 100)))}%` }}
-                    />
+                ) : (!school || !grade || !schoolRank || schoolRank.rank === null) ? (
+                  <div 
+                    onClick={() => setShowRequiredInfoModal(true)}
+                    className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md cursor-pointer hover:bg-indigo-100/30 transition-all"
+                  >
+                    <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80">나의 학교/학년 순위</span>
+                    <span className="text-base font-black text-indigo-900 mt-1">학교와 학년을 입력하고 순위를 확인해보세요! 🏫</span>
+                    <span className="text-[10px] text-duo-wolf font-bold">눌러서 소속 정보를 입력하기</span>
                   </div>
-                  <span className="text-[10px] text-duo-wolf font-bold">다음 단계까지 {Math.max(0, 100 - (totalScore % 100))} 점수 필요 (현재 총점: {totalScore}점)</span>
-                </div>
+                ) : (
+                  <div 
+                    onClick={() => setShowMyPageModal(true)}
+                    className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md cursor-pointer hover:bg-indigo-100/30 transition-all"
+                  >
+                    <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80">{school} {grade}학년 순위</span>
+                    {(() => {
+                      const total = schoolRank.totalStudents ?? 1;
+                      const rank = schoolRank.rank ?? 1;
+                      const pct = Math.max(10, Math.min(100, Math.round(((total - rank + 1) / total) * 100)));
+                      const topPercent = Math.round((rank / total) * 100);
+                      return (
+                        <>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-black text-indigo-700">전체 {total}명 중</span>
+                            <span className="text-3xl font-black text-indigo-900">{rank}</span>
+                            <span className="text-sm font-black text-indigo-700">위</span>
+                          </div>
+                          <div className="w-full bg-indigo-100/50 h-2.5 rounded-full overflow-hidden mt-1.5">
+                            <div 
+                              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" 
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-duo-wolf font-bold mt-1">
+                            나의 총점: {schoolRank.total_score}점 (상위 {topPercent}% 🏆)
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
 
               <div className="bg-white p-8 rounded-[40px] border-4 border-duo-snow shadow-xl relative group flex flex-col gap-6">

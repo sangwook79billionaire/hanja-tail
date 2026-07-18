@@ -1589,3 +1589,59 @@ export async function getRecommendedWord() {
   }
 }
 
+export async function getSchoolRank() {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) return null;
+
+  try {
+    const { data: profile, error: profErr } = await supabase
+      .from("profiles")
+      .select("school, grade, total_score")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profErr || !profile) return null;
+
+    const { school, grade, total_score = 0 } = profile;
+
+    if (!school || !grade) {
+      return {
+        school: null,
+        grade: null,
+        rank: null,
+        totalStudents: null,
+        total_score
+      };
+    }
+
+    const { count: higherRankCount } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("school", school)
+      .eq("grade", grade)
+      .gt("total_score", total_score);
+
+    const { count: totalStudents } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("school", school)
+      .eq("grade", grade);
+
+    const rank = (higherRankCount ?? 0) + 1;
+
+    return {
+      school,
+      grade,
+      rank,
+      totalStudents: totalStudents ?? 1,
+      total_score
+    };
+  } catch (e) {
+    console.error("Failed to get school rank", e);
+    return null;
+  }
+}
+
+
