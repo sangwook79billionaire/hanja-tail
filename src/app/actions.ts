@@ -1384,3 +1384,161 @@ export async function screenWords(words: string[]) {
   }
 }
 
+export async function getRecommendedWord() {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  try {
+    // 1. 사용자의 전체 학습 기록 조회
+    let studiedWords: string[] = [];
+    if (userId) {
+      const { data: logs } = await supabase
+        .from("learning_logs")
+        .select("word")
+        .eq("user_id", userId);
+      studiedWords = (logs || []).map(l => l.word);
+    }
+
+    // 2. 사용자가 배운 한자 문자셋 추출하기
+    const studiedHanjaSet = new Set<string>();
+    if (studiedWords.length > 0) {
+      const { data: caches } = await supabase
+        .from("word_analysis_cache")
+        .select("word, analysis_json")
+        .in("word", studiedWords);
+      
+      interface AnalysisJson {
+        hanjaList?: { char: string }[];
+      }
+
+      (caches || []).forEach(c => {
+        const list = (c.analysis_json as unknown as AnalysisJson)?.hanjaList || [];
+        list.forEach((h) => {
+          if (h.char) studiedHanjaSet.add(h.char);
+        });
+      });
+    }
+
+    // 3. 만약 학습 이력이 없거나 추출된 한자가 없다면 기본 추천 단어 제공
+    if (studiedHanjaSet.size === 0) {
+      return {
+        word: "학교",
+        hanja_combination: "學校",
+        description: "공부하는 곳을 뜻해요!",
+        reason: "한자 공부를 처음 시작하는 모험가를 위한 추천 단어예요! 🏫"
+      };
+    }
+
+    // 배운 한자들
+    const studiedHanjas = Array.from(studiedHanjaSet);
+
+    // 4. 배운 한자 중 하나가 포함되어 있으나, 아직 배우지 않은 단어를 quiz_bank에서 검색
+    // 랜덤으로 한자들의 순서를 섞어서 매번 다른 추천이 나오도록 유도
+    studiedHanjas.sort(() => Math.random() - 0.5);
+
+    for (const targetHanja of studiedHanjas) {
+      // targetHanja가 포함된 검증된(is_verified: true) 단어 조회
+      const { data: candidates } = await supabase
+        .from("quiz_bank")
+        .select("word, hanja_combination, description")
+        .ilike("hanja_combination", `%${targetHanja}%`)
+        .eq("is_verified", true);
+
+      if (candidates && candidates.length > 0) {
+        // 이미 배운 단어 제외
+        const freshCandidates = candidates.filter(c => !studiedWords.includes(c.word));
+        if (freshCandidates.length > 0) {
+          const selected = freshCandidates[Math.floor(Math.random() * freshCandidates.length)];
+          
+          // 해당 한자의 뜻/음 정보 조회
+          const { data: hanjaInfo } = await supabase
+            .from("hanja_master")
+            .select("meaning, sound")
+            .eq("hanja", targetHanja)
+            .maybeSingle();
+
+          const hanjaStr = hanjaInfo ? `${targetHanja}(${hanjaInfo.meaning} ${hanjaInfo.sound})` : targetHanja;
+
+          return {
+            word: selected.word,
+            hanja_combination: selected.hanja_combination,
+            description: selected.description,
+            reason: `이전에 배웠던 ${hanjaStr} 한자가 들어있는 새로운 단어예요! 🐉`
+          };
+        }
+      }
+      
+      // 만약 quiz_bank에 아직 검증된 연결 단어가 없다면, hanja_master의 example_words에서 단어 탐색
+      const { data: masterData } = await supabase
+        .from("hanja_master")
+        .select("hanja, meaning, sound, example_words")
+        .eq("hanja", targetHanja)
+        .maybeSingle();
+
+      interface ExampleWord {
+        word: string;
+        hanja: string;
+      }
+
+      if (masterData && masterData.example_words) {
+        const exampleList = masterData.example_words as unknown as ExampleWord[];
+        const freshExamples = exampleList.filter((ex) => {
+          const w = ex?.word;
+          const h = ex?.hanja;
+          return typeof w === 'string' && typeof h === 'string' && !studiedWords.includes(w);
+        });
+
+        if (freshExamples.length > 0) {
+          const selected = freshExamples[Math.floor(Math.random() * freshExamples.length)];
+          const hanjaStr = `${masterData.hanja}(${masterData.meaning} ${masterData.sound})`;
+
+          return {
+            word: selected.word,
+            hanja_combination: selected.hanja,
+            description: "함께 탐색해보세요!",
+            reason: `이전에 공부했던 ${hanjaStr} 한자가 들어있는 단어예요! 🐉`
+          };
+        }
+      }
+    }
+
+    // 5. 만약 끝내 연결 단어를 찾지 못했다면(혹은 다 학습했다면), hanja_master에 등록된 한자 중 하나를 이용한 무작위 새 단어 추천
+    const { data: fallbackQuizzes } = await supabase
+      .from("quiz_bank")
+      .select("word, hanja_combination, description")
+      .eq("is_verified", true)
+      .limit(30);
+
+    if (fallbackQuizzes && fallbackQuizzes.length > 0) {
+      const freshFallbacks = fallbackQuizzes.filter(q => !studiedWords.includes(q.word));
+      if (freshFallbacks.length > 0) {
+        const selected = freshFallbacks[Math.floor(Math.random() * freshFallbacks.length)];
+        return {
+          word: selected.word,
+          hanja_combination: selected.hanja_combination,
+          description: selected.description,
+          reason: "새로운 한자에 도전해보세요! 🚀"
+        };
+      }
+    }
+
+    // 최종 폴백
+    return {
+      word: "학습",
+      hanja_combination: "學習",
+      description: "배우고 익히는 즐거움!",
+      reason: "오늘도 한 걸음 나아가는 추천 단어예요! 🐉"
+    };
+
+  } catch (error) {
+    console.error("Error getting recommended word:", error);
+    return {
+      word: "학교",
+      hanja_combination: "學校",
+      description: "공부하는 곳을 뜻해요!",
+      reason: "기본 추천 단어예요! 🏫"
+    };
+  }
+}
+
