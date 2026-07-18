@@ -14,7 +14,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import AuthModal from "@/components/AuthModal";
 import RequiredInfoModal from "@/components/RequiredInfoModal";
 import { createClient } from "@/lib/supabase/client";
-import CharacterView from "@/components/CharacterView";
+
 import { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface Expansion {
@@ -614,8 +614,21 @@ export default function HomePage() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-32 translate-x-32 group-hover:bg-white/20 transition-colors" />
               </motion.div>
 
-              <div className="flex flex-col items-center gap-8">
-                <CharacterView score={totalScore} level={currentStage} />
+              <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md">
+                  <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80">나의 한자 탐험 레벨</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-black text-indigo-900">{currentStage}</span>
+                    <span className="text-sm font-black text-indigo-700">단계</span>
+                  </div>
+                  <div className="w-full bg-indigo-100/50 h-2 rounded-full overflow-hidden mt-1.5">
+                    <div 
+                      className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(100, Math.max(0, (totalScore % 100)))}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-duo-wolf font-bold">다음 단계까지 {Math.max(0, 100 - (totalScore % 100))} 점수 필요 (현재 총점: {totalScore}점)</span>
+                </div>
               </div>
 
               <div className="bg-white p-8 rounded-[40px] border-4 border-duo-snow shadow-xl relative group flex flex-col gap-6">
