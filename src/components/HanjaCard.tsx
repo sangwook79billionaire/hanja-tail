@@ -167,7 +167,7 @@ export default function HanjaCard({
             
             <motion.div
               layoutId={`card-${data.char}`}
-              className="relative w-full max-w-sm aspect-[4/5] perspective-1000"
+              className="relative w-full max-w-sm h-[500px] perspective-1000"
             >
               <motion.div
                 className="w-full h-full relative preserve-3d"
@@ -180,31 +180,39 @@ export default function HanjaCard({
               >
                 {/* Front Detail */}
                 <div 
-                  className="absolute w-full h-full backface-hidden bg-white border-[4px] border-duo-snow rounded-[40px] shadow-2xl flex flex-col items-center justify-center p-8 text-center"
+                  className="absolute w-full h-full backface-hidden bg-white border-[4px] border-duo-snow rounded-[40px] shadow-2xl flex flex-col items-center justify-between p-8 text-center"
                   style={{ transform: "translateZ(1px)" }}
                 >
-                  <div className="text-9xl font-black text-duo-eel mb-6 drop-shadow-md font-myeongjo">{data.char}</div>
-                  <div className="flex flex-col items-center mb-8">
-                    <span className="text-4xl font-black text-amber-600 leading-tight font-myeongjo">{data.meaning}</span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-black text-duo-macaw leading-tight font-myeongjo">{data.sound}</span>
-                      {data.originalSound && data.originalSound !== data.sound && (
-                        <span className="text-lg font-bold text-duo-wolf opacity-60 font-myeongjo">(본: {data.originalSound})</span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  
-                  <p className="mb-4 text-lg font-black text-duo-macaw animate-bounce bg-blue-50 px-4 py-2 rounded-full border-2 border-blue-100 shadow-sm">
-                    카드를 눌러서 뒤집어봐! 🔄
-                  </p>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
+                    className="absolute top-6 right-6 p-2 text-duo-swan hover:text-duo-eel transition-colors z-10"
+                  >
+                    <X className="w-8 h-8" />
+                  </button>
 
-                  <div className="w-full mt-6 flex flex-col gap-3">
+                  <div className="flex-1 flex flex-col items-center justify-center w-full mt-4">
+                    <div className="text-8xl font-black text-duo-eel mb-4 drop-shadow-md font-myeongjo">{data.char}</div>
+                    <div className="flex flex-col items-center mb-6">
+                      <span className="text-3xl font-black text-amber-600 leading-tight font-myeongjo">{data.meaning}</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-black text-duo-macaw leading-tight font-myeongjo">{data.sound}</span>
+                        {data.originalSound && data.originalSound !== data.sound && (
+                          <span className="text-base font-bold text-duo-wolf opacity-60 font-myeongjo">(본: {data.originalSound})</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <p className="mb-2 text-base font-black text-duo-macaw animate-bounce bg-blue-50 px-4 py-2 rounded-full border-2 border-blue-100 shadow-sm">
+                      카드를 눌러서 뒤집어봐! 🔄
+                    </p>
+                  </div>
+
+                  <div className="w-full flex flex-col gap-3">
                     <div className="flex gap-4">
                       {onWrite && (
                         <button 
                           onClick={handleWriteClick}
-                          className="flex-1 py-5 bg-duo-macaw text-white rounded-2xl font-black text-sm shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex flex-col items-center justify-center gap-1 group"
+                          className="flex-1 py-4 bg-duo-macaw text-white rounded-2xl font-black text-sm shadow-[0_4px_0_0_#1899d6] active:translate-y-1 active:shadow-none transition-all flex flex-col items-center justify-center gap-1 group"
                         >
                           <div className="flex items-center gap-2">
                             <Edit3 className="w-5 h-5" />
@@ -216,7 +224,7 @@ export default function HanjaCard({
                       {onQuiz && (
                         <button 
                           onClick={(e) => { e.stopPropagation(); setIsExpanded(false); onQuiz(data.char); }}
-                          className="flex-1 py-5 bg-duo-eel text-white rounded-2xl font-black text-sm shadow-[0_4px_0_0_#1a1a1a] active:translate-y-1 active:shadow-none transition-all flex flex-col items-center justify-center gap-1 group"
+                          className="flex-1 py-4 bg-duo-eel text-white rounded-2xl font-black text-sm shadow-[0_4px_0_0_#1a1a1a] active:translate-y-1 active:shadow-none transition-all flex flex-col items-center justify-center gap-1 group"
                         >
                           <div className="flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-amber-300" />
@@ -226,18 +234,11 @@ export default function HanjaCard({
                         </button>
                       )}
                     </div>
-                  </div>
 
-                  <div className="mt-4 px-4 py-1.5 bg-duo-snow/50 rounded-xl text-xs font-bold text-duo-wolf">
-                    {data.level}급 한자
+                    <div className="mx-auto px-4 py-1.5 bg-duo-snow/50 rounded-xl text-xs font-bold text-duo-wolf w-fit">
+                      {data.level}급 한자
+                    </div>
                   </div>
-                  
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
-                    className="absolute top-6 right-6 p-2 text-duo-swan hover:text-duo-eel transition-colors"
-                  >
-                    <X className="w-8 h-8" />
-                  </button>
                 </div>
 
                 {/* Back Detail */}
