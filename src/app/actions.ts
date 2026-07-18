@@ -230,18 +230,98 @@ export async function analyzeWord(word: string) {
   }
 }
 
+async function verifyWordWithGemini(word: string, hanjaCombination: string): Promise<boolean> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return false;
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-flash-latest",
+    generationConfig: { temperature: 0, responseMimeType: "application/json" }
+  });
+
+  const prompt = `
+    You are a strict Korean lexicographer.
+    Evaluate the following Korean word and its Hanja combination:
+    - Word (Hangul): "${word}"
+    - Hanja combination: "${hanjaCombination}"
+
+    Is this word a standard, real noun in the Korean language?
+    Confirm if it exists in the Standard Korean Dictionary (표준국어대사전) or is a commonly understood Hanja-based Korean noun.
+    
+    CRITICAL: 
+    - If this word is an artificial, unnatural, or awkward Hanja combination that is not commonly used or recognized in Korea (a hallucinated word), set "isValid" to false.
+    - If it is a real standard noun commonly understood in Korea, set "isValid" to true.
+
+    Response format:
+    {
+      "isValid": boolean,
+      "reason": "brief explanation"
+    }
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return false;
+    const data = JSON.parse(jsonMatch[0]);
+    console.log(`[Validation result for ${word} (${hanjaCombination})]:`, data);
+    return !!data.isValid;
+  } catch (error) {
+    console.error("Verification error:", error);
+    return false;
+  }
+}
+
+async function generateQuizForPreVerifiedWord(word: string, hanjaCombination: string, targetHanja: string) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("Gemini API key not configured");
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+  const prompt = `
+    You are a Hanja quiz generator for kids.
+    Target Hanja (Unicode character): "${targetHanja}"
+    Selected Word (Hangul): "${word}"
+    Hanja Combination: "${hanjaCombination}"
+    
+    Task:
+    1. Write a fun, kid-friendly description/hint that explains the meaning of the word "${word}" WITHOUT using the word itself or any of its syllables.
+    2. The hint should be simple enough for children (ages 6-10) to understand and guess the word.
+    
+    Return ONLY a JSON object in this format:
+    {
+      "word": "${word}",
+      "hanja_combination": "${hanjaCombination}",
+      "description": "아이들이 좋아할 만한 친절하고 재미있는 힌트. (절대 단어 이름을 직접 언급하거나 'OO의 의미' 같은 표현을 쓰지 마세요!)",
+      "difficulty_level": number (1: Basic/1-2 Grade, 2: Intermediate/3-4 Grade, 3: Advanced/5-6 Grade+),
+      "hanja_list": [
+        { "char": "한자", "meaning": "뜻", "sound": "음", "level": "급수" }
+      ]
+    }
+  `;
+
+  const result = await model.generateContent(prompt);
+  const text = result.response.text();
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("JSON not found in response");
+  return JSON.parse(jsonMatch[0]);
+}
+
 export async function generateQuiz(hanja: string, excludedWords?: string[]) {
   if (!hanja) return { error: "한자를 선택해주세요." };
 
   const supabase = createClient();
 
   try {
-    // 1. DB에서 먼저 확인: 해당 한자가 포함된 기존 단어들을 찾습니다.
+    // 1. DB에서 먼저 확인: 이미 검증된(is_verified = true) 해당 한자가 포함된 기존 단어들을 찾습니다.
     let query = supabase
       .from("quiz_bank")
       .select("*")
       .ilike("hanja_combination", `%${hanja}%`)
-      .limit(20); // 후보를 더 많이 가져옵니다.
+      .eq("is_verified", true)
+      .limit(20);
 
     if (excludedWords && excludedWords.length > 0) {
       query = query.not("word", "in", `(${excludedWords.join(',')})`);
@@ -250,14 +330,81 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
     const { data: existingQuizzes } = await query;
 
     if (existingQuizzes && existingQuizzes.length > 0) {
-      // 후보들 중에서 랜덤하게 하나를 선택하여 루프를 방지합니다.
       const randomIndex = Math.floor(Math.random() * existingQuizzes.length);
       const quiz = existingQuizzes[randomIndex];
-      console.log(`DB에서 랜덤 퀴즈 선택 (${existingQuizzes.length}개 중 하나): ${quiz.word}`);
+      console.log(`[Quiz DB Select] 검증된 기존 퀴즈 선택: ${quiz.word}`);
       return { quiz };
     }
 
-    // 2. Gemini로 생성 (최대 3번 자동 재시도)
+    // 2. hanja_master 테이블의 example_words에서 단어 가져와서 생성 시도
+    const { data: masterData } = await supabase
+      .from("hanja_master")
+      .select("example_words")
+      .eq("hanja", hanja)
+      .maybeSingle();
+
+    interface ExampleWord {
+      word: string;
+      hanja: string;
+    }
+
+    const verifiedExamples = (masterData?.example_words as ExampleWord[] || []).filter((ex) => {
+      const w = ex?.word;
+      const h = ex?.hanja;
+      return typeof w === 'string' && typeof h === 'string' && h.includes(hanja);
+    });
+
+    const filteredExamples = excludedWords && excludedWords.length > 0
+      ? verifiedExamples.filter((ex) => !excludedWords.includes(ex.word))
+      : verifiedExamples;
+
+    if (filteredExamples.length > 0) {
+      const selected = filteredExamples[Math.floor(Math.random() * filteredExamples.length)];
+      console.log(`[Quiz DB Select] 마스터 테이블 예시 단어 선택: ${selected.word} (${selected.hanja})`);
+      
+      let retryCount = 0;
+      while (retryCount < 3) {
+        try {
+          const quizData = await generateQuizForPreVerifiedWord(selected.word, selected.hanja, hanja);
+          
+          // 퀄리티 체크
+          const desc = quizData.description || "";
+          if (desc.length < 10 || desc.includes(selected.word) || desc.includes("의미") || desc.includes("뜻하는")) {
+            throw new Error("Poor description quality.");
+          }
+
+          // 선제적 캐싱
+          await supabase.from("word_analysis_cache").upsert({
+            word: quizData.word,
+            analysis_json: {
+              hanjaList: quizData.hanja_list,
+              correctedWord: null,
+              isLoanword: false,
+              difficultyLevel: quizData.difficulty_level || 1
+            }
+          });
+
+          // quiz_bank에도 저장 (마스터의 검증된 단어이므로 자동으로 검증완료 처리)
+          const { data: newQuiz } = await supabase
+            .from("quiz_bank")
+            .upsert({
+              word: quizData.word,
+              hanja_combination: quizData.hanja_combination,
+              description: quizData.description,
+              difficulty_level: quizData.difficulty_level || 1,
+              is_verified: true
+            }, { onConflict: 'word, hanja_combination' })
+            .select()
+            .single();
+
+          return { quiz: newQuiz || quizData };
+        } catch {
+          retryCount++;
+        }
+      }
+    }
+
+    // 3. 만약 검증된 단어가 없다면, 신규 AI 생성 후 엄격한 교차 검증(Double-Pass Verification) 수행
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return { error: "Gemini API 키가 설정되지 않았습니다." };
@@ -265,7 +412,7 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-    const prompt = `
+    const generatorPrompt = `
       You are a Hanja quiz generator for kids.
       Target Hanja (Unicode character): "${hanja}"
       
@@ -274,7 +421,6 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
       2. The word MUST contain the SPECIFIC Hanja character "${hanja}" in its Hanja representation.
       3. Write a fun, kid-friendly description/hint that explains the meaning of the word WITHOUT using the word itself.
       4. CRITICAL: "word" field MUST be in HANGUL only. "hanja_combination" MUST be in HANJA.
-      5. DO NOT create fake words by simply combining Hanja. It MUST be a standard word found in a dictionary.
       
       Return ONLY a JSON object in this format:
       {
@@ -291,25 +437,26 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
     let retryCount = 0;
     while (retryCount < 3) {
       try {
-        const result = await model.generateContent(prompt);
+        const result = await model.generateContent(generatorPrompt);
         const text = result.response.text();
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("JSON not found in response");
         const quizData = JSON.parse(jsonMatch[0]);
 
-        // ... (validation remains same) ...
         const isHangulOnly = /^[가-힣]+$/.test(quizData.word);
         if (!isHangulOnly) throw new Error("Word must be Hangul only.");
         if (!quizData.hanja_combination.includes(hanja)) throw new Error("Missing target Hanja.");
 
-        // 퀄리티 체크 (Self-Correction)
-        const desc = quizData.description || "";
-        const isTooShort = desc.length < 10;
-        const containsWord = desc.includes(quizData.word);
-        const isGeneric = desc.includes("의미") || desc.includes("뜻하는");
+        // [정합성 핵심 검증] Gemini 교차 검증기 작동
+        const isValidWord = await verifyWordWithGemini(quizData.word, quizData.hanja_combination);
+        if (!isValidWord) {
+          console.warn(`[정합성 검증 실패] 생성된 단어 '${quizData.word}'는 실존하지 않거나 부적절하여 폐기합니다.`);
+          throw new Error("Invalid dictionary word.");
+        }
 
-        if (isTooShort || containsWord || isGeneric) {
-          console.warn(`[Quiz Quality Check] Failed: "${desc}". Retrying...`);
+        // 퀄리티 체크
+        const desc = quizData.description || "";
+        if (desc.length < 10 || desc.includes(quizData.word) || desc.includes("의미") || desc.includes("뜻하는")) {
           throw new Error("Poor quality description.");
         }
 
@@ -324,8 +471,7 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
           }
         });
 
-
-        // quiz_bank에도 저장
+        // quiz_bank에도 저장 (신규 생성이므로 is_verified = false로 저장하여 관리자 검수 대기)
         const { data: newQuiz } = await supabase
           .from("quiz_bank")
           .upsert({
@@ -345,14 +491,13 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
         const isRateLimit = err?.status === 429 || err?.message?.includes("429");
         
         if (isRateLimit && retryCount < 3) {
-          console.log(`Quiz generation rate limit hit, retrying in 1s... (${retryCount}/3)`);
           await new Promise(resolve => setTimeout(resolve, 1000));
           continue;
         }
 
         if (retryCount >= 3) {
           console.error("Quiz Generation Final Error:", error);
-          if (isRateLimit) return { error: "퀴즈 박사가 지금 잠시 쉬고 있어요! 조금 이따가 다시 도전해 볼까? 다른 한자를 먼저 공부하고 오면 더 잘할 수 있을 거야!" };
+          if (isRateLimit) return { error: "퀴즈 박사가 지금 잠시 쉬고 있어요! 조금 이따가 다시 도전해 볼까?" };
           return { error: "퀴즈를 생성하는 중 오류가 발생했습니다." };
         }
       }
