@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Star, Target, ChevronLeft, Settings, Brain, AlertCircle, RefreshCw, ChevronRight, Activity } from "lucide-react";
+import { Calendar, Star, Target, ChevronLeft, Settings, Brain, AlertCircle, RefreshCw, ChevronRight, Activity, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyzeRecentErrors, getAIDiagnosis } from "@/app/actions";
 import Link from "next/link";
@@ -49,13 +49,26 @@ interface DiagnosisResponse {
   severity: string;
 }
 
+interface SchoolRankData {
+  rank: number | null;
+  totalStudents: number | null;
+  total_score: number;
+}
+
 export default function StatsView({ 
   stats, 
   logs,
   onClose,
   onReview,
   isAdmin,
-  disabled = false
+  disabled = false,
+  isLoggedIn,
+  school,
+  grade,
+  schoolRank,
+  onAuthClick,
+  onRequiredInfoClick,
+  onMyPageClick
 }: { 
   stats: StatsData; 
   logs: LearningLog[];
@@ -63,6 +76,13 @@ export default function StatsView({
   onReview: (word: string) => void;
   isAdmin?: boolean;
   disabled?: boolean;
+  isLoggedIn: boolean;
+  school: string | null;
+  grade: number | null;
+  schoolRank: SchoolRankData | null;
+  onAuthClick: () => void;
+  onRequiredInfoClick: () => void;
+  onMyPageClick: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<TabType>("today");
   const [isDiagnosing, setIsDiagnosing] = useState(false);
@@ -174,6 +194,66 @@ export default function StatsView({
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-duo-snow/30">
+        {/* School Rank Card */}
+        <div className="flex flex-col items-center">
+          {!isLoggedIn ? (
+            <div 
+              onClick={onAuthClick}
+              className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md cursor-pointer hover:bg-indigo-100/30 transition-all"
+            >
+              <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80 flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5 text-indigo-400" /> 나의 학교/학년 순위
+              </span>
+              <span className="text-base font-black text-indigo-900 mt-1">로그인하고 학교 순위를 확인해보자! 🏫</span>
+              <span className="text-[10px] text-duo-wolf font-bold">친구들과 함께 즐겁게 경쟁해봐요!</span>
+            </div>
+          ) : (!school || !grade || !schoolRank || schoolRank.rank === null) ? (
+            <div 
+              onClick={onRequiredInfoClick}
+              className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md cursor-pointer hover:bg-indigo-100/30 transition-all"
+            >
+              <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80 flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5 text-indigo-400" /> 나의 학교/학년 순위
+              </span>
+              <span className="text-base font-black text-indigo-900 mt-1">학교와 학년을 입력하고 순위를 확인해보세요! 🏫</span>
+              <span className="text-[10px] text-duo-wolf font-bold">눌러서 소속 정보를 입력하기</span>
+            </div>
+          ) : (
+            <div 
+              onClick={onMyPageClick}
+              className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md cursor-pointer hover:bg-indigo-100/30 transition-all"
+            >
+              <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80 flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5 text-amber-500" /> {school} {grade}학년 순위
+              </span>
+              {(() => {
+                const total = schoolRank.totalStudents ?? 1;
+                const rank = schoolRank.rank ?? 1;
+                const pct = Math.max(10, Math.min(100, Math.round(((total - rank + 1) / total) * 100)));
+                const topPercent = Math.round((rank / total) * 100);
+                return (
+                  <>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sm font-black text-indigo-700">전체 {total}명 중</span>
+                      <span className="text-3xl font-black text-indigo-900">{rank}</span>
+                      <span className="text-sm font-black text-indigo-700">위</span>
+                    </div>
+                    <div className="w-full bg-indigo-100/50 h-2.5 rounded-full overflow-hidden mt-1.5">
+                      <div 
+                        className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-duo-wolf font-bold mt-1">
+                      나의 총점: {schoolRank.total_score}점 (상위 {topPercent}% 🏆)
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+
         {activeTab === "today" ? (
           <>
             <div className="bg-white border-2 border-duo-swan rounded-[32px] p-6 shadow-sm">

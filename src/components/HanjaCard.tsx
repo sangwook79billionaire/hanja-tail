@@ -25,7 +25,8 @@ export default function HanjaCard({
   onProgressUpdate,
   isReviewed = false,
   hideWriting = false,
-  isCompact = false
+  isCompact = false,
+  defaultExpanded = false
 }: { 
   data: HanjaData; 
   word?: string;
@@ -36,8 +37,9 @@ export default function HanjaCard({
   isReviewed?: boolean;
   hideWriting?: boolean;
   isCompact?: boolean;
+  defaultExpanded?: boolean;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isFlipped, setIsFlipped] = useState(false);
   const writerRef = useRef<HTMLDivElement>(null);
   const [writerInstance, setWriterInstance] = useState<HanziWriter | null>(null);

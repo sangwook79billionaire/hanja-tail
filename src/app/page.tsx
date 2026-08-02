@@ -9,7 +9,6 @@ import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
 import MyPageModal from "@/components/MyPageModal";
-import LearningMindMap from "@/components/LearningMindMap";
 import { AnimatePresence, motion } from "framer-motion";
 import AuthModal from "@/components/AuthModal";
 import RequiredInfoModal from "@/components/RequiredInfoModal";
@@ -609,59 +608,6 @@ export default function HomePage() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-32 translate-x-32 group-hover:bg-white/20 transition-colors" />
               </motion.div>
 
-              <div className="flex flex-col items-center">
-                {!user ? (
-                  <div 
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md cursor-pointer hover:bg-indigo-100/30 transition-all"
-                  >
-                    <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80">나의 학교/학년 순위</span>
-                    <span className="text-base font-black text-indigo-900 mt-1">로그인하고 학교 순위를 확인해보자! 🏫</span>
-                    <span className="text-[10px] text-duo-wolf font-bold">친구들과 함께 즐겁게 경쟁해봐요!</span>
-                  </div>
-                ) : (!school || !grade || !schoolRank || schoolRank.rank === null) ? (
-                  <div 
-                    onClick={() => setShowRequiredInfoModal(true)}
-                    className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md cursor-pointer hover:bg-indigo-100/30 transition-all"
-                  >
-                    <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80">나의 학교/학년 순위</span>
-                    <span className="text-base font-black text-indigo-900 mt-1">학교와 학년을 입력하고 순위를 확인해보세요! 🏫</span>
-                    <span className="text-[10px] text-duo-wolf font-bold">눌러서 소속 정보를 입력하기</span>
-                  </div>
-                ) : (
-                  <div 
-                    onClick={() => setShowMyPageModal(true)}
-                    className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-100/70 px-8 py-5 rounded-[28px] shadow-sm text-center w-full max-w-md cursor-pointer hover:bg-indigo-100/30 transition-all"
-                  >
-                    <span className="text-xs font-black uppercase tracking-wider text-indigo-600/80">{school} {grade}학년 순위</span>
-                    {(() => {
-                      const total = schoolRank.totalStudents ?? 1;
-                      const rank = schoolRank.rank ?? 1;
-                      const pct = Math.max(10, Math.min(100, Math.round(((total - rank + 1) / total) * 100)));
-                      const topPercent = Math.round((rank / total) * 100);
-                      return (
-                        <>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-sm font-black text-indigo-700">전체 {total}명 중</span>
-                            <span className="text-3xl font-black text-indigo-900">{rank}</span>
-                            <span className="text-sm font-black text-indigo-700">위</span>
-                          </div>
-                          <div className="w-full bg-indigo-100/50 h-2.5 rounded-full overflow-hidden mt-1.5">
-                            <div 
-                              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" 
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] text-duo-wolf font-bold mt-1">
-                            나의 총점: {schoolRank.total_score}점 (상위 {topPercent}% 🏆)
-                          </span>
-                        </>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-
               <div className="bg-white p-8 rounded-[40px] border-4 border-duo-snow shadow-xl relative group flex flex-col gap-6">
                 <div className="text-center">
                   <h2 className="text-xl font-black text-duo-eel leading-snug">오늘 새로 배운 단어나<br />뜻이 궁금한 단어를 찾아보자</h2>
@@ -676,14 +622,14 @@ export default function HomePage() {
                     value={word}
                     onChange={(e) => setWord(e.target.value)}
                     placeholder="여기에 입력"
-                    className="w-full h-16 pl-16 pr-28 bg-duo-snow/50 rounded-2xl text-lg font-black focus:outline-none focus:ring-4 focus:ring-duo-macaw/20 transition-all"
+                    className="w-full h-20 pl-16 pr-36 bg-duo-snow/50 rounded-2xl text-xl font-black focus:outline-none focus:ring-4 focus:ring-duo-macaw/20 transition-all"
                   />
                   <motion.button
                     type="submit"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     disabled={isLoading}
-                    className="absolute right-2.5 top-2.5 bottom-2.5 px-6 bg-duo-macaw text-white rounded-xl font-black text-xs shadow-[0_3px_0_0_#1899d6] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center disabled:opacity-50"
+                    className="absolute right-3 top-3 bottom-3 px-8 bg-duo-macaw text-white rounded-2xl font-black text-base shadow-[0_4px_0_0_#1899d6] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center disabled:opacity-50"
                   >
                     {isLoading ? "탐험 중..." : "찾기!"}
                   </motion.button>
@@ -753,37 +699,57 @@ export default function HomePage() {
                 )}
               </AnimatePresence>
 
-              <div className="mt-16">
-                <div className="flex items-center justify-between mb-8 px-4">
-                  <h3 className="text-2xl font-black text-duo-eel">오늘의 한자 꼬리</h3>
-                  <div className="bg-duo-snow px-4 py-2 rounded-2xl text-xs font-black text-duo-wolf">
-                    여의주 {dailyHistory.length}개 획득
+              {(() => {
+                const allHanjaDetails = dailyHistory.flatMap(log => log.hanjaDetails || []);
+                const uniqueHanjaList = Array.from(
+                  new Map(allHanjaDetails.map(item => [item.char, item])).values()
+                );
+
+                return (
+                  <div className="mt-16">
+                    <div className="flex items-center justify-between mb-8 px-4">
+                      <h3 className="text-2xl font-black text-duo-eel">오늘 배운 한자</h3>
+                      <div className="bg-duo-snow px-4 py-2 rounded-2xl text-xs font-black text-duo-wolf">
+                        총 {uniqueHanjaList.length}개 학습
+                      </div>
+                    </div>
+
+                    {uniqueHanjaList.length > 0 ? (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                        {uniqueHanjaList.map((hj) => (
+                          <motion.div
+                            key={hj.char}
+                            whileHover={{ scale: 1.05, y: -4 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              setPreviewHanja({
+                                char: hj.char,
+                                meaning: hj.meaning,
+                                sound: hj.sound,
+                                level: "학습됨"
+                              });
+                            }}
+                            className="bg-white border-4 border-duo-snow hover:border-duo-macaw rounded-[28px] p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1 shadow-sm hover:shadow-md group"
+                          >
+                            <span className="text-3xl font-black text-duo-eel font-myeongjo group-hover:text-duo-macaw transition-colors">
+                              {hj.char}
+                            </span>
+                            <span className="text-xs font-bold text-amber-600 font-myeongjo leading-tight mt-1">
+                              {hj.meaning} {hj.sound}
+                            </span>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-16 px-6 border-4 border-dashed border-duo-snow rounded-[32px] text-center bg-white/40">
+                        <Sparkles className="w-10 h-10 text-amber-400 mb-3 animate-pulse" />
+                        <h4 className="text-lg font-black text-duo-eel mb-1">오늘 배운 한자가 아직 없어요</h4>
+                        <p className="text-xs font-bold text-duo-wolf">궁금한 단어를 검색하고 꼬리물기를 하여 한자를 모아보세요! 🐉</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <LearningMindMap 
-                  logs={dailyHistory} 
-                  onReview={(h) => {
-                    const allDetails = dailyHistory.flatMap(l => l.hanjaDetails || []);
-                    const detail = allDetails.find(d => d.char === h);
-                    if (detail) {
-                      setPreviewHanja({
-                        char: detail.char,
-                        meaning: detail.meaning,
-                        sound: detail.sound,
-                        level: "학습됨"
-                      });
-                    }
-                  }}
-                  onRandomQuiz={() => {
-                    const allChars = dailyHistory.flatMap(log => log.hanjaDetails?.map(d => d.char) || []);
-                    const uniqueChars = Array.from(new Set(allChars));
-                    if (uniqueChars.length > 0) {
-                      const randomChar = uniqueChars[Math.floor(Math.random() * uniqueChars.length)];
-                      handleRequestQuiz(randomChar);
-                    }
-                  }}
-                />
-              </div>
+                );
+              })()}
             </motion.div>
           )}
 
@@ -802,6 +768,13 @@ export default function HomePage() {
                 onClose={() => setActiveTab('search')}
                 onReview={(w) => handleAnalyze(w, true)}
                 disabled={isLoading}
+                isLoggedIn={!!user}
+                school={school}
+                grade={grade}
+                schoolRank={schoolRank}
+                onAuthClick={() => setIsAuthModalOpen(true)}
+                onRequiredInfoClick={() => setShowRequiredInfoModal(true)}
+                onMyPageClick={() => setShowMyPageModal(true)}
               />
             </motion.div>
           )}
@@ -1000,6 +973,7 @@ export default function HomePage() {
             <div className="w-full max-w-sm relative z-10">
               <HanjaCard 
                 data={previewHanja}
+                defaultExpanded={true}
                 onWrite={(char, meaning, sound, originalSound) => {
                   setPreviewHanja(null);
                   setSelectedHanjaForWriting({ 
