@@ -374,10 +374,20 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
     const { data: existingQuizzes } = await query;
 
     if (existingQuizzes && existingQuizzes.length > 0) {
-      const randomIndex = Math.floor(Math.random() * existingQuizzes.length);
-      const quiz = existingQuizzes[randomIndex];
-      console.log(`[Quiz DB Select] 검증된 기존 퀴즈 선택: ${quiz.word}`);
-      return { quiz };
+      // 필터링: 글자 수가 너무 짧거나 "의미", "뜻하는", "뜻함" 같은 불성실한 템플릿성 텍스트 필터링
+      const validQuizzes = existingQuizzes.filter((q) => {
+        const desc = q.description || "";
+        const isTooShort = desc.length < 10;
+        const containsPlaceholder = desc.includes("의미") || desc.includes("뜻하는") || desc.includes("뜻함");
+        return !isTooShort && !containsPlaceholder;
+      });
+
+      if (validQuizzes.length > 0) {
+        const randomIndex = Math.floor(Math.random() * validQuizzes.length);
+        const quiz = validQuizzes[randomIndex];
+        console.log(`[Quiz DB Select] 검증된 기존 퀴즈 선택: ${quiz.word}`);
+        return { quiz };
+      }
     }
 
     // 2. hanja_master 테이블의 example_words에서 단어 가져와서 생성 시도
