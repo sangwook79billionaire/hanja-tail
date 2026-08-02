@@ -92,11 +92,19 @@ export async function analyzeWord(word: string) {
          or if it's not a common Hanja-based word, set "isValid" to false.
          Also, the word MUST be a PURE Hanja-based word (모든 글자가 한자로 표기 가능해야 함).
          If the word is a hybrid of Hanja and native Hangul (like "우산꽂이" which is "雨傘" + native Korean "꽂이", or "책꽂이" which is "冊" + native "꽂이"), set "isValid" to false. We only study pure Hanja words.
+      5. Identify the word type (wordType):
+         - "pure_korean" if it is native Korean (순우리말/순한글).
+         - "loanword" if it is a foreign loanword (외래어/외국어).
+         - "hybrid" if it is a mix of Hanja and native Korean (혼종어).
+         - "slang" if it is slang, jargon, or non-standard word (비속어/유행어).
+         - "not_in_dictionary" if it's a fake word or not in standard dictionaries.
+         - "standard_hanja" if it's a valid standard Hanja word.
 
       Return ONLY a JSON object in this format:
       {
         "isSafe": boolean,
         "isValid": boolean,
+        "wordType": "pure_korean" | "loanword" | "hybrid" | "slang" | "not_in_dictionary" | "standard_hanja",
         "invalidReason": "string (why it is invalid)",
         "isAmbiguous": boolean,
         "candidates": [
@@ -143,7 +151,16 @@ export async function analyzeWord(word: string) {
         details: data
       }).then();
       
-      return { error: `아쉽게도 '${searchWord}'(은)는 사전에 없는 단어인 것 같아요. 한자 카드를 다시 확인하거나 다른 단어를 찾아볼래?` };
+      if (data.wordType === "pure_korean") {
+        return { error: `아쉽게도 '${searchWord}'(은)는 예쁜 순우리말(순한글) 단어예요! 한자어 단어만 탐험할 수 있답니다. 다른 단어를 입력해 볼까요? 🌸` };
+      }
+      if (data.wordType === "loanword") {
+        return { error: `아쉽게도 '${searchWord}'(은)는 외국어에서 온 외래어 단어예요! 한자어 단어만 탐험할 수 있답니다. 다른 단어를 입력해 볼까요? 🌍` };
+      }
+      if (data.wordType === "hybrid") {
+        return { error: `'${searchWord}'(은)는 한자어와 순우리말이 섞여 있는 혼종어예요! 100% 한자어로만 이루어진 단어로 다시 탐험해 봐요! 🔍` };
+      }
+      return { error: `아쉽게도 '${searchWord}'(은)는 한자로 표기할 수 없거나 표준 사전에 없는 단어인 것 같아요. 다른 단어로 도전해 볼까요? 🦉` };
     }
 
     if (data.isAmbiguous) {
