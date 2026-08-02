@@ -791,7 +791,6 @@ export default function HomePage() {
                 allLogs={allHistory}
                 onClose={() => setActiveTab('search')}
                 onReview={(w) => handleAnalyze(w, true)}
-                disabled={isLoading}
                 isLoggedIn={!!user}
                 school={school}
                 grade={grade}

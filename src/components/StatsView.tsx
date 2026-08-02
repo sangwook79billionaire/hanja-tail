@@ -22,7 +22,6 @@ interface StatsData {
 
 type TabType = "today" | "weekly" | "monthly" | "total";
 
-import LearningMindMap from "./LearningMindMap";
 
 interface LearningLog {
   word: string;
@@ -61,7 +60,6 @@ export default function StatsView({
   onClose,
   onReview,
   isAdmin,
-  disabled = false,
   isLoggedIn,
   school,
   grade,
@@ -76,7 +74,6 @@ export default function StatsView({
   onClose: () => void;
   onReview: (word: string) => void;
   isAdmin?: boolean;
-  disabled?: boolean;
   isLoggedIn: boolean;
   school: string | null;
   grade: number | null;
@@ -277,15 +274,6 @@ export default function StatsView({
 
         {activeTab === "today" ? (
           <>
-            <div className="bg-white border-2 border-duo-swan rounded-[32px] p-6 shadow-sm">
-              <h3 className="text-lg font-black text-duo-eel mb-4 flex items-center gap-2">
-                <Target className="w-5 h-5 text-duo-macaw" /> 오늘의 한자 마인드맵
-              </h3>
-              <p className="text-xs font-bold text-duo-wolf mb-6">
-                단어를 클릭해서 복습하면 추가 보너스 점수(+0.5)를 받을 수 있어요!
-              </p>
-              <LearningMindMap logs={logs} onReview={onReview} disabled={disabled} />
-            </div>
             {/* Daily Point Progress */}
             <div className="bg-duo-bee/10 border-2 border-duo-bee/30 rounded-3xl p-6">
               <h4 className="font-black text-duo-bee-dark mb-4 flex items-center gap-2">
