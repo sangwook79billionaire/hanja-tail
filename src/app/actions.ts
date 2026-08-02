@@ -52,16 +52,17 @@ export async function analyzeWord(word: string) {
 
     // 1. 단어 정규화 (괄호와 한자 제거: '의료(醫療)' -> '의료')
     const normalizedWord = searchWord.replace(/\(.*\)/, "").trim();
+    const cacheKey = hasHanjaBracket ? searchWord : normalizedWord;
 
     // 2. DB 캐시 확인
     const { data: cachedData } = await supabase
       .from("word_analysis_cache")
       .select("analysis_json")
-      .eq("word", normalizedWord)
+      .eq("word", cacheKey)
       .maybeSingle();
 
     if (cachedData) {
-      console.log("Using cached analysis for:", normalizedWord);
+      console.log("Using cached analysis for:", cacheKey);
       return cachedData.analysis_json;
     }
 
@@ -257,7 +258,7 @@ export async function analyzeWord(word: string) {
     };
 
     await supabase.from("word_analysis_cache").upsert({
-      word: normalizedWord,
+      word: cacheKey,
       analysis_json: resultData
     });
     

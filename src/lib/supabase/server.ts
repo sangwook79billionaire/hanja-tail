@@ -2,12 +2,34 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export function createClient() {
-  const cookieStore = cookies();
+  let cookieStore;
+  try {
+    cookieStore = cookies();
+  } catch {
+    // Called outside Next.js request context (e.g. testing or scripts)
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error("Missing Supabase environment variables. Check your deployment settings.");
+  }
+
+  if (!cookieStore) {
+    return createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          get() {
+            return undefined;
+          },
+          set() {},
+          remove() {},
+        },
+      }
+    );
   }
 
   return createServerClient(
