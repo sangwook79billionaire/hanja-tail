@@ -217,6 +217,7 @@ export default function HomePage() {
   const [recapData, setRecapData] = useState<StatsData | null>(null);
   const [currentSearchedWord, setCurrentSearchedWord] = useState<string | null>(null);
   const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);
+  const [allHistory, setAllHistory] = useState<LearningLog[]>([]);
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
   const [streakCount, setStreakCount] = useState(0);
   const [coupons, setCoupons] = useState(0);
@@ -291,6 +292,26 @@ export default function HomePage() {
 
       setDailyHistory(uniqueLogs);
 
+      // 전체 학습 단어 목록 가공 (중복 제거 및 최신 정렬)
+      const allWordMap = new Map<string, LearningLog>();
+      result.logs.forEach((log: LearningLog) => {
+        const existing = allWordMap.get(log.word);
+        if (!existing) {
+          allWordMap.set(log.word, { ...log });
+        } else {
+          existing.is_correct = existing.is_correct || log.is_correct;
+          existing.viewed_stroke = existing.viewed_stroke || log.viewed_stroke;
+          existing.practiced_writing = existing.practiced_writing || log.practiced_writing;
+          if (new Date(log.learned_at) > new Date(existing.learned_at)) {
+            existing.learned_at = log.learned_at;
+          }
+        }
+      });
+      const uniqueAllLogs = Array.from(allWordMap.values()).sort((a, b) => 
+        new Date(b.learned_at).getTime() - new Date(a.learned_at).getTime()
+      );
+      setAllHistory(uniqueAllLogs);
+
       if (result.stats) {
         setRecapData(result.stats as unknown as StatsData);
         setMissionProgress(result.stats.missionProgress || 0);
@@ -329,6 +350,7 @@ export default function HomePage() {
     } else {
       setNickname(null);
       setDailyHistory([]);
+      setAllHistory([]);
       setRecapData(null);
       setStreakCount(0);
       setCoupons(0);
@@ -349,6 +371,7 @@ export default function HomePage() {
       if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
         setNickname(null);
         setDailyHistory([]);
+        setAllHistory([]);
         setRecapData(null);
         setAnalyzedHanja([]);
         setCurrentSearchedWord(null);
@@ -765,6 +788,7 @@ export default function HomePage() {
               <StatsView 
                 stats={recapData} 
                 logs={dailyHistory} 
+                allLogs={allHistory}
                 onClose={() => setActiveTab('search')}
                 onReview={(w) => handleAnalyze(w, true)}
                 disabled={isLoading}

@@ -68,7 +68,8 @@ export default function StatsView({
   schoolRank,
   onAuthClick,
   onRequiredInfoClick,
-  onMyPageClick
+  onMyPageClick,
+  allLogs
 }: { 
   stats: StatsData; 
   logs: LearningLog[];
@@ -83,6 +84,7 @@ export default function StatsView({
   onAuthClick: () => void;
   onRequiredInfoClick: () => void;
   onMyPageClick: () => void;
+  allLogs: LearningLog[];
 }) {
   const [activeTab, setActiveTab] = useState<TabType>("today");
   const [isDiagnosing, setIsDiagnosing] = useState(false);
@@ -131,6 +133,25 @@ export default function StatsView({
   }
 
   const currentStats = stats[activeTab] || { count: 0, correct: 0, days: 0 };
+
+  const filteredPeriodLogs = (() => {
+    if (activeTab === "today") return logs;
+    const now = new Date();
+    return allLogs.filter(log => {
+      const logDate = new Date(log.learned_at);
+      if (activeTab === "weekly") {
+        const limit = new Date();
+        limit.setDate(now.getDate() - 7);
+        return logDate >= limit;
+      }
+      if (activeTab === "monthly") {
+        const limit = new Date();
+        limit.setMonth(now.getMonth() - 1);
+        return logDate >= limit;
+      }
+      return true; // 'total'
+    });
+  })();
 
   const getTrophyInfo = () => {
     const days = stats.total.days;
@@ -265,55 +286,6 @@ export default function StatsView({
               </p>
               <LearningMindMap logs={logs} onReview={onReview} disabled={disabled} />
             </div>
-
-            {/* Total Word List - New Section */}
-            <div className="bg-white border-2 border-duo-swan rounded-[32px] p-6 shadow-sm">
-              <h3 className="text-lg font-black text-duo-eel mb-6 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-duo-macaw" /> 전체 단어 리스트
-              </h3>
-              <div className="space-y-4">
-                {logs.length > 0 ? (
-                  logs.map((log, idx) => (
-                    <motion.div 
-                      key={idx}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="flex items-center justify-between p-4 bg-duo-snow/30 rounded-2xl border-2 border-duo-snow group hover:border-duo-macaw transition-all cursor-pointer"
-                      onClick={() => onReview(log.word)}
-                    >
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl font-black text-duo-eel">{log.word}</span>
-                          {log.hanja && (
-                            <span className="text-sm font-bold text-duo-wolf bg-white px-2 py-0.5 rounded-lg border border-duo-snow">
-                              {log.hanja}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs font-bold text-duo-wolf line-clamp-1">{log.meaning || "뜻 정보 없음"}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {log.practiced_writing && (
-                          <div className="bg-duo-green/10 text-duo-green px-2 py-1 rounded-lg text-[10px] font-black border border-duo-green/20">
-                            쓰기 완료
-                          </div>
-                        )}
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center",
-                          log.is_correct ? "bg-duo-green text-white" : "bg-duo-snow text-duo-swan"
-                        )}>
-                          <Target className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))
-                ) : (
-                  <p className="text-center py-10 text-duo-wolf font-bold">학습한 단어가 없어요!</p>
-                )}
-              </div>
-            </div>
-
             {/* Daily Point Progress */}
             <div className="bg-duo-bee/10 border-2 border-duo-bee/30 rounded-3xl p-6">
               <h4 className="font-black text-duo-bee-dark mb-4 flex items-center gap-2">
@@ -578,6 +550,59 @@ export default function StatsView({
             </div>
           </>
         )}
+
+        {/* Word List Section - Rendered dynamically at the bottom for all tabs */}
+        <div className="bg-white border-2 border-duo-swan rounded-[32px] p-6 shadow-sm">
+          <h3 className="text-lg font-black text-duo-eel mb-6 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-duo-macaw" /> {
+              activeTab === "today" ? "오늘 학습한 단어" :
+              activeTab === "weekly" ? "이번 주 학습한 단어" :
+              activeTab === "monthly" ? "이번 달 학습한 단어" :
+              "그동안 배운 단어 리스트"
+            }
+          </h3>
+          <div className="space-y-4">
+            {filteredPeriodLogs.length > 0 ? (
+              filteredPeriodLogs.map((log, idx) => (
+                <motion.div 
+                  key={`${activeTab}-${idx}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(idx * 0.03, 0.4) }}
+                  className="flex items-center justify-between p-4 bg-duo-snow/30 rounded-2xl border-2 border-duo-snow group hover:border-duo-macaw transition-all cursor-pointer"
+                  onClick={() => onReview(log.word)}
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl font-black text-duo-eel">{log.word}</span>
+                      {log.hanja && (
+                        <span className="text-sm font-bold text-duo-wolf bg-white px-2 py-0.5 rounded-lg border border-duo-snow">
+                          {log.hanja}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-duo-wolf line-clamp-1">{log.meaning || "뜻 정보 없음"}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {log.practiced_writing && (
+                      <div className="bg-duo-green/10 text-duo-green px-2 py-1 rounded-lg text-[10px] font-black border border-duo-green/20">
+                        쓰기 완료
+                      </div>
+                    )}
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center",
+                      log.is_correct ? "bg-duo-green text-white" : "bg-duo-snow text-duo-swan"
+                    )}>
+                      <Target className="w-4 h-4" />
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-center py-10 text-duo-wolf font-bold">이 기간 동안 학습한 단어가 없어요!</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Bottom CTA */}
