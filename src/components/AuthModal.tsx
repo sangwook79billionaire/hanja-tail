@@ -99,7 +99,28 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           });
         }
         
-        alert("가입 확인 이메일을 보냈어요! 메일함을 확인해 주세요. (미성년자의 경우 보호자 승인이 필요할 수 있습니다)");
+        let hasSession = !!signUpData.session;
+        if (!hasSession && signUpData.user) {
+          try {
+            const { data: signInData } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+            if (signInData?.session) {
+              hasSession = true;
+            }
+          } catch (e) {
+            console.error("Auto sign in failed:", e);
+          }
+        }
+
+        if (hasSession) {
+          alert("한자 탐험대 가입을 환영합니다! 바로 시작해 보세요. ✨");
+          onClose();
+        } else {
+          alert("한자 탐험대 가입을 축하합니다! 등록하신 이메일과 패스워드로 로그인해서 탐험을 시작해 보세요. ✨");
+          setIsSignUp(false); // 로그인 화면으로 탭 전환
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,

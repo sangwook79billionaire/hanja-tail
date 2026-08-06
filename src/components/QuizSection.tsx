@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle2, AlertCircle, Trophy, Sparkles, Lightbulb } from "lucide-react";
+import { X, CheckCircle2, AlertCircle, Trophy, Sparkles, Lightbulb, Loader2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
 import { logLearning } from "@/app/actions";
@@ -92,9 +92,19 @@ export default function QuizSection({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-white flex flex-col items-center p-6 overflow-y-auto"
     >
+      {isSubmitted && isCorrect === true && (
+        <div className="fixed inset-0 z-[60] bg-black/10 cursor-wait pointer-events-auto flex items-center justify-center">
+          <div className="bg-white/95 px-8 py-5 rounded-[28px] shadow-2xl flex items-center gap-3 border-4 border-duo-snow">
+            <Loader2 className="w-6 h-6 text-duo-macaw animate-spin" />
+            <span className="text-base font-black text-duo-eel">단어 카드를 가져오는 중...</span>
+          </div>
+        </div>
+      )}
+
       <button 
         onClick={onClose}
-        className="absolute top-6 right-6 p-2 text-duo-wolf hover:bg-duo-snow rounded-full transition-colors z-10"
+        disabled={isSubmitted && isCorrect === true}
+        className="absolute top-6 right-6 p-2 text-duo-wolf hover:bg-duo-snow rounded-full transition-colors z-10 disabled:opacity-30"
       >
         <X className="w-8 h-8" />
       </button>
@@ -231,7 +241,8 @@ export default function QuizSection({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="w-full h-20 bg-duo-macaw text-white rounded-[24px] font-black text-2xl shadow-[0_8px_0_0_#1899d6] active:translate-y-[4px] active:shadow-[0_4px_0_0_#1899d6] transition-all"
+                      disabled={isSubmitted && isCorrect === true}
+                      className="w-full h-20 bg-duo-macaw text-white rounded-[24px] font-black text-2xl shadow-[0_8px_0_0_#1899d6] active:translate-y-[4px] active:shadow-[0_4px_0_0_#1899d6] transition-all disabled:opacity-50"
                     >
                       다른 한자 공부하기
                     </button>

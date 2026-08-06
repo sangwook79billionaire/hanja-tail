@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:repair-cache": "node scripts/auto_audit_and_repair_cache.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Trophy, Sparkles, Gift, Star, User, Play, X } from "lucide-react";
+import { Search, Trophy, Sparkles, Gift, Star, User, Play, X, Loader2, Calendar, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, getSchoolRank } from "./actions";
@@ -24,14 +24,18 @@ interface Expansion {
 
 interface LearningLog {
   word: string;
+  hanja?: string;
   is_correct: boolean;
   learned_at: string;
   viewed_stroke?: boolean;
   practiced_writing?: boolean;
+  meaning?: string;
+  difficulty?: number;
   hanjaDetails?: {
     char: string;
     meaning: string;
     sound: string;
+    level?: string;
   }[];
 }
 
@@ -216,6 +220,7 @@ export default function HomePage() {
   const [analyzedHanja, setAnalyzedHanja] = useState<HanjaData[]>([]);
   const [recapData, setRecapData] = useState<StatsData | null>(null);
   const [currentSearchedWord, setCurrentSearchedWord] = useState<string | null>(null);
+  const [sessionExploredWords, setSessionExploredWords] = useState<{ word: string; hanja?: string }[]>([]);
   const [dailyHistory, setDailyHistory] = useState<LearningLog[]>([]);
   const [allHistory, setAllHistory] = useState<LearningLog[]>([]);
   const [showTrophyCelebration, setShowTrophyCelebration] = useState(false);
@@ -236,6 +241,7 @@ export default function HomePage() {
   const [selectedHanjaForWriting, setSelectedHanjaForWriting] = useState<{char: string, meaning: string, sound: string, originalSound?: string, isReview?: boolean} | null>(null);
   const [practicedChars, setPracticedChars] = useState<Set<string>>(new Set());
   const [selectedHanjaForQuiz, setSelectedHanjaForQuiz] = useState<string | null>(null);
+  const [isQuizLoading, setIsQuizLoading] = useState(false);
   const [currentQuiz, setCurrentQuiz] = useState<{ word: string; hanja_combination: string; description: string } | null>(null);
   const [previewHanja, setPreviewHanja] = useState<HanjaData | null>(null);
   interface SchoolRankData {
@@ -251,8 +257,48 @@ export default function HomePage() {
   const [showGiftPopup, setShowGiftPopup] = useState(false);
   const [ambiguityCandidates, setAmbiguityCandidates] = useState<{ word: string; hanja: string; description: string }[] | null>(null);
 
+  const uniqueExploredWords = (() => {
+    const wordMap = new Map<string, {
+      word: string;
+      hanja?: string;
+      meaning?: string;
+      practiced_writing?: boolean;
+      is_correct?: boolean;
+    }>();
+    
+    // 1. DB 로그 채우기
+    dailyHistory.forEach(log => {
+      if (log.word) {
+        wordMap.set(log.word, {
+          word: log.word,
+          hanja: log.hanja,
+          meaning: log.meaning,
+          practiced_writing: log.practiced_writing,
+          is_correct: log.is_correct
+        });
+      }
+    });
+    
+    // 2. 세션 로그 채우기 (DB에 아직 안 들어왔거나 로딩 중인 경우)
+    sessionExploredWords.forEach(item => {
+      if (item.word) {
+        const existing = wordMap.get(item.word);
+        wordMap.set(item.word, {
+          word: item.word,
+          hanja: item.hanja || existing?.hanja || "",
+          meaning: existing?.meaning || "뜻 분석 중...",
+          practiced_writing: existing?.practiced_writing || false,
+          is_correct: existing?.is_correct || false
+        });
+      }
+    });
+    
+    return Array.from(wordMap.values());
+  })();
+
+  const allExploredWords = uniqueExploredWords.map(item => item.word);
+
   const supabase = createClient();
-  const trophyGoal = 5;
 
 
   const fetchDailyHistory = useCallback(async () => {
@@ -317,13 +363,24 @@ export default function HomePage() {
         setMissionProgress(result.stats.missionProgress || 0);
       }
 
-      if (uniqueLogs.length >= trophyGoal && !hasAwardedTrophy) {
+      const dailyCompletedCount = result.stats?.missionProgress || 0;
+      const todayKstStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
+
+      const lastCelebrated = typeof window !== 'undefined' ? localStorage.getItem('last_trophy_celebration_date') : null;
+
+      if (dailyCompletedCount >= 3 && lastCelebrated !== todayKstStr && !hasAwardedTrophy) {
         setShowTrophyCelebration(true);
         setHasAwardedTrophy(true);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('last_trophy_celebration_date', todayKstStr);
+        }
       }
     }
     getSchoolRank().then(rankInfo => setSchoolRank(rankInfo));
-  }, [hasAwardedTrophy, trophyGoal]);
+  }, [hasAwardedTrophy]);
 
   const fetchProfile = useCallback(async () => {
     const { profile } = await getMyProfile();
@@ -381,6 +438,14 @@ export default function HomePage() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
+  // 오늘 탐험한 이력이 있을 경우 최근 단어를 자동으로 조회하여 보여줌
+  useEffect(() => {
+    if (allExploredWords.length > 0 && !currentSearchedWord && !isLoading) {
+      handleAnalyze(allExploredWords[0], true, false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allExploredWords.length, currentSearchedWord, isLoading]);
+
   const handleAnalyze = async (searchWord: string, isFromExpansion = false, autoOpenFirst = false) => {
     setIsLoading(true);
     setAnalyzedHanja([]);
@@ -405,13 +470,19 @@ export default function HomePage() {
 
     try {
       const result = await analyzeWord(trimmedWord);
+      const hasBracket = trimmedWord.includes("(") && trimmedWord.includes(")");
       if (result.error) {
         alert(result.error);
-      } else if (result.isAmbiguous) {
+      } else if (result.isAmbiguous && !hasBracket) {
         setAmbiguityCandidates(result.candidates);
       } else {
         setAnalyzedHanja(result.hanjaList);
         setCurrentSearchedWord(trimmedWord);
+        const hanjaStr = result.hanjaList ? result.hanjaList.map((h: HanjaData) => h.char).join('') : '';
+        setSessionExploredWords(prev => {
+          if (prev.some(item => item.word === trimmedWord)) return prev;
+          return [...prev, { word: trimmedWord, hanja: hanjaStr }];
+        });
         setExpansionWords(result.expansions || []);
         
         // [추가] autoOpenFirst가 true면 첫 번째 한자 쓰기 모달 바로 열기
@@ -434,6 +505,9 @@ export default function HomePage() {
           if (logRes.pointsAwarded && logRes.pointsAwarded > 0) {
             alert(`✨ 와우! '${trimmedWord}'에 포함된 한자들을 이미 모두 마스터했네요!\n꼬리 물기 성공 보너스 ${logRes.pointsAwarded}점을 바로 지급해드렸어요!`);
           }
+        } else {
+          // 단순 검색 기록 로그로 저장 (isCorrect = false, practicedWriting = false)
+          logLearning(trimmedWord, false, parent || undefined, false, false).catch(err => console.error("Search logging error:", err));
         }
 
         fetchDailyHistory();
@@ -454,10 +528,9 @@ export default function HomePage() {
   };
 
   const handleRequestQuiz = async (hanja: string) => {
-    setIsLoading(true);
+    setIsQuizLoading(true);
     try {
-      const learnedWords = dailyHistory.map(log => log.word);
-      const excluded = [currentSearchedWord || "", ...learnedWords].filter(Boolean);
+      const excluded = [currentSearchedWord || "", ...allExploredWords].filter(Boolean);
       const uniqueExcluded = Array.from(new Set(excluded));
 
       const result = await generateQuiz(hanja, uniqueExcluded);
@@ -471,11 +544,9 @@ export default function HomePage() {
       console.error(e);
       alert("퀴즈 생성 실패!");
     } finally {
-      setIsLoading(false);
+      setIsQuizLoading(false);
     }
   };
-
-
 
   return (
     <main className="min-h-screen bg-white text-duo-eel font-sans pb-24 overflow-x-hidden">
@@ -660,67 +731,100 @@ export default function HomePage() {
 
               </div>
 
-              <AnimatePresence>
-                {(analyzedHanja?.length || 0) > 0 && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="w-full flex flex-col gap-8 mb-16"
-                  >
-                    <div className="px-4 space-y-1">
-                      <h3 className="text-xl font-black text-duo-eel">찾아낸 한자 카드</h3>
-                      <p className="text-sm font-bold text-duo-wolf">한자를 같이 써보고, 카드를 뒤집어서 획순도 확인해보자! ✍️🔄</p>
-                    </div>
-                    <div className={cn(
-                      "grid gap-6 px-2",
-                      analyzedHanja.length === 1 && "grid-cols-1",
-                      analyzedHanja.length === 2 && "grid-cols-2",
-                      analyzedHanja.length === 3 && "grid-cols-3",
-                      analyzedHanja.length >= 4 && "grid-cols-2"
-                    )}>
-                      {analyzedHanja.map((hanja, idx) => (
-                        <HanjaCard 
-                          key={hanja.char} 
-                          data={hanja} 
-                          word={currentSearchedWord || undefined}
-                          delay={idx * 0.1}
-                          onWrite={(char, meaning, sound, originalSound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, originalSound, isReview })}
-                          onProgressUpdate={() => fetchDailyHistory()}
-                          isReviewed={practicedChars.has(hanja.char) || (dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}
-                          isCompact={analyzedHanja.length >= 3}
-                        />
-                      ))}
-                    </div>
-
-                    {expansionWords.length > 0 && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-8 px-4"
-                      >
-                        <h4 className="text-lg font-black text-duo-eel mb-4 flex items-center gap-2">
-                          <Sparkles className="w-5 h-5 text-amber-400" />
-                          다른 연관 단어도 공부해볼래?
-                        </h4>
-                        <div className="flex flex-wrap gap-3">
-                          {expansionWords.map((exp) => (
+              <div className="w-full flex flex-col gap-8 mb-16">
+                <div className="px-4 space-y-4">
+                  <h3 className="text-xl font-black text-duo-eel">오늘 탐험한 단어</h3>
+                  
+                  {allExploredWords.length > 0 ? (
+                    <>
+                      {/* 탐험한 단어 필터 배지 목록 */}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {allExploredWords.map((w) => {
+                          const isActive = w === currentSearchedWord;
+                          return (
                             <button
-                              key={exp.word}
-                              onClick={() => setSelectedExpansionForQuiz(exp)}
-                              className="px-5 py-3 bg-white border-2 border-duo-snow rounded-2xl font-black text-duo-eel hover:border-duo-macaw hover:text-duo-macaw transition-all shadow-sm flex items-center gap-2 group"
+                              key={w}
+                              onClick={() => {
+                                if (!isActive) {
+                                  handleAnalyze(w, true, false);
+                                }
+                              }}
+                              className={cn(
+                                "px-4 py-2.5 rounded-2xl font-black text-sm border-2 transition-all shadow-sm active:translate-y-0.5 active:shadow-none",
+                                isActive 
+                                  ? "bg-duo-macaw text-white border-duo-macaw shadow-md scale-105"
+                                  : "bg-white text-duo-eel border-duo-snow hover:border-duo-macaw/50"
+                              )}
                             >
-                              <span>{exp.word}</span>
-                              <div className="w-6 h-6 bg-duo-snow rounded-lg flex items-center justify-center group-hover:bg-duo-macaw/10">
-                                <Search className="w-3.5 h-3.5 text-duo-wolf group-hover:text-duo-macaw" />
-                              </div>
+                              {w}
                             </button>
+                          );
+                        })}
+                      </div>
+
+                      <p className="text-xs font-bold text-duo-wolf pt-1">한자를 같이 써보고, 카드를 뒤집어서 획순도 확인해보자! ✍️🔄</p>
+
+                      {analyzedHanja && analyzedHanja.length > 0 && (
+                        <div className={cn(
+                          "grid gap-6 px-2 mt-4",
+                          analyzedHanja.length === 1 && "grid-cols-1",
+                          analyzedHanja.length === 2 && "grid-cols-2",
+                          analyzedHanja.length === 3 && "grid-cols-3",
+                          analyzedHanja.length >= 4 && "grid-cols-2"
+                        )}>
+                          {analyzedHanja.map((hanja, idx) => (
+                            <HanjaCard 
+                              key={hanja.char} 
+                              data={hanja} 
+                              word={currentSearchedWord || undefined}
+                              delay={idx * 0.1}
+                              onWrite={(char, meaning, sound, originalSound, isReview) => setSelectedHanjaForWriting({ char, meaning, sound, originalSound, isReview })}
+                              onProgressUpdate={() => fetchDailyHistory()}
+                              isReviewed={practicedChars.has(hanja.char) || (dailyHistory || []).some(log => log.word === currentSearchedWord && log.practiced_writing)}
+                              isCompact={analyzedHanja.length >= 3}
+                            />
                           ))}
                         </div>
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      )}
+
+                      {analyzedHanja && analyzedHanja.length > 0 && expansionWords.length > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-8"
+                        >
+                          <h4 className="text-lg font-black text-duo-eel mb-4 flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-amber-400" />
+                            다른 연관 단어도 공부해볼래?
+                          </h4>
+                          <div className="flex flex-wrap gap-3">
+                            {expansionWords.map((exp) => (
+                              <button
+                                key={exp.word}
+                                onClick={() => {
+                                  const searchName = exp.hanja ? `${exp.word}(${exp.hanja})` : exp.word;
+                                  handleAnalyze(searchName, true, false);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="px-5 py-3 bg-white border-2 border-duo-snow rounded-2xl font-black text-duo-eel hover:border-duo-macaw hover:text-duo-macaw transition-all shadow-sm flex items-center gap-2 group"
+                              >
+                                <span>{exp.word}</span>
+                                <div className="w-6 h-6 bg-duo-snow rounded-lg flex items-center justify-center group-hover:bg-duo-macaw/10">
+                                  <Search className="w-3.5 h-3.5 text-duo-wolf group-hover:text-duo-macaw" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10 px-6 border-4 border-dashed border-duo-snow rounded-[32px] text-center bg-white/40">
+                      <p className="text-xs font-bold text-duo-wolf">오늘 탐험한 단어가 아직 없어요. 위의 검색창에서 첫 단어를 찾아보세요! 🐉</p>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {(() => {
                 const allHanjaDetails = dailyHistory.flatMap(log => log.hanjaDetails || []);
@@ -729,47 +833,109 @@ export default function HomePage() {
                 );
 
                 return (
-                  <div className="mt-16">
-                    <div className="flex items-center justify-between mb-8 px-4">
-                      <h3 className="text-2xl font-black text-duo-eel">오늘 배운 한자</h3>
-                      <div className="bg-duo-snow px-4 py-2 rounded-2xl text-xs font-black text-duo-wolf">
-                        총 {uniqueHanjaList.length}개 학습
-                      </div>
-                    </div>
-
-                    {uniqueHanjaList.length > 0 ? (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                        {uniqueHanjaList.map((hj) => (
-                          <motion.div
-                            key={hj.char}
-                            whileHover={{ scale: 1.05, y: -4 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              setPreviewHanja({
-                                char: hj.char,
-                                meaning: hj.meaning,
-                                sound: hj.sound,
-                                level: "학습됨"
-                              });
-                            }}
-                            className="bg-white border-4 border-duo-snow hover:border-duo-macaw rounded-[28px] p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1 shadow-sm hover:shadow-md group"
-                          >
-                            <span className="text-3xl font-black text-duo-eel font-myeongjo group-hover:text-duo-macaw transition-colors">
-                              {hj.char}
-                            </span>
-                            <span className="text-xs font-bold text-amber-600 font-myeongjo leading-tight mt-1">
-                              {hj.meaning} {hj.sound}
-                            </span>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-16 px-6 border-4 border-dashed border-duo-snow rounded-[32px] text-center bg-white/40">
-                        <Sparkles className="w-10 h-10 text-amber-400 mb-3 animate-pulse" />
-                        <h4 className="text-lg font-black text-duo-eel mb-1">오늘 배운 한자가 아직 없어요</h4>
-                        <p className="text-xs font-bold text-duo-wolf">궁금한 단어를 검색하고 꼬리물기를 하여 한자를 모아보세요! 🐉</p>
+                  <div className="mt-16 space-y-16">
+                    {/* 오늘 학습한 단어 섹션 */}
+                    {uniqueExploredWords.length > 0 && (
+                      <div className="bg-white border-2 border-duo-swan rounded-[32px] p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-6 px-2">
+                          <h3 className="text-lg font-black text-duo-eel flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-duo-macaw" /> 오늘 학습한 단어
+                          </h3>
+                          <div className="bg-duo-snow px-3 py-1.5 rounded-2xl text-xs font-black text-duo-wolf">
+                            총 {uniqueExploredWords.length}개 단어
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          {uniqueExploredWords.map((log, idx) => (
+                            <motion.div 
+                              key={`main-history-${idx}`}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: Math.min(idx * 0.03, 0.4) }}
+                              className="flex items-center justify-between p-4 bg-duo-snow/30 rounded-2xl border-2 border-duo-snow group hover:border-duo-macaw transition-all cursor-pointer"
+                              onClick={() => {
+                                const searchName = log.hanja ? `${log.word}(${log.hanja})` : log.word;
+                                handleAnalyze(searchName, true, false);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                            >
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xl font-black text-duo-eel group-hover:text-duo-macaw transition-colors">{log.word}</span>
+                                  {log.hanja && (
+                                    <span className="text-sm font-bold text-duo-wolf bg-white px-2 py-0.5 rounded-lg border border-duo-snow">
+                                      {log.hanja}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs font-bold text-duo-wolf line-clamp-1">{log.meaning || "뜻 정보 없음"}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {log.practiced_writing && (
+                                  <div className="bg-duo-green/10 text-duo-green px-2 py-1 rounded-lg text-[10px] font-black border border-duo-green/20">
+                                    쓰기 완료
+                                  </div>
+                                )}
+                                <div className={cn(
+                                  "w-8 h-8 rounded-full flex items-center justify-center",
+                                  log.is_correct ? "bg-duo-green text-white" : "bg-duo-snow text-duo-swan"
+                                )}>
+                                  <Target className="w-4 h-4" />
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
                       </div>
                     )}
+
+                    {/* 오늘 배운 한자 섹션 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-8 px-4">
+                        <h3 className="text-2xl font-black text-duo-eel">오늘 배운 한자</h3>
+                        <div className="bg-duo-snow px-4 py-2 rounded-2xl text-xs font-black text-duo-wolf">
+                          총 {uniqueHanjaList.length}개 학습
+                        </div>
+                      </div>
+
+                      {uniqueHanjaList.length > 0 ? (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                          {uniqueHanjaList.map((hj) => (
+                            <motion.div
+                              key={hj.char}
+                              whileHover={{ scale: 1.05, y: -4 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                setPreviewHanja({
+                                  char: hj.char,
+                                  meaning: hj.meaning,
+                                  sound: hj.sound,
+                                  level: hj.level || "급수 없음"
+                                });
+                              }}
+                              className="bg-white border-4 border-duo-snow hover:border-duo-macaw rounded-[28px] p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1 shadow-sm hover:shadow-md group"
+                            >
+                              <span className="text-3xl font-black text-duo-eel font-myeongjo group-hover:text-duo-macaw transition-colors">
+                                {hj.char}
+                              </span>
+                              <span className="text-xs font-bold text-amber-600 font-myeongjo leading-tight mt-1">
+                                {hj.meaning} {hj.sound}
+                              </span>
+                              {/* 급수 정보 표시 배지 */}
+                              <span className="text-[10px] font-black text-duo-wolf bg-duo-snow px-2 py-0.5 rounded-full mt-1.5 border border-duo-swan group-hover:border-duo-macaw/20 transition-colors">
+                                {hj.level || "급수 없음"}
+                              </span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-16 px-6 border-4 border-dashed border-duo-snow rounded-[32px] text-center bg-white/40">
+                          <Sparkles className="w-10 h-10 text-amber-400 mb-3 animate-pulse" />
+                          <h4 className="text-lg font-black text-duo-eel mb-1">오늘 배운 한자가 아직 없어요</h4>
+                          <p className="text-xs font-bold text-duo-wolf">궁금한 단어를 검색하고 꼬리물기를 하여 한자를 모아보세요! 🐉</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })()}
@@ -842,8 +1008,9 @@ export default function HomePage() {
             hanja={selectedHanjaForQuiz}
             quiz={currentQuiz}
             onSuccess={(solvedWord) => {
-              setWord(solvedWord);
-              handleAnalyze(solvedWord, true, true);
+              const wordWithHanja = `${solvedWord}(${currentQuiz.hanja_combination})`;
+              setWord(wordWithHanja);
+              handleAnalyze(wordWithHanja, true, true);
               setTimeout(() => { setSelectedHanjaForQuiz(null); setCurrentQuiz(null); }, 1500);
             }}
             onClose={() => { setSelectedHanjaForQuiz(null); setCurrentQuiz(null); }}
@@ -872,6 +1039,15 @@ export default function HomePage() {
           </div>
         )}
         
+        {isQuizLoading && (
+          <div className="fixed inset-0 z-[120] bg-black/15 cursor-wait pointer-events-auto flex items-center justify-center">
+            <div className="bg-white/95 px-8 py-5 rounded-[28px] shadow-2xl flex items-center gap-3 border-4 border-duo-snow">
+              <Loader2 className="w-6 h-6 text-duo-macaw animate-spin" />
+              <span className="text-base font-black text-duo-eel">연관 단어 퀴즈를 준비하고 있어요... 💡</span>
+            </div>
+          </div>
+        )}
+
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
         <RequiredInfoModal
           isOpen={showRequiredInfoModal}

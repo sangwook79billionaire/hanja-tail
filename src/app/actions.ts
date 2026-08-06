@@ -140,6 +140,10 @@ export async function analyzeWord(word: string) {
     if (!jsonMatch) throw new Error("JSON not found");
     const data = JSON.parse(jsonMatch[0]);
 
+    if (hasHanjaBracket) {
+      data.isAmbiguous = false;
+    }
+
     if (!data.isSafe) return { error: "부적절한 표현이 포함되어 있습니다." };
     if (data.isValid === false) {
       console.warn(`Invalid word detected: ${searchWord}. Reason: ${data.invalidReason}`);
@@ -392,11 +396,17 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
 
     if (existingQuizzes && existingQuizzes.length > 0) {
       // 필터링: 글자 수가 너무 짧거나 "의미", "뜻하는", "뜻함" 같은 불성실한 템플릿성 텍스트 필터링
+      // 추가 필터링: 제외 단어들과 중복되거나 부분 겹침(포함/피포함 관계)이 있는 단어 차단
       const validQuizzes = existingQuizzes.filter((q) => {
         const desc = q.description || "";
         const isTooShort = desc.length < 10;
         const containsPlaceholder = desc.includes("의미") || desc.includes("뜻하는") || desc.includes("뜻함");
-        return !isTooShort && !containsPlaceholder;
+        
+        const isOverlapping = excludedWords && excludedWords.some(w => {
+          return w.includes(q.word) || q.word.includes(w);
+        });
+
+        return !isTooShort && !containsPlaceholder && !isOverlapping;
       });
 
       if (validQuizzes.length > 0) {
@@ -426,7 +436,12 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
     });
 
     const filteredExamples = excludedWords && excludedWords.length > 0
-      ? verifiedExamples.filter((ex) => !excludedWords.includes(ex.word))
+      ? verifiedExamples.filter((ex) => {
+          const isOverlapping = excludedWords.some(w => {
+            return w.includes(ex.word) || ex.word.includes(w);
+          });
+          return !isOverlapping;
+        })
       : verifiedExamples;
 
     if (filteredExamples.length > 0) {
@@ -492,6 +507,7 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
       2. The word MUST contain the SPECIFIC Hanja character "${hanja}" in its Hanja representation.
       3. Write a fun, kid-friendly description/hint that explains the meaning of the word WITHOUT using the word itself.
       4. CRITICAL: "word" field MUST be in HANGUL only. "hanja_combination" MUST be in HANJA.
+      ${excludedWords && excludedWords.length > 0 ? `5. EXCLUSION RULE: DO NOT generate any of the following words or words containing/contained in them (substrings or superstrings): ${excludedWords.join(', ')}` : ''}
       
       Return ONLY a JSON object in this format:
       {
@@ -521,6 +537,12 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
         // 한자 조합에 한글이 섞여 있는지 검증 (순수 한자어만 허용, '우산꽂이(雨傘꽂이)' 같은 혼종 차단)
         const hasHangulInHanja = /[\uac00-\ud7a3]/.test(quizData.hanja_combination);
         if (hasHangulInHanja) throw new Error("Hanja combination must not contain Hangul.");
+
+        // 제외 대상 단어와 부분 겹침이 있는지 최종 검증
+        const isOverlapping = excludedWords && excludedWords.some(w => {
+          return w.includes(quizData.word) || quizData.word.includes(w);
+        });
+        if (isOverlapping) throw new Error("Generated word overlaps with excluded words.");
 
         // [정합성 핵심 검증] Gemini 교차 검증기 작동
         const isValidWord = await verifyWordWithGemini(quizData.word, quizData.hanja_combination);
@@ -608,18 +630,20 @@ export async function logLearning(word: string, isCorrect: boolean, parentWord?:
 
     const { data: todayLogs } = await supabase
       .from("learning_logs")
-      .select("is_review, word")
+      .select("is_review, word, is_correct")
       .eq("user_id", userId)
       .gte("learned_at", `${today}T00:00:00Z`);
 
-    const newWordCount = (todayLogs || []).filter(l => !l.is_review).length;
-    const reviewCount = (todayLogs || []).filter(l => l.is_review).length;
+    const newWordCount = (todayLogs || []).filter(l => !l.is_review && l.is_correct).length;
+    const reviewCount = (todayLogs || []).filter(l => l.is_review && l.is_correct).length;
 
     let pointsToAdd = 0;
-    if (isReview) {
-      if (reviewCount < 20) pointsToAdd = 0.5;
-    } else {
-      if (newWordCount < 5) pointsToAdd = 1;
+    if (isCorrect) {
+      if (isReview) {
+        if (reviewCount < 20) pointsToAdd = 0.5;
+      } else {
+        if (newWordCount < 5) pointsToAdd = 1;
+      }
     }
 
     // 2. 학습 로그 저장
@@ -763,7 +787,7 @@ export async function getLearningRecap() {
     startOfMonth.setHours(0, 0, 0, 0);
 
     interface AnalysisResult {
-      hanjaList?: { char: string; meaning: string; sound: string }[];
+      hanjaList?: { char: string; meaning: string; sound: string; level?: string }[];
       difficultyLevel?: number;
     }
 
@@ -780,7 +804,12 @@ export async function getLearningRecap() {
         hanja: log.hanja || (analysis?.hanjaList ? analysis.hanjaList.map(h => h.char).join('') : undefined),
         meaning: analysis?.hanjaList ? analysis.hanjaList.map(h => h.meaning).join(', ') : undefined,
         difficulty: analysis?.difficultyLevel || 1,
-        hanjaDetails: analysis?.hanjaList || []
+        hanjaDetails: (analysis?.hanjaList || []).map(h => ({
+          char: h.char,
+          meaning: h.meaning,
+          sound: h.sound,
+          level: h.level || "급수 없음"
+        }))
       };
     }));
 
@@ -865,11 +894,14 @@ export async function updateProfile(data: {
 
   if (!user) return { error: "로그인이 필요합니다." };
 
+  const profileData = { ...data };
+  delete profileData.marketing_agree;
+
   const { error } = await supabase
     .from("profiles")
     .upsert({ 
       id: user.id, 
-      ...data
+      ...profileData
     });
 
   if (error) {
@@ -952,7 +984,7 @@ export async function getMyProfile() {
 
   if (!user) return { profile: null };
 
-  const { data: profile, error } = await supabase
+  const { data: initialProfile, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
@@ -960,6 +992,35 @@ export async function getMyProfile() {
 
   if (error) {
     console.error("Profile fetch error:", error);
+    return { profile: null };
+  }
+
+  let profile = initialProfile;
+
+  if (!profile) {
+    // If user exists but profile row doesn't, automatically create it from user metadata.
+    // This recovers cases where profile creation failed on signup (e.g. because email confirmation was required).
+    const meta = user.user_metadata || {};
+    const { data: newProfile, error: createError } = await supabase
+      .from("profiles")
+      .insert({
+        id: user.id,
+        nickname: meta.nickname || "유저",
+        school: meta.school || "",
+        grade: meta.grade ? Number(meta.grade) : null,
+        city: meta.city || null
+      })
+      .select()
+      .maybeSingle();
+
+    if (createError) {
+      console.error("Auto profile creation failed:", createError);
+    } else if (newProfile) {
+      profile = newProfile;
+    }
+  }
+
+  if (!profile) {
     return { profile: null };
   }
 
