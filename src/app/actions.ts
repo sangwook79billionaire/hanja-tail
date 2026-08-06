@@ -850,15 +850,43 @@ export async function getAdminStats() {
     { count: bankCount },
     { count: cacheCount },
     { data: rankings },
-    { data: recentLogs }
+    { data: recentLogs },
+    { data: recentUsers },
+    { data: recent200Logs }
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('learning_logs').select('*', { count: 'exact', head: true }),
     supabase.from('quiz_bank').select('*', { count: 'exact', head: true }),
     supabase.from('word_analysis_cache').select('*', { count: 'exact', head: true }),
     supabase.from('profiles').select('nickname, total_score, current_stage').order('total_score', { ascending: false }).limit(10),
-    supabase.from('learning_logs').select('word, is_correct, learned_at, profiles:user_id (nickname)').order('learned_at', { ascending: false }).limit(20)
+    supabase.from('learning_logs').select('word, is_correct, learned_at, profiles:user_id (nickname)').order('learned_at', { ascending: false }).limit(20),
+    supabase.from('profiles').select('nickname, school, grade, created_at').order('created_at', { ascending: false }).limit(10),
+    supabase.from('learning_logs').select('word, is_correct, practiced_writing').order('learned_at', { ascending: false }).limit(200)
   ]);
+
+  // UX Pain Points 분석
+  const wordStats: Record<string, { word: string; total: number; failed: number; unpracticed: number }> = {};
+  (recent200Logs || []).forEach(l => {
+    if (!wordStats[l.word]) {
+      wordStats[l.word] = { word: l.word, total: 0, failed: 0, unpracticed: 0 };
+    }
+    const s = wordStats[l.word];
+    s.total++;
+    if (!l.is_correct) s.failed++;
+    if (!l.practiced_writing) s.unpracticed++;
+  });
+
+  const topFailedWords = Object.values(wordStats)
+    .filter(s => s.failed > 0)
+    .sort((a, b) => b.failed - a.failed)
+    .slice(0, 5)
+    .map(s => ({ word: s.word, count: s.failed }));
+
+  const topUncompletedWords = Object.values(wordStats)
+    .filter(s => s.unpracticed > 0)
+    .sort((a, b) => b.unpracticed - a.unpracticed)
+    .slice(0, 5)
+    .map(s => ({ word: s.word, count: s.unpracticed }));
 
   return { 
     userCount: userCount || 0, 
@@ -875,7 +903,17 @@ export async function getAdminStats() {
       is_correct: l.is_correct as boolean,
       learned_at: l.learned_at as string,
       profiles: l.profiles ? { nickname: (l.profiles as unknown as { nickname: string | null }).nickname } : null
-    }))
+    })),
+    recentUsers: (recentUsers || []).map(u => ({
+      nickname: u.nickname as string | null,
+      school: u.school as string | null,
+      grade: u.grade as number | null,
+      created_at: u.created_at as string
+    })),
+    painPoints: {
+      topFailedWords,
+      topUncompletedWords
+    }
   };
 }
 

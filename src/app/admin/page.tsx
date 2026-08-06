@@ -36,6 +36,27 @@ interface AdminStats {
   logCount: number;
   bankCount: number;
   cacheCount: number;
+  rankings: {
+    nickname: string | null;
+    total_score: number;
+    current_stage: number;
+  }[];
+  recentLogs: {
+    word: string;
+    is_correct: boolean;
+    learned_at: string;
+    profiles: { nickname: string | null } | null;
+  }[];
+  recentUsers: {
+    nickname: string | null;
+    school: string | null;
+    grade: number | null;
+    created_at: string;
+  }[];
+  painPoints: {
+    topFailedWords: { word: string; count: number }[];
+    topUncompletedWords: { word: string; count: number }[];
+  };
 }
 
 interface HanjaItem {
@@ -72,7 +93,7 @@ export default function AdminDashboard() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
   const [editingWord, setEditingWord] = useState<UnverifiedWord | null>(null);
-  const [activeTab, setActiveTab] = useState<'queue' | 'logs'>('queue');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'queue' | 'logs'>('dashboard');
   const [batchResults, setBatchResults] = useState<string[]>([]);
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
 
@@ -301,6 +322,12 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-4">
             <div className="flex bg-duo-snow p-1 rounded-xl">
               <button 
+                onClick={() => setActiveTab('dashboard')}
+                className={cn("px-4 py-1.5 rounded-lg text-xs font-black transition-all", activeTab === 'dashboard' ? "bg-white text-duo-macaw shadow-sm" : "text-duo-wolf")}
+              >
+                모니터링 대시보드
+              </button>
+              <button 
                 onClick={() => setActiveTab('queue')}
                 className={cn("px-4 py-1.5 rounded-lg text-xs font-black transition-all", activeTab === 'queue' ? "bg-white text-duo-macaw shadow-sm" : "text-duo-wolf")}
               >
@@ -331,47 +358,49 @@ export default function AdminDashboard() {
         )}
 
         {/* Database Growth Control */}
-        <div className="mb-12 bg-gradient-to-br from-duo-macaw to-blue-600 rounded-[40px] p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex-1">
-            <h2 className="text-2xl font-black mb-2 flex items-center gap-3">
-              <Sparkles className="w-8 h-8 text-yellow-300 fill-yellow-300" /> 
-              지식 창고 자가 증식
-            </h2>
-            <p className="text-white/80 font-bold max-w-xl">
-              AI가 아직 단어가 부족한 한자들을 찾아내어 스스로 새로운 학습 콘텐츠를 생성합니다. 
-              지속적인 실행을 통해 한자 꼬리의 세계를 무한히 확장할 수 있습니다.
-            </p>
-          </div>
-          <div className="flex flex-col items-center gap-4">
-            <button 
-              disabled={isBatchGenerating}
-              onClick={handleBatchGenerate}
-              className={cn(
-                "px-8 py-5 bg-white text-duo-macaw rounded-[24px] font-black text-xl shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-3",
-                isBatchGenerating && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              {isBatchGenerating ? (
-                <>
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                  생성 중...
-                </>
-              ) : (
-                <>
-                  <Database className="w-6 h-6" />
-                  자가 증식 실행 (+5개 한자)
-                </>
-              )}
-            </button>
-            {batchResults.length > 0 && (
-              <p className="text-[10px] font-black text-white/60 uppercase tracking-widest animate-pulse">
-                최근 완료: {batchResults.length}개 단어 추가됨
+        {activeTab === 'queue' && (
+          <div className="mb-12 bg-gradient-to-br from-duo-macaw to-blue-600 rounded-[40px] p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 animate-in fade-in duration-500">
+            <div className="flex-1">
+              <h2 className="text-2xl font-black mb-2 flex items-center gap-3">
+                <Sparkles className="w-8 h-8 text-yellow-300 fill-yellow-300" /> 
+                지식 창고 자가 증식
+              </h2>
+              <p className="text-white/80 font-bold max-w-xl">
+                AI가 아직 단어가 부족한 한자들을 찾아내어 스스로 새로운 학습 콘텐츠를 생성합니다. 
+                지속적인 실행을 통해 한자 꼬리의 세계를 무한히 확장할 수 있습니다.
               </p>
-            )}
+            </div>
+            <div className="flex flex-col items-center gap-4">
+              <button 
+                disabled={isBatchGenerating}
+                onClick={handleBatchGenerate}
+                className={cn(
+                  "px-8 py-5 bg-white text-duo-macaw rounded-[24px] font-black text-xl shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-3",
+                  isBatchGenerating && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isBatchGenerating ? (
+                  <>
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                    생성 중...
+                  </>
+                ) : (
+                  <>
+                    <Database className="w-6 h-6" />
+                    자가 증식 실행 (+5개 한자)
+                  </>
+                )}
+              </button>
+              {batchResults.length > 0 && (
+                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest animate-pulse">
+                  최근 완료: {batchResults.length}개 단어 추가됨
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {batchResults.length > 0 && (
+        {activeTab === 'queue' && batchResults.length > 0 && (
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -388,6 +417,120 @@ export default function AdminDashboard() {
               ))}
             </div>
           </motion.div>
+        )}
+
+        {activeTab === 'dashboard' && stats && (
+          <div className="space-y-8 animate-in fade-in duration-500 mb-12">
+            {/* New Users and Recent Logs Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* 신규 유입 사용자 */}
+              <div className="bg-white border-3 border-duo-snow rounded-[40px] p-8 shadow-sm">
+                <h3 className="text-xl font-black text-duo-eel mb-6 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-500" /> 신규 유입 사용자
+                </h3>
+                <div className="space-y-4">
+                  {stats.recentUsers && stats.recentUsers.length > 0 ? (
+                    stats.recentUsers.map((u, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-duo-snow/20 rounded-2xl border border-duo-snow">
+                        <div>
+                          <p className="text-base font-black text-duo-eel">{u.nickname || '익명 사용자'}</p>
+                          <p className="text-xs font-bold text-duo-wolf mt-0.5">
+                            {u.school ? `${u.school} ${u.grade ? `${u.grade}학년` : ''}` : '학교 정보 없음'}
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold text-duo-swan">
+                          {new Date(u.created_at).toLocaleDateString()} 가입
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center py-8 text-duo-wolf font-bold">가입한 사용자가 없습니다.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* 최근 학습 이력 */}
+              <div className="bg-white border-3 border-duo-snow rounded-[40px] p-8 shadow-sm">
+                <h3 className="text-xl font-black text-duo-eel mb-6 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-green-500" /> 최근 학습 이력
+                </h3>
+                <div className="space-y-4">
+                  {stats.recentLogs && stats.recentLogs.length > 0 ? (
+                    stats.recentLogs.map((l, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-duo-snow/20 rounded-2xl border border-duo-snow">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-black text-duo-eel">{l.word}</span>
+                            <span className={cn(
+                              "text-[10px] font-black px-2 py-0.5 rounded-lg border",
+                              l.is_correct ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
+                            )}>
+                              {l.is_correct ? "정답" : "오답"}
+                            </span>
+                          </div>
+                          <p className="text-xs font-bold text-duo-wolf mt-1">
+                            학습자: {l.profiles?.nickname || '익명'}
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold text-duo-swan">
+                          {new Date(l.learned_at).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center py-8 text-duo-wolf font-bold">학습한 기록이 없습니다.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* UX Pain Points Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* 학습 장애물 단어 (주요 오답 발생) */}
+              <div className="bg-rose-50/30 border-3 border-rose-100 rounded-[40px] p-8 shadow-sm">
+                <h3 className="text-xl font-black text-rose-800 mb-6 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-600" /> 주요 오답 발생 단어 (UX Pain Points)
+                </h3>
+                <p className="text-xs font-bold text-rose-700/80 mb-6">최근 200건의 학습 로그 중 어린이들이 가장 많이 틀린 단어들입니다. 이 단어들의 설명이나 퀴즈 난이도 조정을 고려해 보세요.</p>
+                <div className="space-y-3">
+                  {stats.painPoints?.topFailedWords && stats.painPoints.topFailedWords.length > 0 ? (
+                    stats.painPoints.topFailedWords.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-rose-100 shadow-sm">
+                        <span className="text-lg font-black text-rose-900">{item.word}</span>
+                        <div className="bg-rose-100 text-rose-700 px-3 py-1 rounded-xl text-xs font-black">
+                          오답 {item.count}회
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center py-8 text-rose-700/60 font-bold">최근 오답이 기록된 단어가 없습니다. 👍</p>
+                  )}
+                </div>
+              </div>
+
+              {/* 쓰기 미완료 단어 (따라쓰기 이탈율) */}
+              <div className="bg-amber-50/30 border-3 border-amber-100 rounded-[40px] p-8 shadow-sm">
+                <h3 className="text-xl font-black text-amber-800 mb-6 flex items-center gap-2">
+                  <Edit2 className="w-5 h-5 text-amber-600" /> 따라쓰기 미완료 단어 (학습 이탈)
+                </h3>
+                <p className="text-xs font-bold text-amber-700/80 mb-6">검색을 통한 단어 분석은 하였으나 따라쓰기 완료 배지를 얻지 못하고 이탈한 단어들입니다. 획순이 너무 복잡하여 포기했을 가능성이 큽니다.</p>
+                <div className="space-y-3">
+                  {stats.painPoints?.topUncompletedWords && stats.painPoints.topUncompletedWords.length > 0 ? (
+                    stats.painPoints.topUncompletedWords.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-amber-100 shadow-sm">
+                        <span className="text-lg font-black text-amber-900">{item.word}</span>
+                        <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-xl text-xs font-black">
+                          미완료 {item.count}회
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center py-8 text-amber-700/60 font-bold">최근 따라쓰기 미완료 단어가 없습니다. 👏</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'queue' ? (
