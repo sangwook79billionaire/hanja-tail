@@ -61,7 +61,7 @@ export default function QuizPage() {
     
     if (isCorrect) {
       setScore(prev => prev + 10);
-      await logLearning(currentQuiz.word, true);
+      await logLearning(`${currentQuiz.word}(${currentQuiz.hanja_combination})`, true);
     }
 
     if (currentIndex < quizzes.length - 1) {

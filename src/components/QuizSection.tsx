@@ -57,7 +57,7 @@ export default function QuizSection({
     if (isActuallyCorrect) {
       setIsCorrect(true);
       setIsSubmitted(true);
-      logLearning(quiz.word, true);
+      logLearning(`${quiz.word}(${quiz.hanja_combination})`, true);
       onSuccess?.(quiz.word);
       confetti({
         particleCount: 150,
