@@ -917,6 +917,30 @@ export async function getAdminStats() {
   };
 }
 
+async function sendMessengerNotification(message: string) {
+  const webhookUrl = process.env.MESSENGER_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    let payload = {};
+    if (webhookUrl.includes("slack.com")) {
+      payload = { text: message };
+    } else if (webhookUrl.includes("discord.com") || webhookUrl.includes("discordapp.com")) {
+      payload = { content: message };
+    } else {
+      payload = { text: message, content: message };
+    }
+
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    console.error("Failed to send messenger notification:", err);
+  }
+}
+
 export async function updateProfile(data: { 
   nickname?: string; 
   school?: string; 
@@ -932,6 +956,14 @@ export async function updateProfile(data: {
 
   if (!user) return { error: "로그인이 필요합니다." };
 
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const isNewUser = !existingProfile;
+
   const profileData = { ...data };
   delete profileData.marketing_agree;
 
@@ -946,6 +978,12 @@ export async function updateProfile(data: {
     console.error("Profile update error details:", error);
     return { error: `DB 저장 실패: ${error.message}` };
   }
+
+  if (isNewUser) {
+    const msg = `🎉 *신규 가입자 탄생!* 🎉\n• 닉네임: ${data.nickname || "없음"}\n• 학교: ${data.school || "없음"} (${data.grade || "-"}학년)\n• 지역: ${data.city || "없음"}\n• 가입 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })} (KST)`;
+    sendMessengerNotification(msg);
+  }
+
   return { success: true };
 }
 
