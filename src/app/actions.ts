@@ -51,7 +51,13 @@ export async function analyzeWord(word: string) {
     }
 
     // 1. 단어 정규화 (괄호와 한자 제거: '의료(醫療)' -> '의료')
-    const normalizedWord = searchWord.replace(/\(.*\)/, "").trim();
+    let normalizedWord = searchWord.replace(/\(.*\)/, "").trim();
+    let targetHanja = "";
+    const match = searchWord.match(/^([^(]+)\(([^)]+)\)$/);
+    if (match) {
+      normalizedWord = match[1].trim();
+      targetHanja = match[2].trim();
+    }
     const cacheKey = hasHanjaBracket ? searchWord : normalizedWord;
 
     // 2. DB 캐시 확인
@@ -76,7 +82,55 @@ export async function analyzeWord(word: string) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-    const prompt = `
+    const prompt = targetHanja 
+      ? `
+      You are a helpful assistant for teaching Hanja to children.
+      Analyze the following word: "${normalizedWord}" with the specific Hanja combination: "${targetHanja}".
+      
+      1. Since the specific Hanja combination "${targetHanja}" is provided, you must analyze exactly this combination. "isAmbiguous" must be false.
+      2. Check if the Hangul word "${normalizedWord}" is a REAL, standard Korean dictionary word (사전에 등재된 명사).
+         If it is a fake word created by simply combining Hanja (when it doesn't exist in standard dictionaries), 
+         or if it's not a common Hanja-based word, set "isValid" to false.
+         Also, the word MUST be a PURE Hanja-based word (all characters correspond to the Hanja "${targetHanja}").
+      3. Identify the word type (wordType):
+         - "pure_korean" if it is native Korean (순우리말/순한글).
+         - "loanword" if it is a foreign loanword (외래어/외국어).
+         - "hybrid" if it is a mix of Hanja and native Korean (혼종어).
+         - "slang" if it is slang, jargon, or non-standard word (비속어/유행어).
+         - "not_in_dictionary" if it's a fake word or not in standard dictionaries.
+         - "standard_hanja" if it's a valid standard Hanja word.
+
+      Return ONLY a JSON object in this format:
+      {
+        "isSafe": boolean,
+        "isValid": boolean,
+        "wordType": "pure_korean" | "loanword" | "hybrid" | "slang" | "not_in_dictionary" | "standard_hanja",
+        "invalidReason": "string (why it is invalid)",
+        "isAmbiguous": boolean,
+        "candidates": [],
+        "correctedWord": "string",
+        "difficultyLevel": number (1: Basic/1-2 Grade, 2: Intermediate/3-4 Grade, 3: Advanced/5-6 Grade or Middle),
+        "hanjaList": [
+          { 
+            "char": "한자", 
+            "meaning": "뜻", 
+            "originalSound": "본음 (예: 녀)", 
+            "appliedSound": "두음법칙 적용음 (예: 여)", 
+            "level": "급수" 
+          }
+        ],
+        "expansions": [
+          { 
+            "word": "유의어/반의어", 
+            "hanja": "한자조합", 
+            "type": "synonym|antonym|related", 
+            "description": "설명",
+            "difficultyLevel": number
+          }
+        ]
+      }
+      `
+      : `
       You are a helpful assistant for teaching Hanja to children.
       Analyze the following word (Hangul or Hanja): "${searchWord}"
       
@@ -131,7 +185,7 @@ export async function analyzeWord(word: string) {
           }
         ]
       }
-    `;
+      `;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -142,6 +196,7 @@ export async function analyzeWord(word: string) {
 
     if (hasHanjaBracket) {
       data.isAmbiguous = false;
+      data.isValid = true;
     }
 
     if (!data.isSafe) return { error: "부적절한 표현이 포함되어 있습니다." };
