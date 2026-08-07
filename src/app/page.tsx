@@ -803,6 +803,7 @@ export default function HomePage() {
                                 key={exp.word}
                                 onClick={() => {
                                   const searchName = exp.hanja ? `${exp.word}(${exp.hanja})` : exp.word;
+                                  setWord(exp.word);
                                   handleAnalyze(searchName, true, false);
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
@@ -1009,7 +1010,7 @@ export default function HomePage() {
             quiz={currentQuiz}
             onSuccess={(solvedWord) => {
               const wordWithHanja = `${solvedWord}(${currentQuiz.hanja_combination})`;
-              setWord(wordWithHanja);
+              setWord(solvedWord);
               handleAnalyze(wordWithHanja, true, true);
               setTimeout(() => { setSelectedHanjaForQuiz(null); setCurrentQuiz(null); }, 1500);
             }}
@@ -1140,7 +1141,8 @@ export default function HomePage() {
             expansion={selectedExpansionForQuiz}
             onStart={(wordWithHanja) => {
               setSelectedExpansionForQuiz(null);
-              setWord(wordWithHanja);
+              const baseWord = wordWithHanja.replace(/\(.*\)/, "").trim();
+              setWord(baseWord);
               handleAnalyze(wordWithHanja, true, false);
             }}
             onClose={() => setSelectedExpansionForQuiz(null)}
@@ -1152,7 +1154,8 @@ export default function HomePage() {
               candidates={ambiguityCandidates}
               onSelect={(hanjaWithBracket) => {
                 setAmbiguityCandidates(null);
-                setWord(hanjaWithBracket);
+                const baseWord = hanjaWithBracket.replace(/\(.*\)/, "").trim();
+                setWord(baseWord);
                 handleAnalyze(hanjaWithBracket, true, true);
               }}
               onClose={() => setAmbiguityCandidates(null)}
