@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🐉 한자 꼬리 (Hanja Tail)
 
-## Getting Started
+어린이와 부모가 함께 즐기는 신나는 한자 학습 & 어휘력 생각 놀이터 서비스입니다.
 
-First, run the development server:
+---
+
+## 🚀 빠른 시작 (Getting Started)
 
 ```bash
+# 1. 패키지 설치
+npm install
+
+# 2. 로컬 개발 서버 실행
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* **메인 서비스**: [http://localhost:3000](http://localhost:3000)
+* **🎨 디자이너 UI 플레이그라운드**: [http://localhost:3000/design-system](http://localhost:3000/design-system)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🎨 디자이너 협업 가이드 (Figma MCP & Claude)
 
-## Learn More
+디자이너 동업자가 Figma MCP와 Claude를 사용하여 UI 작업을 독립적으로 진행할 수 있도록 설계되어 있습니다.
+자세한 분업 규칙 및 프롬프트 템플릿은 **[DESIGNER_GUIDE.md](./DESIGNER_GUIDE.md)** 문서를 참고해주세요.
 
-To learn more about Next.js, take a look at the following resources:
+### 디자이너 작업 요약
+* **UI 컴포넌트 위치**: `src/components/ui/`
+* **UI 테스트 페이지**: `src/app/design-system/page.tsx`
+* **가짜 데이터(Mock)**: `src/mock/designMockData.ts`
+* **디자인 토큰(Tailwind)**: `tailwind.config.ts`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠 기술 스택 (Tech Stack)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* **Framework**: Next.js 14 (App Router), React 18, TypeScript
+* **Styling & Motion**: Tailwind CSS, Framer Motion, Lucide Icons
+* **AI Engine**: Google Gemini API (`gemini-2.5-flash`)
+* **Database & Auth**: Supabase (PostgreSQL, Row Level Security)
+* **Hanja Stroke Animation**: Hanzi Writer

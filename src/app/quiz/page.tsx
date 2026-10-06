@@ -84,7 +84,8 @@ export default function QuizPage() {
     setIsCorrect(correct);
     
     if (correct) {
-      const result = await analyzeWord(currentQuiz.word);
+      const searchTarget = currentQuiz.hanja_combination ? `${currentQuiz.word}(${currentQuiz.hanja_combination})` : currentQuiz.word;
+      const result = await analyzeWord(searchTarget);
       setAnalysisResult(result as AnalysisResult);
     } else {
       setTimeout(() => {

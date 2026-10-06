@@ -12,7 +12,8 @@ import {
   bulkDeleteWords,
   updateWord,
   runBatchGeneration,
-  screenWords
+  screenWords,
+  getAdminUserLearningStats
 } from "../actions";
 import { 
   Users, 
@@ -26,7 +27,16 @@ import {
   AlertCircle,
   Eye,
   Edit2,
-  Check
+  Check,
+  X,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  TrendingUp,
+  Calendar,
+  Activity,
+  Clock,
+  BookOpen
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -84,6 +94,27 @@ interface MonitoringLog {
   details: Record<string, unknown>;
 }
 
+interface UserStatItem {
+  id: string;
+  email?: string | null;
+  nickname: string | null;
+  school: string | null;
+  grade: number | null;
+  created_at: string;
+  total_score?: number | null;
+  current_stage?: number | null;
+  current_node?: number | null;
+  streak_count?: number | null;
+  last_streak_at?: string | null;
+  coupons?: number | null;
+  totalLogs: number;
+  correctLogs: number;
+  activeDaysCount: number;
+  lastActiveAt: string | null;
+  weeklyTrends: number[];
+  status: 'active' | 'inactive' | 'churned';
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [unverifiedWords, setUnverifiedWords] = useState<UnverifiedWord[]>([]);
@@ -93,9 +124,17 @@ export default function AdminDashboard() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
   const [editingWord, setEditingWord] = useState<UnverifiedWord | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'queue' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'queue' | 'logs' | 'users'>('dashboard');
   const [batchResults, setBatchResults] = useState<string[]>([]);
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
+
+  // User Stats Tab States
+  const [userStats, setUserStats] = useState<UserStatItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'churned'>('all');
+  const [sortBy, setSortBy] = useState<'created_at' | 'totalLogs' | 'activeDaysCount' | 'lastActiveAt'>('created_at');
+  const [sortDesc, setSortDesc] = useState(true);
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
   // AI Screening states
   const [screeningResults, setScreeningResults] = useState<Record<string, { status: 'VALID' | 'SUSPICIOUS' | 'INVALID', type: string, reason: string }>>({});
@@ -105,15 +144,19 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [s, w, l] = await Promise.all([
+        const [s, w, l, u] = await Promise.all([
           getAdminStats(), 
           getUnverifiedWords(),
-          getMonitoringLogs()
+          getMonitoringLogs(),
+          getAdminUserLearningStats()
         ]);
         setStats(s as AdminStats);
         setUnverifiedWords(w as unknown as UnverifiedWord[]);
-        if ('logs' in l) {
-          setMonitoringLogs(l.logs as MonitoringLog[]);
+        if (l && 'data' in l) {
+          setMonitoringLogs(l.data as MonitoringLog[]);
+        }
+        if (u && 'data' in u) {
+          setUserStats(u.data as unknown as UserStatItem[]);
         }
       } catch (err: unknown) {
         console.error(err);
@@ -328,6 +371,12 @@ export default function AdminDashboard() {
                 모니터링 대시보드
               </button>
               <button 
+                onClick={() => setActiveTab('users')}
+                className={cn("px-4 py-1.5 rounded-lg text-xs font-black transition-all", activeTab === 'users' ? "bg-white text-duo-macaw shadow-sm" : "text-duo-wolf")}
+              >
+                사용자 통계
+              </button>
+              <button 
                 onClick={() => setActiveTab('queue')}
                 className={cn("px-4 py-1.5 rounded-lg text-xs font-black transition-all", activeTab === 'queue' ? "bg-white text-duo-macaw shadow-sm" : "text-duo-wolf")}
               >
@@ -508,7 +557,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* 쓰기 미완료 단어 (따라쓰기 이탈율) */}
               <div className="bg-amber-50/30 border-3 border-amber-100 rounded-[40px] p-8 shadow-sm">
                 <h3 className="text-xl font-black text-amber-800 mb-6 flex items-center gap-2">
                   <Edit2 className="w-5 h-5 text-amber-600" /> 따라쓰기 미완료 단어 (학습 이탈)
@@ -533,8 +581,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'queue' ? (
-          <div className="bg-white border-3 border-duo-snow rounded-[40px] shadow-sm overflow-hidden">
+        {activeTab === 'queue' && (
+          <div className="bg-white border-3 border-duo-snow rounded-[40px] shadow-sm overflow-hidden animate-in fade-in duration-500">
             <div className="p-8 border-b-2 border-duo-snow flex flex-col sm:flex-row sm:items-center justify-between bg-white gap-4">
               <div>
                 <h2 className="text-2xl font-black text-duo-eel">AI 신규 발견 단어</h2>
@@ -580,114 +628,103 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Screening Filters */}
-            {unverifiedWords.length > 0 && Object.keys(screeningResults).length > 0 && (
-              <div className="px-8 py-4 bg-duo-snow/20 border-b-2 border-duo-snow flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setFilterMode('all')}
-                    className={cn(
-                      "px-3.5 py-1.5 rounded-xl text-xs font-black transition-all",
-                      filterMode === 'all' 
-                        ? "bg-duo-eel text-white shadow-sm" 
-                        : "bg-white text-duo-wolf border-2 border-duo-snow hover:bg-duo-snow/50"
-                    )}
-                  >
-                    전체 ({unverifiedWords.length}개)
-                  </button>
-                  <button
-                    onClick={() => setFilterMode('valid')}
-                    className={cn(
-                      "px-3.5 py-1.5 rounded-xl text-xs font-black transition-all",
-                      filterMode === 'valid' 
-                        ? "bg-emerald-600 text-white shadow-sm" 
-                        : "bg-white text-duo-wolf border-2 border-duo-snow hover:bg-duo-snow/50"
-                    )}
-                  >
-                    일반 명사 ({unverifiedWords.filter(w => screeningResults[w.word]?.status === 'VALID').length}개)
-                  </button>
-                  <button
-                    onClick={() => setFilterMode('invalid')}
-                    className={cn(
-                      "px-3.5 py-1.5 rounded-xl text-xs font-black transition-all",
-                      filterMode === 'invalid' 
-                        ? "bg-rose-600 text-white shadow-sm" 
-                        : "bg-white text-duo-wolf border-2 border-duo-snow hover:bg-duo-snow/50"
-                    )}
-                  >
-                    어색한 조어/의심 ({unverifiedWords.filter(w => screeningResults[w.word]?.status === 'SUSPICIOUS' || screeningResults[w.word]?.status === 'INVALID').length}개)
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={selectValidWords}
-                    className="text-xs font-black text-emerald-700 bg-emerald-50 border-2 border-emerald-200/50 px-3.5 py-1.5 rounded-xl hover:bg-emerald-100/50 transition-colors"
-                  >
-                    일반 명사 모두 선택
-                  </button>
-                  <button
-                    onClick={selectSuspiciousWords}
-                    className="text-xs font-black text-rose-700 bg-rose-50 border-2 border-rose-200/50 px-3.5 py-1.5 rounded-xl hover:bg-rose-100/50 transition-colors"
-                  >
-                    의심/조어 모두 선택
-                  </button>
-                </div>
+            <div className="p-8 border-b-2 border-duo-snow bg-duo-snow/10 flex flex-wrap gap-3">
+              <span className="text-xs font-black text-duo-wolf flex items-center gap-1.5">필터:</span>
+              <button 
+                onClick={() => setFilterMode('all')}
+                className={cn("px-4 py-1.5 rounded-xl text-xs font-black border-2 transition-all active:scale-95", filterMode === 'all' ? "bg-white border-duo-macaw text-duo-macaw shadow-sm" : "bg-white border-duo-snow text-duo-wolf")}
+              >
+                전체 대기 단어 ({unverifiedWords.length})
+              </button>
+              <button 
+                onClick={() => setFilterMode('valid')}
+                className={cn("px-4 py-1.5 rounded-xl text-xs font-black border-2 transition-all active:scale-95", filterMode === 'valid' ? "bg-white border-emerald-400 text-emerald-600 shadow-sm" : "bg-white border-duo-snow text-duo-wolf")}
+              >
+                AI 추천 단어 ({unverifiedWords.filter(w => screeningResults[w.word]?.status === 'VALID').length})
+              </button>
+              <button 
+                onClick={() => setFilterMode('invalid')}
+                className={cn("px-4 py-1.5 rounded-xl text-xs font-black border-2 transition-all active:scale-95", filterMode === 'invalid' ? "bg-white border-rose-400 text-rose-600 shadow-sm" : "bg-white border-duo-snow text-duo-wolf")}
+              >
+                AI 비추천/보류 단어 ({unverifiedWords.filter(w => screeningResults[w.word]?.status === 'SUSPICIOUS' || screeningResults[w.word]?.status === 'INVALID').length})
+              </button>
+
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={selectValidWords}
+                  className="text-xs font-bold text-emerald-600 hover:underline px-2 py-1 bg-emerald-50 rounded-lg border border-emerald-200"
+                >
+                  추천단어 일괄선택
+                </button>
+                <button
+                  onClick={selectSuspiciousWords}
+                  className="text-xs font-bold text-rose-600 hover:underline px-2 py-1 bg-rose-50 rounded-lg border border-rose-200"
+                >
+                  비추천단어 일괄선택
+                </button>
               </div>
-            )}
+            </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left">
                 <thead>
-                  <tr className="bg-duo-snow/50 text-[10px] font-black text-duo-swan uppercase tracking-widest">
-                    <th className="px-6 py-4 w-12">
+                  <tr className="bg-duo-snow/50 text-[10px] font-black text-duo-swan uppercase tracking-widest border-b-2 border-duo-snow">
+                    <th className="px-6 py-4 w-12 text-center">
                       <input 
-                        type="checkbox" 
-                        checked={selectedWords.size === getFilteredWords().length && getFilteredWords().length > 0}
+                        type="checkbox"
+                        checked={unverifiedWords.length > 0 && selectedWords.size === unverifiedWords.length}
                         onChange={toggleSelectAll}
-                        className="w-5 h-5 rounded border-2 border-duo-snow text-duo-macaw focus:ring-duo-macaw"
+                        className="w-4 h-4 accent-duo-macaw rounded"
                       />
                     </th>
-                    <th className="px-6 py-4">단어</th>
-                    <th className="px-6 py-4">한자 구성</th>
-                    <th className="px-6 py-4">AI 판별 결과</th>
+                    <th className="px-6 py-4">단어 (한자)</th>
+                    <th className="px-6 py-4">뜻 / 풀이 (어린이용)</th>
+                    <th className="px-6 py-4">AI 자동 진단</th>
                     <th className="px-6 py-4">발견일</th>
                     <th className="px-6 py-4 text-right">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-duo-snow">
-                  {getFilteredWords().length === 0 ? (
+                  {unverifiedWords.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-8 py-20 text-center text-duo-wolf font-bold">
-                        조건에 맞는 신규 단어가 없습니다. 🎉
+                      <td colSpan={6} className="px-6 py-20 text-center text-duo-wolf font-bold">
+                        검수 대기 중인 단어가 없습니다.
                       </td>
                     </tr>
                   ) : (
-                    getFilteredWords().map((w, idx) => (
-                      <tr key={idx} className={cn("hover:bg-duo-snow/20 transition-colors group", selectedWords.has(w.word) && "bg-duo-macaw/5")}>
-                        <td className="px-6 py-6">
+                    unverifiedWords
+                      .filter(w => {
+                        if (filterMode === 'all') return true;
+                        const status = screeningResults[w.word]?.status;
+                        if (filterMode === 'valid') return status === 'VALID';
+                        if (filterMode === 'invalid') return status === 'SUSPICIOUS' || status === 'INVALID';
+                        return true;
+                      })
+                      .map((w) => (
+                      <tr key={w.word} className="hover:bg-duo-snow/20 transition-colors group">
+                        <td className="px-6 py-6 text-center">
                           <input 
-                            type="checkbox" 
+                            type="checkbox"
                             checked={selectedWords.has(w.word)}
                             onChange={() => toggleSelect(w.word)}
-                            className="w-5 h-5 rounded border-2 border-duo-snow text-duo-macaw focus:ring-duo-macaw"
+                            className="w-4 h-4 accent-duo-macaw rounded"
                           />
                         </td>
                         <td className="px-6 py-6">
-                          <span className="text-lg font-black text-duo-eel">{w.word}</span>
-                        </td>
-                        <td className="px-6 py-6">
-                          <div className="flex flex-wrap gap-1">
-                            {w.analysis_json?.hanjaList?.map((h, i) => (
-                              <span key={i} className="bg-white border border-duo-snow px-2 py-0.5 rounded-lg text-xs font-bold text-duo-wolf">
-                                {h.char}
-                              </span>
-                            ))}
+                          <div className="flex flex-col">
+                            <span className="text-lg font-black text-duo-eel">{w.word}</span>
+                            <span className="text-xs font-bold text-duo-wolf mt-0.5">
+                              {w.analysis_json?.hanjaList ? w.analysis_json.hanjaList.map(h => h.char).join('') : ''}
+                            </span>
                           </div>
+                        </td>
+                        <td className="px-6 py-6 max-w-xs">
+                          <p className="text-sm font-bold text-duo-eel line-clamp-2">{w.analysis_json.description || '풀이 데이터 없음'}</p>
                         </td>
                         <td className="px-6 py-6">
                           {screeningResults[w.word] ? (
-                            <div className="flex flex-col gap-1 max-w-sm">
-                              <div className="flex items-center gap-1.5">
+                            <div className="flex flex-col gap-1.5 max-w-xs">
+                              <div className="flex items-center gap-2">
                                 <span className={cn(
                                   "px-2 py-0.5 rounded-lg text-[10px] font-black border uppercase tracking-wider",
                                   screeningResults[w.word].status === 'VALID' && "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -739,7 +776,9 @@ export default function AdminDashboard() {
               </table>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'logs' && (
           <div className="bg-white border-3 border-duo-snow rounded-[40px] shadow-sm overflow-hidden animate-in fade-in duration-500">
             <div className="p-8 border-b-2 border-duo-snow bg-white">
               <h2 className="text-2xl font-black text-duo-eel">모니터링 로그</h2>
@@ -787,6 +826,409 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {activeTab === 'users' && (() => {
+          const getCohortName = (dateString: string) => {
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = date.getDate();
+            const week = Math.ceil(day / 7);
+            return `${year}-${month} W${week}`;
+          };
+
+          const cohorts: Record<string, { total: number; active: number; inactive: number; churned: number }> = {};
+          userStats.forEach(u => {
+            const c = getCohortName(u.created_at);
+            if (!cohorts[c]) {
+              cohorts[c] = { total: 0, active: 0, inactive: 0, churned: 0 };
+            }
+            cohorts[c].total++;
+            if (u.status === 'active') cohorts[c].active++;
+            else if (u.status === 'inactive') cohorts[c].inactive++;
+            else cohorts[c].churned++;
+          });
+
+          const cohortList = Object.entries(cohorts)
+            .map(([name, data]) => ({ name, ...data }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+          const totalUsersCount = userStats.length;
+          const activeUsersCount = userStats.filter(u => u.status === 'active').length;
+          const inactiveUsersCount = userStats.filter(u => u.status === 'inactive').length;
+          const churnedUsersCount = userStats.filter(u => u.status === 'churned').length;
+          
+          const averageLogs = totalUsersCount > 0 
+            ? (userStats.reduce((sum, u) => sum + (u.totalLogs || 0), 0) / totalUsersCount).toFixed(1)
+            : '0';
+
+          const averageActiveDays = totalUsersCount > 0
+            ? (userStats.reduce((sum, u) => sum + (u.activeDaysCount || 0), 0) / totalUsersCount).toFixed(1)
+            : '0';
+
+          const retentionRate = totalUsersCount > 0 
+            ? ((activeUsersCount / totalUsersCount) * 100).toFixed(0) 
+            : '0';
+
+          const filteredUsers = userStats
+            .filter(u => {
+              const nameMatch = (u.nickname || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                (u.school || "").toLowerCase().includes(searchTerm.toLowerCase());
+              if (statusFilter === 'all') return nameMatch;
+              return nameMatch && u.status === statusFilter;
+            })
+            .sort((a, b) => {
+              const valA = a[sortBy];
+              const valB = b[sortBy];
+              
+              if (valA === null || valA === undefined) return sortDesc ? 1 : -1;
+              if (valB === null || valB === undefined) return sortDesc ? -1 : 1;
+              
+              if (typeof valA === 'number' && typeof valB === 'number') {
+                return sortDesc ? valB - valA : valA - valB;
+              }
+              return sortDesc 
+                ? String(valB).localeCompare(String(valA)) 
+                : String(valA).localeCompare(String(valB));
+            });
+
+          return (
+            <div className="space-y-8 animate-in fade-in duration-500">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white border-2 border-duo-snow rounded-3xl p-6 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center">
+                    <Users className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-duo-swan uppercase tracking-widest">전체 유입 가입자</p>
+                    <p className="text-xl font-black text-duo-eel">{totalUsersCount}명</p>
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-duo-snow rounded-3xl p-6 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center">
+                    <Activity className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-duo-swan uppercase tracking-widest">7일 내 활동 사용자</p>
+                    <p className="text-xl font-black text-duo-eel">
+                      {activeUsersCount}명 <span className="text-xs text-emerald-600 font-bold">({retentionRate}%)</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-duo-snow rounded-3xl p-6 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-50 border border-purple-100 rounded-2xl flex items-center justify-center">
+                    <BookOpen className="w-6 h-6 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-duo-swan uppercase tracking-widest">1인당 평균 학습량</p>
+                    <p className="text-xl font-black text-duo-eel">{averageLogs}회</p>
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-duo-snow rounded-3xl p-6 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 bg-orange-50 border border-orange-100 rounded-2xl flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-duo-swan uppercase tracking-widest">1인당 평균 학습일</p>
+                    <p className="text-xl font-black text-duo-eel">{averageActiveDays}일</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border-3 border-duo-snow rounded-[40px] p-8 shadow-sm">
+                <h3 className="text-lg font-black text-duo-eel mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-indigo-500" /> 주차별 가입 코호트 잔존율 분석
+                </h3>
+                <p className="text-xs font-bold text-duo-wolf mb-6">
+                  서비스 초기 가입자부터 최근 가입자까지, 가입한 시기별로 유저들이 지속적으로 잔존하여 학습하고 있는지 확인합니다.
+                </p>
+                {cohortList.length === 0 ? (
+                  <p className="text-center py-6 text-duo-wolf font-bold">코호트 분석 데이터가 없습니다.</p>
+                ) : (
+                  <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-duo-snow">
+                    {cohortList.map((cohort, cIdx) => {
+                      const cohortRetention = cohort.total > 0 ? ((cohort.active / cohort.total) * 100).toFixed(0) : '0';
+                      const activePercent = (cohort.active / cohort.total) * 100;
+                      const inactivePercent = (cohort.inactive / cohort.total) * 100;
+                      const churnedPercent = (cohort.churned / cohort.total) * 100;
+
+                      return (
+                        <div key={cIdx} className="bg-duo-snow/10 border-2 border-duo-snow rounded-3xl p-5 min-w-[210px] flex-1 flex flex-col justify-between">
+                          <div>
+                            <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                              {cohort.name}
+                            </span>
+                            <div className="flex justify-between items-baseline mt-3">
+                              <span className="text-sm font-black text-duo-eel">가입자 수:</span>
+                              <span className="text-base font-black text-duo-eel">{cohort.total}명</span>
+                            </div>
+                            <div className="flex justify-between items-baseline mt-1.5">
+                              <span className="text-xs font-bold text-duo-wolf">7D 유지율:</span>
+                              <span className="text-sm font-black text-emerald-600">{cohortRetention}%</span>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-5 space-y-3">
+                            <div className="h-2 w-full bg-duo-snow rounded-full overflow-hidden flex">
+                              <div style={{ width: `${activePercent}%` }} className="bg-emerald-500 h-full" title={`활동 중: ${cohort.active}명`} />
+                              <div style={{ width: `${inactivePercent}%` }} className="bg-amber-400 h-full" title={`미활동: ${cohort.inactive}명`} />
+                              <div style={{ width: `${churnedPercent}%` }} className="bg-rose-500 h-full" title={`이탈: ${cohort.churned}명`} />
+                            </div>
+                            
+                            <div className="flex justify-between text-[10px] font-black text-duo-swan uppercase">
+                              <span className="text-emerald-600">활동: {cohort.active}</span>
+                              <span className="text-amber-500">휴면: {cohort.inactive}</span>
+                              <span className="text-rose-500">이탈: {cohort.churned}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white border-3 border-duo-snow rounded-[40px] shadow-sm overflow-hidden">
+                <div className="p-8 border-b-2 border-duo-snow bg-white space-y-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-2xl font-black text-duo-eel">사용자별 학습 통계</h2>
+                      <p className="text-sm font-bold text-duo-wolf mt-1">
+                        전체 사용자의 세부 가입 정보, 누적 학습량, 방문 주기 및 상태를 모니터링합니다.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="w-5 h-5 text-duo-wolf absolute left-4 top-1/2 -translate-y-1/2" />
+                      <input 
+                        type="text"
+                        placeholder="닉네임 또는 학교 검색..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full h-12 pl-12 pr-4 bg-duo-snow border-2 border-duo-snow focus:border-duo-macaw rounded-2xl font-bold outline-none text-sm transition-all"
+                      />
+                    </div>
+                    
+                    <div className="flex bg-duo-snow p-1 rounded-xl self-start md:self-auto overflow-x-auto max-w-full">
+                      <button 
+                        onClick={() => setStatusFilter('all')}
+                        className={cn("px-4 py-2 rounded-lg text-xs font-black transition-all whitespace-nowrap", statusFilter === 'all' ? "bg-white text-duo-eel shadow-sm" : "text-duo-wolf")}
+                      >
+                        전체 ({totalUsersCount})
+                      </button>
+                      <button 
+                        onClick={() => setStatusFilter('active')}
+                        className={cn("px-4 py-2 rounded-lg text-xs font-black transition-all whitespace-nowrap", statusFilter === 'active' ? "bg-white text-emerald-600 shadow-sm" : "text-duo-wolf")}
+                      >
+                        활동 중 ({activeUsersCount})
+                      </button>
+                      <button 
+                        onClick={() => setStatusFilter('inactive')}
+                        className={cn("px-4 py-2 rounded-lg text-xs font-black transition-all whitespace-nowrap", statusFilter === 'inactive' ? "bg-white text-amber-600 shadow-sm" : "text-duo-wolf")}
+                      >
+                        미활동 ({inactiveUsersCount})
+                      </button>
+                      <button 
+                        onClick={() => setStatusFilter('churned')}
+                        className={cn("px-4 py-2 rounded-lg text-xs font-black transition-all whitespace-nowrap", statusFilter === 'churned' ? "bg-white text-rose-600 shadow-sm" : "text-duo-wolf")}
+                      >
+                        이탈 ({churnedUsersCount})
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-duo-snow/50 text-[10px] font-black text-duo-swan uppercase tracking-widest border-b-2 border-duo-snow">
+                        <th className="px-8 py-4 cursor-pointer hover:bg-duo-snow/30" onClick={() => { setSortBy('created_at'); setSortDesc(!sortDesc); }}>
+                          사용자 {sortBy === 'created_at' && (sortDesc ? '▼' : '▲')}
+                        </th>
+                        <th className="px-8 py-4 cursor-pointer hover:bg-duo-snow/30" onClick={() => { setSortBy('created_at'); setSortDesc(!sortDesc); }}>
+                          가입일 {sortBy === 'created_at' && (sortDesc ? '▼' : '▲')}
+                        </th>
+                        <th className="px-8 py-4 cursor-pointer hover:bg-duo-snow/30" onClick={() => { setSortBy('totalLogs'); setSortDesc(!sortDesc); }}>
+                          총 학습량 {sortBy === 'totalLogs' && (sortDesc ? '▼' : '▲')}
+                        </th>
+                        <th className="px-8 py-4 cursor-pointer hover:bg-duo-snow/30" onClick={() => { setSortBy('activeDaysCount'); setSortDesc(!sortDesc); }}>
+                          학습 일수 {sortBy === 'activeDaysCount' && (sortDesc ? '▼' : '▲')}
+                        </th>
+                        <th className="px-8 py-4 cursor-pointer hover:bg-duo-snow/30" onClick={() => { setSortBy('lastActiveAt'); setSortDesc(!sortDesc); }}>
+                          최근 학습일 {sortBy === 'lastActiveAt' && (sortDesc ? '▼' : '▲')}
+                        </th>
+                        <th className="px-8 py-4">상태</th>
+                        <th className="px-8 py-4 text-right">상세</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y-2 divide-duo-snow">
+                      {filteredUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-8 py-20 text-center text-duo-wolf font-bold">
+                            해당하는 사용자가 없습니다.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredUsers.map((user) => {
+                          const isExpanded = expandedUser === user.id;
+                          const accuracy = user.totalLogs > 0 ? ((user.correctLogs / user.totalLogs) * 100).toFixed(0) : '0';
+                          
+                          return (
+                            <>
+                              <tr 
+                                key={user.id} 
+                                onClick={() => setExpandedUser(isExpanded ? null : user.id)}
+                                className={cn("hover:bg-duo-snow/20 transition-colors cursor-pointer", isExpanded && "bg-duo-snow/10")}
+                              >
+                                <td className="px-8 py-5">
+                                  <div className="flex flex-col">
+                                    <span className="font-black text-duo-eel text-base">{user.nickname || '익명'}</span>
+                                    <span className="text-xs font-bold text-duo-wolf mt-0.5">
+                                      {user.school ? `${user.school} ${user.grade ? `${user.grade}학년` : ''}` : '학교 정보 없음'}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-5 text-sm text-duo-wolf font-bold">
+                                  {new Date(user.created_at).toLocaleDateString()}
+                                </td>
+                                <td className="px-8 py-5">
+                                  <div className="flex flex-col">
+                                    <span className="text-base font-black text-duo-eel">{user.totalLogs}회</span>
+                                    {user.totalLogs > 0 && (
+                                      <span className="text-xs font-bold text-emerald-600">정답률 {accuracy}%</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-8 py-5 text-base font-black text-duo-eel">
+                                  {user.activeDaysCount}일
+                                </td>
+                                <td className="px-8 py-5 text-sm text-duo-swan font-bold">
+                                  {user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString() : '학습 이력 없음'}
+                                </td>
+                                <td className="px-8 py-5">
+                                  <span className={cn(
+                                    "px-3 py-1 rounded-full text-xs font-black border tracking-wider",
+                                    user.status === 'active' && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                                    user.status === 'inactive' && "bg-amber-50 text-amber-700 border-amber-200",
+                                    user.status === 'churned' && "bg-rose-50 text-rose-700 border-rose-200"
+                                  )}>
+                                    {user.status === 'active' ? '활동 중' : user.status === 'inactive' ? '미활동' : '이탈'}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-5 text-right">
+                                  <button className="p-2 text-duo-swan hover:text-duo-macaw">
+                                    {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                  </button>
+                                </td>
+                              </tr>
+                              
+                              {isExpanded && (
+                                <tr key={`expanded-${user.id}`}>
+                                  <td colSpan={7} className="px-8 py-6 bg-duo-snow/10 border-t border-b border-duo-snow/50">
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                      <div className="space-y-3">
+                                        <h4 className="text-xs font-black text-duo-swan uppercase tracking-widest">학습 상세 상태</h4>
+                                        <div className="bg-white border-2 border-duo-snow rounded-2xl p-4 space-y-2">
+                                          <div className="flex justify-between text-sm">
+                                            <span className="font-bold text-duo-wolf">현재 한자 단계:</span>
+                                            <span className="font-black text-duo-eel">{user.current_stage || 8}단계 - {user.current_node || 1}번 노드</span>
+                                          </div>
+                                          <div className="flex justify-between text-sm">
+                                            <span className="font-bold text-duo-wolf">누적 점수(XP):</span>
+                                            <span className="font-black text-duo-eel">{user.total_score || 0} XP</span>
+                                          </div>
+                                          <div className="flex justify-between text-sm">
+                                            <span className="font-bold text-duo-wolf">학습 스트릭:</span>
+                                            <span className="font-black text-orange-500">🔥 {user.streak_count || 0}일 연속</span>
+                                          </div>
+                                          <div className="flex justify-between text-sm">
+                                            <span className="font-bold text-duo-wolf">보유 쿠폰:</span>
+                                            <span className="font-black text-duo-macaw">🎟️ {user.coupons || 0}개</span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div>
+                                        <h4 className="text-xs font-black text-duo-swan uppercase tracking-widest mb-3">최근 4주 주차별 학습량</h4>
+                                        <div className="flex items-end gap-3 h-28 bg-white border-2 border-duo-snow p-4 rounded-2xl w-full justify-center">
+                                          {user.weeklyTrends.slice().reverse().map((count: number, wIdx: number) => {
+                                            const maxVal = Math.max(...user.weeklyTrends, 1);
+                                            const heightPercent = Math.min((count / maxVal) * 75 + 10, 85);
+                                            const weekLabels = ["3주 전", "2주 전", "1주 전", "이번 주"];
+                                            return (
+                                              <div key={wIdx} className="flex flex-col items-center flex-1 group relative h-full justify-end">
+                                                <span className="text-[10px] font-black text-duo-macaw mb-1 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-4">
+                                                  {count}회
+                                                </span>
+                                                <div 
+                                                  style={{ height: `${count === 0 ? 6 : heightPercent}%` }}
+                                                  className={cn(
+                                                    "w-full rounded-t-md transition-all duration-500", 
+                                                    count === 0 ? "bg-duo-snow" : "bg-gradient-to-t from-duo-macaw to-blue-400"
+                                                  )}
+                                                />
+                                                <span className="text-[9px] font-black text-duo-wolf mt-2 uppercase tracking-wide">
+                                                  {weekLabels[wIdx]}
+                                                </span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+
+                                      <div className="flex flex-col justify-center">
+                                        <h4 className="text-xs font-black text-duo-swan uppercase tracking-widest mb-2">활동성 진단</h4>
+                                        <div className="bg-white border-2 border-duo-snow rounded-2xl p-4 flex-1 flex flex-col justify-center">
+                                          {user.status === 'active' ? (
+                                            <div className="space-y-1.5">
+                                              <p className="text-sm font-black text-emerald-600 flex items-center gap-1.5">
+                                                <Activity className="w-4 h-4" /> 건강한 학습 활동 중!
+                                              </p>
+                                              <p className="text-xs font-bold text-duo-wolf leading-relaxed">
+                                                최근 7일 이내에 활동이 감지되었습니다. 일주일에 평균 {(user.totalLogs / Math.max(user.activeDaysCount, 1)).toFixed(1)}회의 학습을 완료하고 있습니다.
+                                              </p>
+                                            </div>
+                                          ) : user.status === 'inactive' ? (
+                                            <div className="space-y-1.5">
+                                              <p className="text-sm font-black text-amber-600 flex items-center gap-1.5">
+                                                <Clock className="w-4 h-4" /> 학습 휴면(비활성) 상태
+                                              </p>
+                                              <p className="text-xs font-bold text-duo-wolf leading-relaxed">
+                                                마지막 학습 이후 7일 이상 경과했습니다. 서비스 흥미 유지 및 재유입 유도가 권장됩니다.
+                                              </p>
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-1.5">
+                                              <p className="text-sm font-black text-rose-600 flex items-center gap-1.5">
+                                                <AlertCircle className="w-4 h-4" /> 학습 이탈(Churn) 상태
+                                              </p>
+                                              <p className="text-xs font-bold text-duo-wolf leading-relaxed">
+                                                최근 30일 이내에 학습 로그가 존재하지 않거나 활동 이력이 전혀 없습니다. 이탈 회원을 위한 특별 미션 또는 알림을 고려하세요.
+                                              </p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </main>
 
       {editingWord && (
@@ -872,22 +1314,3 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode, label:
   );
 }
 
-function X(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
-}

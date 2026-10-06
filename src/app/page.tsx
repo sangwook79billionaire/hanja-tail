@@ -5,6 +5,7 @@ import { Search, Trophy, Sparkles, Gift, Star, User, Play, X, Loader2, Calendar,
 import { cn } from "@/lib/utils";
 import HanjaCard from "@/components/HanjaCard";
 import { analyzeWord, generateQuiz, getLearningRecap, getMyProfile, logLearning, getSchoolRank } from "./actions";
+import { normalizeWordWithHanja } from "@/lib/wordUtils";
 import QuizSection from "@/components/QuizSection";
 import StatsView from "@/components/StatsView";
 import WritingModal from "@/components/WritingModal";
@@ -261,6 +262,7 @@ export default function HomePage() {
     const wordMap = new Map<string, {
       word: string;
       hanja?: string;
+      fullWord?: string;
       meaning?: string;
       practiced_writing?: boolean;
       is_correct?: boolean;
@@ -269,9 +271,12 @@ export default function HomePage() {
     // 1. DB 로그 채우기
     dailyHistory.forEach(log => {
       if (log.word) {
-        wordMap.set(log.word, {
-          word: log.word,
-          hanja: log.hanja,
+        const { baseWord, targetHanja, formatted } = normalizeWordWithHanja(log.word);
+        const finalHanja = log.hanja || targetHanja;
+        wordMap.set(baseWord, {
+          word: baseWord,
+          hanja: finalHanja,
+          fullWord: finalHanja ? `${baseWord}(${finalHanja})` : formatted,
           meaning: log.meaning,
           practiced_writing: log.practiced_writing,
           is_correct: log.is_correct
@@ -282,10 +287,13 @@ export default function HomePage() {
     // 2. 세션 로그 채우기 (DB에 아직 안 들어왔거나 로딩 중인 경우)
     sessionExploredWords.forEach(item => {
       if (item.word) {
-        const existing = wordMap.get(item.word);
-        wordMap.set(item.word, {
-          word: item.word,
-          hanja: item.hanja || existing?.hanja || "",
+        const { baseWord, targetHanja, formatted } = normalizeWordWithHanja(item.word);
+        const finalHanja = item.hanja || targetHanja;
+        const existing = wordMap.get(baseWord);
+        wordMap.set(baseWord, {
+          word: baseWord,
+          hanja: finalHanja || existing?.hanja || "",
+          fullWord: finalHanja ? `${baseWord}(${finalHanja})` : (existing?.fullWord || formatted),
           meaning: existing?.meaning || "뜻 분석 중...",
           practiced_writing: existing?.practiced_writing || false,
           is_correct: existing?.is_correct || false
@@ -296,7 +304,7 @@ export default function HomePage() {
     return Array.from(wordMap.values());
   })();
 
-  const allExploredWords = uniqueExploredWords.map(item => item.word);
+  const allExploredWords = uniqueExploredWords.map(item => item.fullWord || (item.hanja ? `${item.word}(${item.hanja})` : item.word));
 
   const supabase = createClient();
 
@@ -469,19 +477,20 @@ export default function HomePage() {
     const parent = isFromExpansion ? currentSearchedWord : null;
 
     try {
+      const { baseWord, targetHanja, formatted, hasHanja } = normalizeWordWithHanja(trimmedWord);
       const result = await analyzeWord(trimmedWord);
-      const hasBracket = trimmedWord.includes("(") && trimmedWord.includes(")");
+      const hasBracket = hasHanja || trimmedWord.includes("(") && trimmedWord.includes(")");
       if (result.error) {
         alert(result.error);
-      } else if (result.isAmbiguous && !hasBracket) {
+      } else if (result.isAmbiguous && !hasBracket && (!result.hanjaList || result.hanjaList.length === 0)) {
         setAmbiguityCandidates(result.candidates);
       } else {
         setAnalyzedHanja(result.hanjaList);
-        setCurrentSearchedWord(trimmedWord);
-        const hanjaStr = result.hanjaList ? result.hanjaList.map((h: HanjaData) => h.char).join('') : '';
+        setCurrentSearchedWord(formatted);
+        const hanjaStr = result.hanjaList ? result.hanjaList.map((h: HanjaData) => h.char).join('') : (targetHanja || '');
         setSessionExploredWords(prev => {
-          if (prev.some(item => item.word === trimmedWord)) return prev;
-          return [...prev, { word: trimmedWord, hanja: hanjaStr }];
+          if (prev.some(item => item.word === formatted || item.word === baseWord)) return prev;
+          return [...prev, { word: formatted, hanja: hanjaStr }];
         });
         setExpansionWords(result.expansions || []);
         
@@ -739,14 +748,15 @@ export default function HomePage() {
                     <>
                       {/* 탐험한 단어 필터 배지 목록 */}
                       <div className="flex flex-wrap gap-2 pt-1">
-                        {allExploredWords.map((w) => {
-                          const isActive = w === currentSearchedWord;
+                        {uniqueExploredWords.map((item) => {
+                          const searchTarget = item.fullWord || (item.hanja ? `${item.word}(${item.hanja})` : item.word);
+                          const isActive = searchTarget === currentSearchedWord || item.word === currentSearchedWord;
                           return (
                             <button
-                              key={w}
+                              key={item.word}
                               onClick={() => {
                                 if (!isActive) {
-                                  handleAnalyze(w, true, false);
+                                  handleAnalyze(searchTarget, true, false);
                                 }
                               }}
                               className={cn(
@@ -756,7 +766,7 @@ export default function HomePage() {
                                   : "bg-white text-duo-eel border-duo-snow hover:border-duo-macaw/50"
                               )}
                             >
-                              {w}
+                              {item.word}
                             </button>
                           );
                         })}
@@ -855,7 +865,9 @@ export default function HomePage() {
                               transition={{ delay: Math.min(idx * 0.03, 0.4) }}
                               className="flex items-center justify-between p-4 bg-duo-snow/30 rounded-2xl border-2 border-duo-snow group hover:border-duo-macaw transition-all cursor-pointer"
                               onClick={() => {
-                                const searchName = log.hanja ? `${log.word}(${log.hanja})` : log.word;
+                                const { baseWord, targetHanja } = normalizeWordWithHanja(log.word);
+                                const finalHanja = log.hanja || targetHanja;
+                                const searchName = finalHanja ? `${baseWord}(${finalHanja})` : baseWord;
                                 handleAnalyze(searchName, true, false);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
@@ -1009,10 +1021,12 @@ export default function HomePage() {
             hanja={selectedHanjaForQuiz}
             quiz={currentQuiz}
             onSuccess={(solvedWord) => {
-              const wordWithHanja = `${solvedWord}(${currentQuiz.hanja_combination})`;
+              const targetHanjaComb = currentQuiz.hanja_combination;
+              const wordWithHanja = `${solvedWord}(${targetHanjaComb})`;
+              setSelectedHanjaForQuiz(null);
+              setCurrentQuiz(null);
               setWord(solvedWord);
               handleAnalyze(wordWithHanja, true, true);
-              setTimeout(() => { setSelectedHanjaForQuiz(null); setCurrentQuiz(null); }, 1500);
             }}
             onClose={() => { setSelectedHanjaForQuiz(null); setCurrentQuiz(null); }}
           />

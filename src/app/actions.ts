@@ -2,28 +2,29 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeWordWithHanja } from "@/lib/wordUtils";
 
 export async function analyzeWord(word: string) {
   if (!word) return { error: "단어를 입력해주세요." };
 
   const supabase = createClient();
-  const searchWord = word.trim();
+  const { baseWord, targetHanja, formatted, hasHanja } = normalizeWordWithHanja(word);
+  if (!baseWord) return { error: "올바른 단어를 입력해주세요." };
+
   try {
-    const hasHanjaBracket = searchWord.includes("(") && searchWord.includes(")");
-    
-    // 1. 동음이의어 DB 체크 (최우선: 한자 조합이 명시되지 않은 경우만)
-    if (!hasHanjaBracket) {
+    // 1. 동음이의어 DB 체크 (최우선: 특정 한자가 명시되지 않은 순수 단어 검색인 경우만)
+    if (!hasHanja) {
       // (1) 퀴즈 뱅크에서 후보 찾기
       const { data: quizCandidates } = await supabase
         .from("quiz_bank")
         .select("word, hanja_combination, description")
-        .eq("word", searchWord);
+        .eq("word", baseWord);
 
       // (2) 한자 마스터의 예시 단어들에서 후보 찾기
       const { data: masterHanjas } = await supabase
         .from("hanja_master")
         .select("example_words")
-        .filter("example_words", "cs", `[{"word": "${searchWord}"}]`);
+        .filter("example_words", "cs", `[{"word": "${baseWord}"}]`);
 
       const dbCandidates: { word: string; hanja: string; description: string }[] = [];
       const seenHanja = new Set();
@@ -38,7 +39,7 @@ export async function analyzeWord(word: string) {
       masterHanjas?.forEach(h => {
         const examples = h.example_words || [];
         examples.forEach((ex: { word: string; hanja: string }) => {
-          if (ex.word === searchWord && !seenHanja.has(ex.hanja)) {
+          if (ex.word === baseWord && !seenHanja.has(ex.hanja)) {
             dbCandidates.push({ word: ex.word, hanja: ex.hanja, description: `${ex.hanja}를 사용하는 단어` });
             seenHanja.add(ex.hanja);
           }
@@ -50,17 +51,10 @@ export async function analyzeWord(word: string) {
       }
     }
 
-    // 1. 단어 정규화 (괄호와 한자 제거: '의료(醫療)' -> '의료')
-    let normalizedWord = searchWord.replace(/\(.*\)/, "").trim();
-    let targetHanja = "";
-    const match = searchWord.match(/^([^(]+)\(([^)]+)\)$/);
-    if (match) {
-      normalizedWord = match[1].trim();
-      targetHanja = match[2].trim();
-    }
-    const cacheKey = hasHanjaBracket ? searchWord : normalizedWord;
+    const cacheKey = formatted;
 
     // 2. DB 캐시 확인
+    // (1) 우선 formatted 키로 확인
     const { data: cachedData } = await supabase
       .from("word_analysis_cache")
       .select("analysis_json")
@@ -69,26 +63,52 @@ export async function analyzeWord(word: string) {
 
     if (cachedData) {
       console.log("Using cached analysis for:", cacheKey);
-      return cachedData.analysis_json;
+      const res = cachedData.analysis_json;
+      if (hasHanja && res) {
+        res.isAmbiguous = false;
+      }
+      return res;
     }
 
+    // (2) hasHanja이지만 formatted로 캐시가 없고 baseWord 캐시가 있는 경우 한자 일치 검사
+    if (hasHanja) {
+      const { data: baseCached } = await supabase
+        .from("word_analysis_cache")
+        .select("analysis_json")
+        .eq("word", baseWord)
+        .maybeSingle();
+
+      if (baseCached?.analysis_json?.hanjaList) {
+        interface HanjaListChar { char: string }
+        const cachedHanjaStr = (baseCached.analysis_json.hanjaList as HanjaListChar[]).map((h) => h.char).join('');
+        if (cachedHanjaStr === targetHanja) {
+          console.log("Using matched base cache for:", formatted);
+          const res = { ...baseCached.analysis_json, isAmbiguous: false };
+          supabase.from("word_analysis_cache").upsert({
+            word: formatted,
+            analysis_json: res
+          }).then();
+          return res;
+        }
+      }
+    }
 
     // 3. 캐시가 없으면 Gemini 호출
-    console.log("No cache found. Calling Gemini for:", searchWord);
+    console.log("No cache found. Calling Gemini for:", formatted);
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return { error: "Gemini API 키가 설정되지 않았습니다. 배포 설정을 확인해주세요." };
     }
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = targetHanja 
       ? `
       You are a helpful assistant for teaching Hanja to children.
-      Analyze the following word: "${normalizedWord}" with the specific Hanja combination: "${targetHanja}".
+      Analyze the following word: "${baseWord}" with the specific Hanja combination: "${targetHanja}".
       
       1. Since the specific Hanja combination "${targetHanja}" is provided, you must analyze exactly this combination. "isAmbiguous" must be false.
-      2. Check if the Hangul word "${normalizedWord}" is a REAL, standard Korean dictionary word (사전에 등재된 명사).
+      2. Check if the Hangul word "${baseWord}" is a REAL, standard Korean dictionary word (사전에 등재된 명사).
          If it is a fake word created by simply combining Hanja (when it doesn't exist in standard dictionaries), 
          or if it's not a common Hanja-based word, set "isValid" to false.
          Also, the word MUST be a PURE Hanja-based word (all characters correspond to the Hanja "${targetHanja}").
@@ -132,7 +152,7 @@ export async function analyzeWord(word: string) {
       `
       : `
       You are a helpful assistant for teaching Hanja to children.
-      Analyze the following word (Hangul or Hanja): "${searchWord}"
+      Analyze the following word (Hangul or Hanja): "${baseWord}"
       
       1. Check if this Hangul word has multiple common Hanja meanings (homonyms).
          This is EXTREMELY CRITICAL for educational accuracy. Many Korean words share the same Hangul but have different Hanja meanings.
@@ -141,7 +161,7 @@ export async function analyzeWord(word: string) {
          Example: "사과" can be "謝過"(apology) or "沙果"(apple). "배" can be "梨"(pear), "舟"(boat), or "腹"(belly).
       2. If "isAmbiguous" is true, list ALL common Hanja combinations in "candidates" with child-friendly descriptions.
       3. If the user provided a specific Hanja (e.g., "지도(地圖)") or there is only one clear meaning, "isAmbiguous" should be false.
-      4. CRITICAL: Check if "${searchWord}" is a REAL, standard Korean dictionary word (사전에 등재된 명사).
+      4. CRITICAL: Check if "${baseWord}" is a REAL, standard Korean dictionary word (사전에 등재된 명사).
          If it is a fake word created by simply combining Hanja (like "신술어" when it doesn't exist in standard dictionaries), 
          or if it's not a common Hanja-based word, set "isValid" to false.
          Also, the word MUST be a PURE Hanja-based word (모든 글자가 한자로 표기 가능해야 함).
@@ -194,32 +214,32 @@ export async function analyzeWord(word: string) {
     if (!jsonMatch) throw new Error("JSON not found");
     const data = JSON.parse(jsonMatch[0]);
 
-    if (hasHanjaBracket) {
+    if (hasHanja) {
       data.isAmbiguous = false;
       data.isValid = true;
     }
 
     if (!data.isSafe) return { error: "부적절한 표현이 포함되어 있습니다." };
     if (data.isValid === false) {
-      console.warn(`Invalid word detected: ${searchWord}. Reason: ${data.invalidReason}`);
+      console.warn(`Invalid word detected: ${formatted}. Reason: ${data.invalidReason}`);
       // 비정상 단어 로그 기록 (백단 모니터링용)
       supabase.from("monitoring_log").insert({
         event_type: "invalid_word",
-        word: searchWord,
+        word: formatted,
         reason: data.invalidReason,
         details: data
       }).then();
       
       if (data.wordType === "pure_korean") {
-        return { error: `아쉽게도 '${searchWord}'(은)는 예쁜 순우리말(순한글) 단어예요! 한자어 단어만 탐험할 수 있답니다. 다른 단어를 입력해 볼까요? 🌸` };
+        return { error: `아쉽게도 '${baseWord}'(은)는 예쁜 순우리말(순한글) 단어예요! 한자어 단어만 탐험할 수 있답니다. 다른 단어를 입력해 볼까요? 🌸` };
       }
       if (data.wordType === "loanword") {
-        return { error: `아쉽게도 '${searchWord}'(은)는 외국어에서 온 외래어 단어예요! 한자어 단어만 탐험할 수 있답니다. 다른 단어를 입력해 볼까요? 🌍` };
+        return { error: `아쉽게도 '${baseWord}'(은)는 외국어에서 온 외래어 단어예요! 한자어 단어만 탐험할 수 있답니다. 다른 단어를 입력해 볼까요? 🌍` };
       }
       if (data.wordType === "hybrid") {
-        return { error: `'${searchWord}'(은)는 한자어와 순우리말이 섞여 있는 혼종어예요! 100% 한자어로만 이루어진 단어로 다시 탐험해 봐요! 🔍` };
+        return { error: `'${baseWord}'(은)는 한자어와 순우리말이 섞여 있는 혼종어예요! 100% 한자어로만 이루어진 단어로 다시 탐험해 봐요! 🔍` };
       }
-      return { error: `아쉽게도 '${searchWord}'(은)는 한자로 표기할 수 없거나 표준 사전에 없는 단어인 것 같아요. 다른 단어로 도전해 볼까요? 🦉` };
+      return { error: `아쉽게도 '${baseWord}'(은)는 한자로 표기할 수 없거나 표준 사전에 없는 단어인 것 같아요. 다른 단어로 도전해 볼까요? 🦉` };
     }
 
     if (data.isAmbiguous) {
@@ -354,7 +374,7 @@ async function verifyWordWithGemini(word: string, hanjaCombination: string): Pro
   if (!apiKey) return false;
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ 
-    model: "gemini-flash-latest",
+    model: "gemini-2.5-flash",
     generationConfig: { temperature: 0, responseMimeType: "application/json" }
   });
 
@@ -398,7 +418,7 @@ async function generateQuizForPreVerifiedWord(word: string, hanjaCombination: st
   if (!apiKey) throw new Error("Gemini API key not configured");
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `
     You are a Hanja quiz generator for kids.
@@ -514,9 +534,10 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
             throw new Error("Poor description quality.");
           }
 
-          // 선제적 캐싱
+          // 선제적 캐싱: 한자 조합을 포함한 정규 키로 저장하여 동음이의어 충돌 방지
+          const quizFormattedKey = `${quizData.word}(${quizData.hanja_combination})`;
           await supabase.from("word_analysis_cache").upsert({
-            word: quizData.word,
+            word: quizFormattedKey,
             analysis_json: {
               hanjaList: quizData.hanja_list,
               correctedWord: null,
@@ -551,7 +572,7 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
       return { error: "Gemini API 키가 설정되지 않았습니다." };
     }
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const generatorPrompt = `
       You are a Hanja quiz generator for kids.
@@ -612,9 +633,10 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
           throw new Error("Poor quality description.");
         }
 
-        // 선제적 캐싱
+        // 선제적 캐싱: 한자 조합을 포함한 정규 키로 저장하여 동음이의어 충돌 방지
+        const quizFormattedKey = `${quizData.word}(${quizData.hanja_combination})`;
         await supabase.from("word_analysis_cache").upsert({
-          word: quizData.word,
+          word: quizFormattedKey,
           analysis_json: {
             hanjaList: quizData.hanja_list,
             correctedWord: null,
@@ -740,15 +762,17 @@ export async function updateLearningProgress(word: string, type: 'stroke' | 'wri
   const userId = userData?.user?.id || "00000000-0000-0000-0000-000000000000";
 
   try {
-    // 가장 최근의 해당 단어 학습 로그를 찾아서 업데이트
-    const { data: recentLog } = await supabase
+    const { baseWord, formatted } = normalizeWordWithHanja(word);
+    // 가장 최근의 해당 단어 학습 로그를 찾아서 업데이트 (formatted 또는 baseWord로 매칭)
+    const { data: recentLogs } = await supabase
       .from("learning_logs")
-      .select("id")
+      .select("id, word")
       .eq("user_id", userId)
-      .eq("word", word)
+      .or(`word.eq.${formatted},word.eq.${baseWord},word.ilike.${baseWord}(%)`)
       .order("learned_at", { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
+
+    const recentLog = recentLogs?.[0];
 
     if (recentLog) {
       const updateData = type === 'stroke' 
@@ -847,16 +871,35 @@ export async function getLearningRecap() {
     }
 
     const allLogsWithMeta = await Promise.all(allLogs.map(async (log) => {
-      const { data: cache } = await supabase
+      const { baseWord, targetHanja, formatted } = normalizeWordWithHanja(log.word);
+
+      // 캐시 조회: formatted 우선, baseWord 차선
+      let analysis: AnalysisResult | undefined;
+      const { data: cacheWithHanja } = await supabase
         .from("word_analysis_cache")
         .select("analysis_json")
-        .eq("word", log.word)
+        .eq("word", formatted)
         .maybeSingle();
+
+      if (cacheWithHanja?.analysis_json) {
+        analysis = cacheWithHanja.analysis_json as AnalysisResult;
+      } else {
+        const { data: baseCache } = await supabase
+          .from("word_analysis_cache")
+          .select("analysis_json")
+          .eq("word", baseWord)
+          .maybeSingle();
+        analysis = baseCache?.analysis_json as AnalysisResult | undefined;
+      }
       
-      const analysis = cache?.analysis_json as AnalysisResult | undefined;
+      const hanjaFromList = analysis?.hanjaList ? analysis.hanjaList.map(h => h.char).join('') : undefined;
+      const finalHanja = log.hanja || targetHanja || hanjaFromList;
+
       return {
         ...log,
-        hanja: log.hanja || (analysis?.hanjaList ? analysis.hanjaList.map(h => h.char).join('') : undefined),
+        word: baseWord, // UI 표시용 기본 단어
+        fullWord: formatted, // 괄호 포함 전체 표기
+        hanja: finalHanja,
         meaning: analysis?.hanjaList ? analysis.hanjaList.map(h => h.meaning).join(', ') : undefined,
         difficulty: analysis?.difficultyLevel || 1,
         hanjaDetails: (analysis?.hanjaList || []).map(h => ({
@@ -1347,7 +1390,7 @@ export async function getAIDiagnosis(errorMessage: string, stackTrace?: string) 
   if (!apiKey) return { error: "API Key missing" };
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `
     You are a senior full-stack developer and system reliability engineer.
@@ -1408,7 +1451,7 @@ export async function analyzeRecentErrors() {
   
   const apiKey = process.env.GEMINI_API_KEY;
   const genAI = new GoogleGenerativeAI(apiKey!);
-  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `
     Analyze these recent system errors from 'Hanja Tail':
@@ -1616,7 +1659,7 @@ export async function screenWords(words: string[]) {
   if (!apiKey) return { error: "API Key missing" };
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `
     다음은 초등학생용 한자 학습 서비스인 '한자 꼬리'에 등록하려는 후보 단어 목록입니다.
@@ -1863,5 +1906,126 @@ export async function getSchoolRank() {
     return null;
   }
 }
+
+/**
+ * 어드민용 사용자별 학습량 및 활동 분석 통계를 가져옵니다.
+ */
+export async function getAdminUserLearningStats() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) throw new Error("Forbidden");
+
+  try {
+    // 1. 모든 사용자 프로필 정보 조회
+    const { data: profiles, error: profErr } = await supabase
+      .from('profiles')
+      .select('id, nickname, school, grade, created_at, total_score, current_stage, current_node, streak_count, last_streak_at, coupons')
+      .order('created_at', { ascending: false });
+
+    if (profErr) throw profErr;
+
+    // 2. 모든 학습 로그 데이터 조회 (메모리 내 그룹화용)
+    const { data: logs, error: logsErr } = await supabase
+      .from('learning_logs')
+      .select('user_id, learned_at, is_correct');
+
+    if (logsErr) throw logsErr;
+
+    // 3. 로그 데이터를 사용자 ID별로 맵에 매핑
+    const logsByUser: Record<string, { learned_at: string; is_correct: boolean }[]> = {};
+    (logs || []).forEach(log => {
+      if (!logsByUser[log.user_id]) {
+        logsByUser[log.user_id] = [];
+      }
+      logsByUser[log.user_id].push({
+        learned_at: log.learned_at,
+        is_correct: log.is_correct
+      });
+    });
+
+    // 4. 각 프로필별 통계 계산
+    const now = new Date().getTime();
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    const stats = (profiles || []).map(p => {
+      const userLogs = logsByUser[p.id] || [];
+      const totalLogs = userLogs.length;
+      const correctLogs = userLogs.filter(l => l.is_correct).length;
+
+      // KST (UTC+9) 기준의 고유 학습 일수 계산
+      const activeDates = new Set<string>();
+      userLogs.forEach(l => {
+        const date = new Date(l.learned_at);
+        const kstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
+        activeDates.add(kstDate);
+      });
+      const activeDaysCount = activeDates.size;
+
+      // 마지막 활동 시각 계산
+      let lastActiveAt: string | null = null;
+      if (userLogs.length > 0) {
+        const timestamps = userLogs.map(l => new Date(l.learned_at).getTime());
+        lastActiveAt = new Date(Math.max(...timestamps)).toISOString();
+      }
+
+      // 최근 4주간 주차별 학습량 계산 (0: 이번 주, 1: 1주 전, 2: 2주 전, 3: 3주 전)
+      const weeklyTrends = [0, 0, 0, 0];
+      userLogs.forEach(l => {
+        const logTime = new Date(l.learned_at).getTime();
+        const diffWeeks = Math.floor((now - logTime) / (oneDay * 7));
+        if (diffWeeks >= 0 && diffWeeks < 4) {
+          weeklyTrends[diffWeeks]++;
+        }
+      });
+
+      // 리텐션 상태 결정 (Active: 최근 7일 내 학습, Inactive: 8~30일 내 학습, Churned: 30일 초과 미학습)
+      let status: 'active' | 'inactive' | 'churned' = 'churned';
+      if (lastActiveAt) {
+        const daysSinceLastActive = (now - new Date(lastActiveAt).getTime()) / oneDay;
+        if (daysSinceLastActive <= 7) {
+          status = 'active';
+        } else if (daysSinceLastActive <= 30) {
+          status = 'inactive';
+        }
+      } else {
+        // 학습 이력이 전혀 없는 경우 가입일 기준으로 최근 7일 내 가입 시 active로 간주할 수도 있으나,
+        // 학습량이 전혀 없으므로 일단 미활동(inactive) 또는 가입일 기준 분류
+        const daysSinceSignup = (now - new Date(p.created_at).getTime()) / oneDay;
+        if (daysSinceSignup <= 7) {
+          status = 'inactive';
+        }
+      }
+
+      return {
+        id: p.id,
+        nickname: p.nickname,
+        school: p.school,
+        grade: p.grade,
+        created_at: p.created_at,
+        total_score: p.total_score,
+        current_stage: p.current_stage,
+        current_node: p.current_node,
+        streak_count: p.streak_count,
+        last_streak_at: p.last_streak_at,
+        coupons: p.coupons || 0,
+        totalLogs,
+        correctLogs,
+        activeDaysCount,
+        lastActiveAt,
+        weeklyTrends, // [최근 7일, 8-14일전, 15-21일전, 22-28일전]
+        status
+      };
+    });
+
+    return { data: stats };
+  } catch (err) {
+    console.error("Failed to fetch admin user learning stats:", err);
+    return { error: err instanceof Error ? err.message : "Failed to fetch user stats" };
+  }
+}
+
 
 
