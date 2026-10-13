@@ -1,6 +1,6 @@
 "use server";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateText, extractJson, isLlmRateLimited } from "@/lib/llm";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeWordWithHanja } from "@/lib/wordUtils";
 
@@ -95,13 +95,6 @@ export async function analyzeWord(word: string) {
 
     // 3. 캐시가 없으면 Gemini 호출
     console.log("No cache found. Calling Gemini for:", formatted);
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return { error: "Gemini API 키가 설정되지 않았습니다. 배포 설정을 확인해주세요." };
-    }
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
     const prompt = targetHanja 
       ? `
       You are a helpful assistant for teaching Hanja to children.
@@ -207,12 +200,8 @@ export async function analyzeWord(word: string) {
       }
       `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("JSON not found");
-    const data = JSON.parse(jsonMatch[0]);
+    const { text } = await generateText(prompt, { task: "realtime", label: "analyzeWord" });
+    const data = extractJson(text);
 
     if (hasHanja) {
       data.isAmbiguous = false;
@@ -361,8 +350,7 @@ export async function analyzeWord(word: string) {
     return resultData;
   } catch (error: unknown) {
     console.error("Gemini Analysis Error:", error);
-    const err = error as { status?: number; message?: string };
-    if (err?.status === 429 || err?.message?.includes("429")) {
+    if (isLlmRateLimited(error)) {
       return { error: "한자 박사님이 지금 골똘히 생각 중이에요! 잠시만(30초~1분) 기다렸다가 다시 물어봐 줄래? 그동안 다른 단어를 먼저 찾아봐도 좋아!" };
     }
     return { error: "단어 분석 중 오류가 발생했습니다. API 키를 확인해주세요." };
@@ -370,14 +358,6 @@ export async function analyzeWord(word: string) {
 }
 
 async function verifyWordWithGemini(word: string, hanjaCombination: string): Promise<boolean> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return false;
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ 
-    model: "gemini-2.5-flash",
-    generationConfig: { temperature: 0, responseMimeType: "application/json" }
-  });
-
   const prompt = `
     You are a strict Korean lexicographer.
     Evaluate the following Korean word and its Hanja combination:
@@ -400,11 +380,12 @@ async function verifyWordWithGemini(word: string, hanjaCombination: string): Pro
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return false;
-    const data = JSON.parse(jsonMatch[0]);
+    const { text } = await generateText(prompt, {
+      task: "realtime",
+      label: "verifyWord",
+      geminiConfig: { temperature: 0, responseMimeType: "application/json" },
+    });
+    const data = extractJson(text);
     console.log(`[Validation result for ${word} (${hanjaCombination})]:`, data);
     return !!data.isValid;
   } catch (error) {
@@ -414,12 +395,6 @@ async function verifyWordWithGemini(word: string, hanjaCombination: string): Pro
 }
 
 async function generateQuizForPreVerifiedWord(word: string, hanjaCombination: string, targetHanja: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Gemini API key not configured");
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
   const prompt = `
     You are a Hanja quiz generator for kids.
     Target Hanja (Unicode character): "${targetHanja}"
@@ -442,11 +417,8 @@ async function generateQuizForPreVerifiedWord(word: string, hanjaCombination: st
     }
   `;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("JSON not found in response");
-  return JSON.parse(jsonMatch[0]);
+  const { text } = await generateText(prompt, { task: "realtime", label: "generateQuiz" });
+  return extractJson(text);
 }
 
 export async function generateQuiz(hanja: string, excludedWords?: string[]) {
@@ -567,13 +539,6 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
     }
 
     // 3. 만약 검증된 단어가 없다면, 신규 AI 생성 후 엄격한 교차 검증(Double-Pass Verification) 수행
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return { error: "Gemini API 키가 설정되지 않았습니다." };
-    }
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
     const generatorPrompt = `
       You are a Hanja quiz generator for kids.
       Target Hanja (Unicode character): "${hanja}"
@@ -600,11 +565,8 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
     let retryCount = 0;
     while (retryCount < 3) {
       try {
-        const result = await model.generateContent(generatorPrompt);
-        const text = result.response.text();
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("JSON not found in response");
-        const quizData = JSON.parse(jsonMatch[0]);
+        const { text } = await generateText(generatorPrompt, { task: "realtime", label: "generateQuiz" });
+        const quizData = extractJson(text);
 
         const isHangulOnly = /^[가-힣]+$/.test(quizData.word);
         if (!isHangulOnly) throw new Error("Word must be Hangul only.");
@@ -661,8 +623,7 @@ export async function generateQuiz(hanja: string, excludedWords?: string[]) {
         return { quiz: newQuiz || quizData };
       } catch (error: unknown) {
         retryCount++;
-        const err = error as { status?: number; message?: string };
-        const isRateLimit = err?.status === 429 || err?.message?.includes("429");
+        const isRateLimit = isLlmRateLimited(error);
         
         if (isRateLimit && retryCount < 3) {
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1386,12 +1347,6 @@ export async function getMonitoringLogs() {
  * AI를 사용하여 시스템 오류를 자동으로 분석하고 진단합니다.
  */
 export async function getAIDiagnosis(errorMessage: string, stackTrace?: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return { error: "API Key missing" };
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
   const prompt = `
     You are a senior full-stack developer and system reliability engineer.
     Analyze the following error from the 'Hanja Tail' (한자 꼬리) application:
@@ -1418,8 +1373,8 @@ export async function getAIDiagnosis(errorMessage: string, stackTrace?: string) 
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    return JSON.parse(result.response.text());
+    const { text } = await generateText(prompt, { task: "background", label: "getAIDiagnosis" });
+    return extractJson(text);
   } catch (e) {
     console.error("AI Diagnosis Error:", e);
     return { error: "진단 중 오류가 발생했습니다." };
@@ -1449,10 +1404,6 @@ export async function analyzeRecentErrors() {
 
   const errorSummary = logs.map(l => `- [${l.created_at}] ${l.message}`).join('\n');
   
-  const apiKey = process.env.GEMINI_API_KEY;
-  const genAI = new GoogleGenerativeAI(apiKey!);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
   const prompt = `
     Analyze these recent system errors from 'Hanja Tail':
     ${errorSummary}
@@ -1462,9 +1413,9 @@ export async function analyzeRecentErrors() {
   `;
 
   try {
-    const result = await model.generateContent(prompt);
+    const { text } = await generateText(prompt, { task: "background", label: "analyzeRecentErrors" });
     return { 
-      summary: result.response.text(),
+      summary: text,
       logs: logs 
     };
   } catch {
@@ -1655,12 +1606,6 @@ export async function screenWords(words: string[]) {
 
   if (!words || words.length === 0) return { results: [] };
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return { error: "API Key missing" };
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
   const prompt = `
     다음은 초등학생용 한자 학습 서비스인 '한자 꼬리'에 등록하려는 후보 단어 목록입니다.
     이 단어들이 실제 한국어 사전(표준국어대사전 등)에 등재되어 널리 쓰이는 일반 명사인지, 아니면 AI 자가 증식 과정에서 어색하게 만들어진 조어(어색한 단어)인지를 정확하게 스크리닝하고 분류해줘.
@@ -1680,9 +1625,8 @@ export async function screenWords(words: string[]) {
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const jsonMatch = text.match(/\\[[\\s\\S]*\\]/);
+    const { text } = await generateText(prompt, { task: "background", label: "screenWords" });
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const parsedResults = JSON.parse(jsonMatch[0]);
       return { success: true, results: parsedResults };
@@ -2047,12 +1991,6 @@ export async function generateLearnQuestion(word: string, hanja?: string): Promi
   const hanjaStr = hanja || targetHanja;
   if (!baseWord) return { error: "단어가 없습니다." };
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return { error: "Gemini API 키가 설정되지 않았습니다." };
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
   const prompt = `
     You are writing a vocabulary question for Korean elementary school children.
     Target word: "${baseWord}"${hanjaStr ? ` (Hanja: ${hanjaStr})` : ""}.
@@ -2070,14 +2008,11 @@ export async function generateLearnQuestion(word: string, hanja?: string): Promi
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("JSON not found");
-    const data = JSON.parse(jsonMatch[0]) as { meaning?: string; correct?: string; wrong?: string[] };
+    const { text } = await generateText(prompt, { task: "realtime", label: "generateLearnQuestion" });
+    const data = extractJson(text);
 
     const correct = typeof data.correct === "string" ? data.correct.trim() : "";
-    const wrong = (Array.isArray(data.wrong) ? data.wrong : [])
+    const wrong = (Array.isArray(data.wrong) ? (data.wrong as unknown[]) : [])
       .filter((s): s is string => typeof s === "string" && s.includes(BLANK) && !s.includes(baseWord))
       .map((s) => s.trim())
       .slice(0, 3);
