@@ -8,6 +8,60 @@
   :root {
     --background: #ffffff;
     --foreground: #4b4b4b; /* duo-eel */
+
+    /* ── Nori 디자인 시스템 (Figma 변수 이름 그대로) ── */
+    --color-bg-brand: #f49000;
+    --color-border-brand: #ff8d28;
+    --color-shadow-brand: #ff5c02;
+    --color-text-on-brand: #f4eee7;
+    --color-text-brand: #f49000;
+    --color-text-coin: #fe9504;
+
+    --color-text-strong: #3c3c3c;
+    --color-text-primary: #4b4b4b;
+    --color-text-secondary: #666666;
+    --color-text-tertiary: #959595;
+    --color-text-placeholder: #cccccc;
+    --color-text-inverse: #ffffff;
+
+    --color-bg-surface: #ffffff;
+    --color-bg-subtle: #f4f4f4;
+    --color-bg-neutral: #cccccc;
+    --color-border-default: #ebebeb;
+    --color-shadow-default: #ebebeb;
+
+    --color-bg-selected: #d2effd;
+    --color-border-selected: #77d0fa;
+    --color-text-selected: #1cb0f6;
+
+    --color-bg-success: #58cc02;
+    --color-shadow-success: #58a700;
+    --color-bg-success-subtle: #d7ffb8;
+    --color-text-success: #58a700;
+
+    --color-bg-danger: #ff4b4b;
+    --color-shadow-danger: #ea2b2b;
+    --color-bg-danger-subtle: #ffdfe0;
+    --color-text-danger: #ea2b2b;
+
+    --color-bg-info-strong: #1cb0f6;
+    --color-shadow-info: #1899d6;
+
+    --color-bg-disabled: #e9e6e8;
+    --color-border-disabled: #e9e6e8;
+    --color-shadow-disabled: #b5b5b5;
+    --color-text-disabled: #b5b5b5;
+
+    --color-bg-locked: #e9e6e8;
+    --color-shadow-locked: #b5b5b5;
+
+    --color-progress-track: #e9e6e8;
+    --color-progress-fill: #f49000;
+    --color-progress-highlight: #ffe0b2;
+
+    --color-icon-default: #b0adb1;
+    --color-icon-muted: #777777;
+    --color-bg-scrim: rgba(20, 15, 13, 0.55);
   }
 
   body {

@@ -1,99 +1,54 @@
 import React from "react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
+/**
+ * Figma: Button (2:21)
+ * Style: Primary(오렌지)·Secondary(흰색)·Success(정답 초록)·Danger(오답 빨강)·Info(파랑)
+ * State: Default · Pressed(그림자 사라짐, 누를 때 자동) · Disabled
+ * Size: lg(가로 꽉 채움) · sm(내용에 맞춤). 모서리는 알약형.
+ */
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "sky" | "yellow" | "coral" | "outline" | "ghost";
-  size?: "sm" | "md" | "lg" | "xl";
-  isLoading?: boolean;
+  variant?: "primary" | "secondary" | "success" | "danger" | "info";
+  size?: "lg" | "sm";
   leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
 }
+
+const variantStyles = {
+  primary: "bg-nori-brand border border-nori-brand-border text-nori-on-brand shadow-nori-brand",
+  secondary:
+    "bg-nori-surface border-2 border-[var(--color-border-disabled)] text-[var(--color-text-brand)] shadow-nori-card active:translate-y-0.5",
+  success: "bg-nori-success border border-nori-success text-white shadow-nori-success",
+  danger: "bg-nori-danger border border-nori-danger text-white shadow-nori-danger",
+  info: "bg-nori-info border border-nori-info text-white shadow-nori-info",
+};
+
+// Secondary는 테두리가 2px라 위아래 여백을 2px 더 줘서 높이를 맞춥니다 (Figma 동일)
+const sizeStyles = {
+  lg: { base: "w-full py-3", secondary: "w-full py-[14px]" },
+  sm: { base: "py-2", secondary: "py-2" },
+};
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      className,
-      variant = "primary",
-      size = "md",
-      isLoading = false,
-      leftIcon,
-      rightIcon,
-      children,
-      disabled,
-      ...props
-    },
-    ref
-  ) => {
-    const baseStyles =
-      "relative inline-flex items-center justify-center font-bold transition-all duration-150 rounded-2xl active:translate-y-1 focus:outline-none select-none disabled:opacity-50 disabled:pointer-events-none disabled:transform-none cursor-pointer";
-
-    const variantStyles = {
-      primary:
-        "bg-duo-green text-white shadow-[0_4px_0_0_#46a302] hover:bg-duo-green-hover active:shadow-[0_0px_0_0_#46a302]",
-      secondary:
-        "bg-duo-snow text-duo-eel border-2 border-duo-swan shadow-[0_4px_0_0_#d4d4d4] hover:bg-white active:shadow-[0_0px_0_0_#d4d4d4]",
-      sky:
-        "bg-duo-macaw text-white shadow-[0_4px_0_0_#1899d6] hover:brightness-105 active:shadow-[0_0px_0_0_#1899d6]",
-      yellow:
-        "bg-duo-bee text-amber-950 shadow-[0_4px_0_0_#d9a700] hover:brightness-105 active:shadow-[0_0px_0_0_#d9a700]",
-      coral:
-        "bg-duo-cardinal text-white shadow-[0_4px_0_0_#d93838] hover:brightness-105 active:shadow-[0_0px_0_0_#d93838]",
-      outline:
-        "bg-transparent text-duo-wolf border-2 border-duo-swan hover:bg-duo-snow hover:text-duo-eel",
-      ghost:
-        "bg-transparent text-duo-wolf hover:bg-duo-snow hover:text-duo-eel",
-    };
-
-    const sizeStyles = {
-      sm: "px-3 py-1.5 text-sm gap-1.5 rounded-xl",
-      md: "px-5 py-2.5 text-base gap-2 rounded-2xl",
-      lg: "px-7 py-3.5 text-lg gap-2.5 rounded-2xl",
-      xl: "px-8 py-4 text-xl gap-3 rounded-3xl w-full",
-    };
-
+  ({ className, variant = "primary", size = "lg", leftIcon, children, disabled, ...props }, ref) => {
+    const pad = variant === "secondary" ? sizeStyles[size].secondary : sizeStyles[size].base;
     return (
       <button
         ref={ref}
-        disabled={disabled || isLoading}
-        className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
+        disabled={disabled}
+        className={cn(
+          "relative inline-flex items-center justify-center gap-2 px-4 rounded-full select-none border-solid",
+          "font-bold text-base leading-5 tracking-[2.5px] whitespace-nowrap",
+          "transition-[transform,box-shadow] duration-100 active:translate-y-1 active:shadow-none",
+          pad,
+          disabled
+            ? "bg-nori-disabled border border-[var(--color-border-disabled)] text-nori-disabled-text shadow-nori-disabled pointer-events-none"
+            : variantStyles[variant],
+          className
+        )}
         {...props}
       >
-        {isLoading ? (
-          <span className="flex items-center gap-2">
-            <svg
-              className="animate-spin h-5 w-5 text-current"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <span>로딩 중...</span>
-          </span>
-        ) : (
-          <>
-            {leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>}
-            <span>{children}</span>
-            {rightIcon && <span className="inline-flex shrink-0">{rightIcon}</span>}
-          </>
-        )}
+        {leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>}
+        {children}
       </button>
     );
   }

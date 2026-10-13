@@ -55,7 +55,7 @@ npm run dev
 
 [규칙]
 1. 위치: `src/components/ui/[컴포넌트이름].tsx`
-2. 스타일: tailwind.config.ts에 정의된 duo-* 컬러 토큰과 rounded-2xl/3xl을 사용해줘.
+2. 스타일: tailwind.config.ts에 정의된 nori-* 토큰(색·rounded-nori-*·shadow-nori-*)을 쓰고, src/components/ui/ 의 기존 컴포넌트(Button, ListItem, AnswerTile, Hero 등)를 먼저 재사용해줘.
 3. 로직 분리: 백엔드 API나 DB를 직접 호출하지 말고, 필요한 모든 데이터와 이벤트 핸들러(onClick 등)는 TypeScript Props로 전달받는 Presentational 컴포넌트로 작성해줘.
 4. 애니메이션: framer-motion 또는 tailwind animate를 적절히 활용해 생동감 있게 만들어줘.
 ```
@@ -91,14 +91,21 @@ git push origin design/새기능이름
 
 ---
 
-## 🎨 5. 디자인 시스템 주요 컬러 토큰 (Tailwind)
+## 🎨 5. Nori 디자인 시스템 토큰 (Tailwind)
+
+Figma **노리 디자인 시스템** 변수 이름 그대로 `src/app/globals.css`의 CSS 변수로 들어가 있고, Tailwind에서는 `nori-*`로 씁니다.
 
 | 클래스명 | 색상 코드 | 용도 |
 | :--- | :--- | :--- |
-| `bg-duo-green` / `text-duo-green` | `#58cc02` | 정답, 성공, 활성화 버튼 |
-| `bg-duo-macaw` / `text-duo-macaw` | `#1cb0f6` | 메인 브랜드 컬러, 스카이 블루 |
-| `bg-duo-bee` / `text-duo-bee` | `#ffc800` | 칭찬, 골드 뱃지, 주의 |
-| `bg-duo-cardinal` / `text-duo-cardinal` | `#ff4b4b` | 오답, 경고, 알림 |
-| `bg-duo-snow` | `#f7f7f7` | 부드러운 카드 배경 |
-| `border-duo-swan` | `#e5e5e5` | 3D 입체 테두리 및 구분선 |
-| `text-duo-eel` | `#4b4b4b` | 가독성 높은 메인 텍스트 |
+| `bg-nori-brand` / `shadow-nori-brand` | `#f49000` / `#ff5c02` | 메인 오렌지(CTA, 진행 바, 레슨 노드) |
+| `text-nori-strong` / `text-nori-primary` | `#3c3c3c` / `#4b4b4b` | 제목 / 본문 |
+| `text-nori-secondary` / `text-nori-tertiary` | `#666` / `#959595` | 보조 설명 / 캡션 |
+| `border-nori-border` / `shadow-nori-card` | `#ebebeb` | 카드 테두리와 아래 2px 그림자 |
+| `bg-nori-selected-bg` / `text-nori-selected` | `#d2effd` / `#1cb0f6` | 선택된 항목, 하단 탭 선택 |
+| `bg-nori-success` / `bg-nori-success-subtle` | `#58cc02` / `#d7ffb8` | 정답, 담음, 익힌 단어 |
+| `bg-nori-danger` / `bg-nori-danger-subtle` | `#ff4b4b` / `#ffdfe0` | 오답, 하트 |
+
+* 글꼴: 한글은 Pretendard, 라벨·숫자는 `font-nunito`
+* 모서리: `rounded-nori-md`(12) · `rounded-nori-lg`(16) · `rounded-nori-xl`(20) · `rounded-nori-sheet`(32), 버튼은 `rounded-full`
+* 이미지: 아이콘·캐릭터·물결 배경은 `public/nori/` (Figma에서 내보낸 원본)
+* 기존 화면이 아직 쓰는 `duo-*` 토큰은 각 화면을 Nori로 옮긴 뒤 지웁니다.
