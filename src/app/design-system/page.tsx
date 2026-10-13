@@ -192,7 +192,7 @@ export default function DesignSystemPage() {
               <StatCounter type="heart" value={5} />
             </div>
             <div className="flex gap-2.5">
-              <StatCard icon={<NoriIcon name="star" size={23} />} value="+10" label="경험치 XP" />
+              <StatCard icon={<span className="flex size-[23px] items-center justify-center rounded-full bg-nori-brand"><NoriIcon name="star" size={15} /></span>} value="+10" label="경험치 XP" />
               <StatCard icon={<NoriIcon name="coin" size={23} />} value="+5" label="도토리" />
               <StatCard icon={<NoriIcon name="flame" />} value="13일" label="연속 학습 +1" />
             </div>
@@ -311,7 +311,7 @@ export default function DesignSystemPage() {
                 <p className="text-base font-medium leading-6 tracking-[-0.16px] text-nori-secondary">오늘의 단어 1개를 익혔어요</p>
                 <DailyProgress words={MOCK_DAILY_WORDS.slice(0, 1)} />
                 <div className="flex w-full gap-2.5">
-                  <StatCard icon={<NoriIcon name="star" size={23} />} value="+10" label="경험치 XP" />
+                  <StatCard icon={<span className="flex size-[23px] items-center justify-center rounded-full bg-nori-brand"><NoriIcon name="star" size={15} /></span>} value="+10" label="경험치 XP" />
                   <StatCard icon={<NoriIcon name="coin" size={23} />} value="+5" label="도토리" />
                   <StatCard icon={<NoriIcon name="flame" />} value="13일" label="연속 학습 +1" />
                 </div>

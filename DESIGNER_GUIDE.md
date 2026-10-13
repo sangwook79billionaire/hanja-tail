@@ -35,6 +35,7 @@ npm run dev
 ### 🟢 마음껏 수정/생성 가능한 폴더 (Safe Zones)
 * **`src/components/ui/`**: 버튼, 카드, 뱃지, 입력창, 모달 등 순수 UI 컴포넌트
 * **`src/app/design-system/page.tsx`**: 디자이너 전용 UI 미리보기 페이지 (새로 만든 컴포넌트를 여기에 추가해서 테스트)
+* **`src/app/design-system/flow/page.tsx`**: 단어 학습 흐름(W01 검색 ~ R01 결과)을 가짜 데이터로 처음부터 끝까지 눌러 보는 페이지 (`/design-system/flow`)
 * **`src/mock/designMockData.ts`**: UI 테스트용 가짜 데이터 (퀴즈 샘플, 한자 카드 샘플 등)
 * **`tailwind.config.ts`**: 피그마에서 정의한 색상, 그림자, 폰트, 애니메이션 토큰
 

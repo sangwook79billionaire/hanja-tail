@@ -14,6 +14,8 @@ const ICONS = {
   "check-large": { w: 40, h: 40 },
   "x-white": { w: 32, h: 32 },
   close: { w: 32, h: 32 },
+  back: { w: 32, h: 32 },
+  "close-gray": { w: 16, h: 16 },
   "close-small": { w: 12, h: 12 },
   lock: { w: 24, h: 24 },
   bundle: { w: 24, h: 24 },

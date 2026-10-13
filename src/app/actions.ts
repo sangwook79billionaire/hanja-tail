@@ -2029,3 +2029,77 @@ export async function getAdminUserLearningStats() {
 
 
 
+/**
+ * [Nori 익히기 문제 · L1] 단어가 들어갈 알맞은 문장 고르기.
+ * 단어 한 개에 대해 쉬운 뜻풀이와, 빈칸(＿＿＿) 문장 4개(정답 1개)를 만듭니다.
+ * 기존 함수와 테이블은 건드리지 않습니다. (아직 캐시 없음: 호출마다 Gemini 1회)
+ */
+export interface LearnQuestion {
+  meaning: string;
+  sentences: string[];
+  answerIndex: number;
+}
+
+const BLANK = "＿＿＿";
+
+export async function generateLearnQuestion(word: string, hanja?: string): Promise<{ question?: LearnQuestion; error?: string }> {
+  const { baseWord, targetHanja } = normalizeWordWithHanja(word);
+  const hanjaStr = hanja || targetHanja;
+  if (!baseWord) return { error: "단어가 없습니다." };
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return { error: "Gemini API 키가 설정되지 않았습니다." };
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const prompt = `
+    You are writing a vocabulary question for Korean elementary school children.
+    Target word: "${baseWord}"${hanjaStr ? ` (Hanja: ${hanjaStr})` : ""}.
+
+    1. "meaning": a short, child-friendly Korean definition of the target word (under 25 characters, no Hanja, no ending period).
+    2. "correct": ONE short, natural Korean sentence (under 22 characters) that uses the target word in its correct meaning.
+       Write the target word exactly as "${baseWord}" so it can be replaced by a blank. Use the particle that fits "${baseWord}".
+    3. "wrong": THREE short Korean sentences (under 22 characters each) with a blank written exactly as "${BLANK}".
+       Each must be natural with some OTHER everyday word in the blank, but must NOT make sense with "${baseWord}" in the blank.
+       Do not include "${baseWord}" in these sentences.
+    4. All sentences must be safe, positive and about everyday life of children.
+
+    Return ONLY JSON:
+    { "meaning": "string", "correct": "string", "wrong": ["string", "string", "string"] }
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("JSON not found");
+    const data = JSON.parse(jsonMatch[0]) as { meaning?: string; correct?: string; wrong?: string[] };
+
+    const correct = typeof data.correct === "string" ? data.correct.trim() : "";
+    const wrong = (Array.isArray(data.wrong) ? data.wrong : [])
+      .filter((s): s is string => typeof s === "string" && s.includes(BLANK) && !s.includes(baseWord))
+      .map((s) => s.trim())
+      .slice(0, 3);
+
+    if (!correct.includes(baseWord) || wrong.length < 3) {
+      return { error: "문제를 만들지 못했어요." };
+    }
+
+    const correctWithBlank = correct.replace(baseWord, BLANK);
+    const answerIndex = Math.floor(Math.random() * 4);
+    const sentences = [...wrong];
+    sentences.splice(answerIndex, 0, correctWithBlank);
+
+    return {
+      question: {
+        meaning: (data.meaning || "").trim(),
+        sentences,
+        answerIndex,
+      },
+    };
+  } catch (error) {
+    console.error("generateLearnQuestion error:", error);
+    return { error: "문제를 만드는 중 오류가 발생했어요." };
+  }
+}

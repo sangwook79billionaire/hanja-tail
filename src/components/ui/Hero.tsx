@@ -12,6 +12,11 @@ const BLOBS = {
   "mint-lg": { src: "/nori/blobs/blob-mint-lg.svg", w: 190, h: 180 },
   yellow: { src: "/nori/blobs/blob-yellow.svg", w: 260, h: 220 },
   "yellow-wide": { src: "/nori/blobs/blob-yellow-wide.svg", w: 267, h: 150 },
+  "yellow-xl": { src: "/nori/blobs/blob-yellow-xl.svg", w: 320, h: 260 },
+  "mint-xl": { src: "/nori/blobs/blob-mint-xl.svg", w: 250, h: 200 },
+  "peach-xl": { src: "/nori/blobs/blob-peach-xl.svg", w: 300, h: 230 },
+  blue: { src: "/nori/blobs/blob-blue.svg", w: 140, h: 120 },
+  lavender: { src: "/nori/blobs/blob-lavender.svg", w: 104, h: 94 },
 } as const;
 
 const CHARACTERS = {
@@ -20,6 +25,8 @@ const CHARACTERS = {
   "dori-thumbsup": { src: "/nori/characters/dori-thumbsup.svg", w: 97.638, h: 92 },
   "dori-celebrate": { src: "/nori/characters/dori-celebrate.svg", w: 174.548, h: 159.88 },
   "dori-scholar": { src: "/nori/characters/dori-scholar.svg", w: 130.39, h: 139.906 },
+  "dori-explorer": { src: "/nori/characters/dori-explorer.svg", w: 200.236, h: 169.942 },
+  "dori-writer": { src: "/nori/characters/dori-writer.svg", w: 120.221, h: 91.9633 },
   "mung-sad": { src: "/nori/characters/mung-sad.png", w: 197.083, h: 110 },
 } as const;
 

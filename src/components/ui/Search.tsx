@@ -16,7 +16,8 @@ export const SearchInput = React.forwardRef<HTMLInputElement, React.InputHTMLAtt
       <input
         ref={ref}
         type="search"
-        className="min-w-0 flex-1 bg-transparent font-nunito text-lg font-black leading-7 text-nori-strong placeholder:text-nori-placeholder outline-none"
+          autoComplete="off"
+        className="min-w-0 flex-1 bg-transparent font-nunito text-lg font-black leading-7 text-nori-strong placeholder:text-nori-placeholder outline-none [&::-webkit-search-cancel-button]:appearance-none"
         {...props}
       />
     </label>
@@ -69,10 +70,22 @@ export interface WordCardProps {
   meaning: string;
   added?: boolean;
   onAdd?: () => void;
+  /** 버튼 문구 (기본: Figma의 "+ 맵에 추가" / "✓ 담음") */
+  actionLabel?: string;
+  doneLabel?: string;
   className?: string;
 }
 
-export function WordCard({ hanja, word, meaning, added, onAdd, className }: WordCardProps) {
+export function WordCard({
+  hanja,
+  word,
+  meaning,
+  added,
+  onAdd,
+  actionLabel = "+ 맵에 추가",
+  doneLabel = "✓ 담음",
+  className,
+}: WordCardProps) {
   return (
     <div
       className={cn(
@@ -105,7 +118,7 @@ export function WordCard({ hanja, word, meaning, added, onAdd, className }: Word
             : "border-nori-brand-border bg-nori-brand text-nori-on-brand shadow-nori-brand"
         )}
       >
-        {added ? "✓ 담음" : "+ 맵에 추가"}
+        {added ? doneLabel : actionLabel}
       </button>
     </div>
   );

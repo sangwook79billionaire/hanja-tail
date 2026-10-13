@@ -2,20 +2,22 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { NoriIcon } from "./NoriIcon";
 
-/** Figma: Top Nav / Progress (4:56) — 닫기(X) + 진행 바 */
+/** Figma: Top Nav / Progress (4:56) — 뒤로가기(←) 또는 닫기(X) + 진행 바 */
 export interface ProgressNavProps {
   /** 0~1 */
   progress: number;
   onClose?: () => void;
+  /** 단어 찾기 흐름은 back(←), 문제 풀이는 close(X) */
+  icon?: "close" | "back";
   className?: string;
 }
 
-export function ProgressNav({ progress, onClose, className }: ProgressNavProps) {
+export function ProgressNav({ progress, onClose, icon = "close", className }: ProgressNavProps) {
   const pct = Math.max(0, Math.min(1, progress)) * 100;
   return (
     <div className={cn("flex h-16 w-full items-center gap-4 bg-nori-surface py-4 pl-[18px] pr-[22px]", className)}>
-      <button type="button" onClick={onClose} aria-label="닫기" className="shrink-0">
-        <NoriIcon name="close" />
+      <button type="button" onClick={onClose} aria-label={icon === "back" ? "뒤로" : "닫기"} className="shrink-0">
+        <NoriIcon name={icon} />
       </button>
       <div
         role="progressbar"

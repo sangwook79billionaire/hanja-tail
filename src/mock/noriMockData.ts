@@ -35,3 +35,44 @@ export const MOCK_DAILY_WORDS = [
 ];
 
 export const MOCK_SIGNUP_SOURCES = ["네이버", "뉴스/블로그/기사", "YouTube", "인스타그램", "가족/친구"];
+
+/** 단어 학습 흐름 미리보기(/design-system/flow)용 */
+export const MOCK_FLOW_WORDS: Record<
+  string,
+  { hanjaList: { char: string; meaning: string; sound: string }[]; meaning: string; sentences: string[] }
+> = {
+  원리: {
+    hanjaList: [
+      { char: "原", meaning: "근원", sound: "원" },
+      { char: "理", meaning: "이치", sound: "리" },
+    ],
+    meaning: "사물의 근본이 되는 이치",
+    sentences: MOCK_LEARN_QUESTION.sentences,
+  },
+  관찰: {
+    hanjaList: [
+      { char: "觀", meaning: "볼", sound: "관" },
+      { char: "察", meaning: "살필", sound: "찰" },
+    ],
+    meaning: "자세히 살펴봄",
+    sentences: [
+      "개미를 돋보기로 ＿＿＿했어요.",
+      "엄마와 ＿＿＿에 가서 빵을 샀어요.",
+      "친구에게 ＿＿＿ 선물을 줬어요.",
+      "비가 와서 ＿＿＿을 썼어요.",
+    ],
+  },
+  협동: {
+    hanjaList: [
+      { char: "協", meaning: "화할", sound: "협" },
+      { char: "同", meaning: "한가지", sound: "동" },
+    ],
+    meaning: "서로 마음과 힘을 합함",
+    sentences: [
+      "친구들과 ＿＿＿해서 탑을 쌓았어요.",
+      "아침에 ＿＿＿을 먹고 학교에 갔어요.",
+      "강아지가 ＿＿＿을 흔들어요.",
+      "겨울에는 ＿＿＿가 내려요.",
+    ],
+  },
+};

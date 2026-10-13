@@ -36,8 +36,9 @@ export function StatCounter({ type, value, onClick, className }: StatCounterProp
 export interface TopNavStatsProps {
   subject: string;
   streak: number;
-  coins: number;
-  hearts: number;
+  /** 아직 서버에 없는 값은 생략하면 표시하지 않습니다 */
+  coins?: number;
+  hearts?: number;
   onSubjectClick?: () => void;
   onHeartsClick?: () => void;
   subjectOpen?: boolean;
@@ -71,8 +72,8 @@ export function TopNavStats({
         {subject}
       </button>
       <StatCounter type="streak" value={streak} />
-      <StatCounter type="coin" value={coins} />
-      <StatCounter type="heart" value={hearts} onClick={onHeartsClick} />
+      {coins !== undefined && <StatCounter type="coin" value={coins} />}
+      {hearts !== undefined && <StatCounter type="heart" value={hearts} onClick={onHeartsClick} />}
     </div>
   );
 }

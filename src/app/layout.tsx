@@ -16,8 +16,8 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "꼬리에 꼬리를 무는 漢字",
-  description: "아이들을 위한 즐거운 한자 꼬리잡기 학습 앱",
+  title: "노리 · 한자 단어 탐험",
+  description: "노리와 함께 궁금한 단어 속 한자를 찾고, 써 보고, 익히는 어린이 학습 앱",
   manifest: "/manifest.json",
 };
 
@@ -29,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${myeongjo.variable} ${nunito.variable} antialiased min-h-screen bg-duo-snow flex flex-col items-center`}>
-        <main className="w-full max-w-md bg-white min-h-screen shadow-sm flex flex-col relative overflow-x-hidden">
+        <main className="w-full max-w-md bg-white min-h-screen shadow-sm flex flex-col relative overflow-x-clip">
           {children}
         </main>
       </body>
